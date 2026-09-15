@@ -20,7 +20,7 @@ const HERO_BANNER_SLIDES: HeroBannerSlide[] = [
   {
     id: 'tshirts',
     title: 'Customized T-Shirts With Your Company Logo',
-    link: `${ROUTES.PRODUCTS}?search=t-shirts`,
+    link: `${ROUTES.PRODUCTS}?category=t-shirts`,
     image: '/images/banners/banner-tshirts-logo.jpg',
     alt: 'Customized T-Shirts With Your Company Logo - Polo and Round Neck Custom Apparel',
     tag: 'T-Shirts & Apparel',
@@ -28,7 +28,7 @@ const HERO_BANNER_SLIDES: HeroBannerSlide[] = [
   {
     id: 'business-cards',
     title: 'Executive Business Cards & Stationery',
-    link: `${ROUTES.PRODUCTS}?search=business+cards`,
+    link: `${ROUTES.PRODUCTS}?category=business-cards`,
     image: '/images/banners/banner-business-cards.jpg',
     alt: 'Premium Matte, Glossy & Textured Business Cards with Custom Foiling',
     tag: 'Business Cards',
@@ -36,7 +36,7 @@ const HERO_BANNER_SLIDES: HeroBannerSlide[] = [
   {
     id: 'logo-signs',
     title: '3D Acrylic & LED Business Logo Signs',
-    link: `${ROUTES.PRODUCTS}?search=logo`,
+    link: `${ROUTES.PRODUCTS}?category=logo`,
     image: '/images/banners/banner-logo-signs.jpg',
     alt: '3D Laser-Cut Acrylic and Illuminated Business Logo Signs',
     tag: 'Logo & Signage',
@@ -44,7 +44,7 @@ const HERO_BANNER_SLIDES: HeroBannerSlide[] = [
   {
     id: 'mugs',
     title: 'Custom Printed Ceramic Coffee Mugs',
-    link: `${ROUTES.PRODUCTS}?search=mugs`,
+    link: `${ROUTES.PRODUCTS}?category=mugs`,
     image: '/images/banners/banner-mugs.jpg',
     alt: 'Vibrant Full-Colour Custom Ceramic Mugs for Gifts & Office',
     tag: 'Custom Mugs',
@@ -52,7 +52,7 @@ const HERO_BANNER_SLIDES: HeroBannerSlide[] = [
   {
     id: 'name-plates',
     title: 'Designer Acrylic & Brass Name Plates',
-    link: `${ROUTES.PRODUCTS}?search=name+plates`,
+    link: `${ROUTES.PRODUCTS}?category=name-plates`,
     image: '/images/banners/banner-name-plates.jpg',
     alt: 'Modern Laser-Engraved Door & Desk Name Plates',
     tag: 'Name Plates',
@@ -77,7 +77,7 @@ export function HomeHero() {
 
     timerRef.current = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % HERO_BANNER_SLIDES.length)
-    }, 3600)
+    }, 2700)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)

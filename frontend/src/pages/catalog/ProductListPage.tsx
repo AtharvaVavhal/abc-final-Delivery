@@ -24,6 +24,7 @@ import { CategoryShowcaseGrid } from '@/components/catalog/CategoryShowcaseGrid'
 import { CraftPillars } from '@/components/home/CraftPillars'
 import { CraftImpactBar } from '@/components/home/CraftImpactBar'
 import { resolveCoreCategory } from '@/components/catalog/categoryData'
+import { formatCategoryName } from '@/utils/formatCategoryName'
 import gridStyles from '@/features/catalog/ProductGrid.module.css'
 import type { ListProductsParams } from '@/types/catalog'
 import styles from './ProductListPage.module.css'
@@ -103,8 +104,12 @@ export function ProductListPage() {
         search.toLowerCase().includes('apparel'))),
   )
 
-  const pageTitle = activeCategory
-    ? activeCategory.name
+  const formattedCategoryName = activeCategory
+    ? formatCategoryName(activeCategory.name)
+    : undefined
+
+  const pageTitle = formattedCategoryName
+    ? formattedCategoryName
     : isCoreCategoryMatch
       ? coreCategory.title
       : search
@@ -117,7 +122,7 @@ export function ProductListPage() {
       ? { label: 'All products', to: ROUTES.PRODUCTS }
       : { label: 'All products' },
     ...categoryPath.map((node, index) => ({
-      label: node.name,
+      label: formatCategoryName(node.name),
       to:
         index === categoryPath.length - 1
           ? undefined
@@ -149,8 +154,8 @@ export function ProductListPage() {
     : categoryParam
       ? `${ROUTES.PRODUCTS}?category=${categoryParam}`
       : ROUTES.PRODUCTS
-  const seoDescription = activeCategory
-    ? `Shop ${activeCategory.name} at PrintForge — custom-printed, made to order.`
+  const seoDescription = formattedCategoryName
+    ? `Shop ${formattedCategoryName} at PrintForge — custom-printed, made to order.`
     : isCoreCategoryMatch
       ? `${coreCategory.title} at PrintForge — ${coreCategory.subtitle}`
       : 'Browse every product in the PrintForge catalog. Personalize and order custom prints made to order.'

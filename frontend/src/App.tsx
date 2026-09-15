@@ -36,6 +36,7 @@ import { AdminCouponsPage } from '@/pages/admin/AdminCouponsPage'
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
 import { ForbiddenPage } from '@/pages/forbidden/ForbiddenPage'
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage'
+import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { ROUTES } from '@/constants/routes'
 
 /**
@@ -52,6 +53,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route element={<RootLayout />}>
               {/* Public routes */}
