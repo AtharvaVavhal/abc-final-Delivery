@@ -75,6 +75,11 @@ describe('ProductCard', () => {
     expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument()
   })
 
+  it('omits the rating line when the product has no reviews', () => {
+    renderWithProviders(<ProductCard product={buildProduct({ reviewCount: 0 })} />)
+    expect(screen.queryByText('No reviews yet')).not.toBeInTheDocument()
+  })
+
   it('falls back to the placeholder when the image fails to load', () => {
     const product = buildProduct({
       images: [

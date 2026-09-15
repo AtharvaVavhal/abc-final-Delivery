@@ -61,7 +61,9 @@ export function ProductCard({
         <Link to={productDetailPath(product.slug)} className={styles.nameLink}>
           <NameHeading className={styles.name}>{product.name}</NameHeading>
         </Link>
-        <StarRating avgRating={product.avgRating} reviewCount={product.reviewCount} compact />
+        {product.reviewCount > 0 && (
+          <StarRating avgRating={product.avgRating} reviewCount={product.reviewCount} compact />
+        )}
         <p className={styles.price}>
           {product.variants.length > 0 ? 'From ' : ''}
           {formatPrice(product.basePrice)}
