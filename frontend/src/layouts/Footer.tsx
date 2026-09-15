@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Printer } from 'lucide-react'
 import { ROUTES } from '@/constants/routes'
 import { useStoreName } from '@/hooks/useStoreName'
 import styles from './Footer.module.css'
@@ -42,9 +43,13 @@ export function Footer() {
         <div className={styles.top}>
           <div className={styles.brandBlock}>
             <Link to={ROUTES.HOME} className={styles.brand}>
-              {storeName}
+              <span className={styles.brandIcon} aria-hidden="true">
+                <Printer size={18} strokeWidth={2.2} />
+              </span>
+              <span>{storeName}</span>
             </Link>
             <p className={styles.tagline}>Custom prints, made to order.</p>
+            <p className={styles.studioMotto}>Handcrafted in our local print studio. Precision quality on every order.</p>
           </div>
 
           <nav className={styles.columns} aria-label="Footer">

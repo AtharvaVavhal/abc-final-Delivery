@@ -27,23 +27,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   height: 100%;
-  min-height: 132px;
-  padding: var(--space-5) var(--space-3);
+  min-height: 156px;
+  padding: var(--space-5) var(--space-3) var(--space-4);
   text-align: center;
   text-decoration: none;
   color: var(--color-text-strong);
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1),
+    border-color var(--transition-base) ease,
+    box-shadow var(--transition-base) ease;
 }
 
 .card:hover,
 .card:focus-visible {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-4px);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: var(--shadow-md);
   outline: none;
 }
 
@@ -51,14 +55,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-bg);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  color: var(--color-accent);
+  color: var(--color-text-strong);
   font-size: var(--text-lg);
   font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 6px rgb(15 23 42 / 4%);
+  transition: transform var(--transition-fast) ease, background var(--transition-fast) ease, color var(--transition-fast) ease, border-color var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+}
+
+.card:hover .mark {
+  background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e293b 100%);
+  color: var(--color-amber-primary);
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%), 0 0 12px rgb(245 158 11 / 18%);
+  transform: scale(1.08);
 }
 
 .name {
@@ -67,8 +81,19 @@
   line-height: 1.3;
 }
 
+.browsePill {
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-subtle);
+  transition: color var(--transition-fast) ease;
+}
+
+.card:hover .browsePill {
+  color: var(--color-primary);
+}
+
 .skeletonCard {
-  height: 132px;
+  height: 152px;
   border-radius: var(--radius-lg);
 }
 

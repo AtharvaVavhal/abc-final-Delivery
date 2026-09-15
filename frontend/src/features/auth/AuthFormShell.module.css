@@ -1,27 +1,36 @@
 .wrap {
   display: flex;
   justify-content: center;
-  padding: 3rem var(--container-padding);
+  align-items: center;
+  min-height: calc(100vh - 260px);
+  padding: 3.5rem var(--container-padding);
+  background: radial-gradient(ellipse at 50% 30%, rgb(245 158 11 / 6%) 0%, transparent 60%), var(--color-canvas);
 }
 
 .card {
   width: 100%;
-  max-width: 400px;
-  padding: 2rem;
+  max-width: 420px;
+  padding: 2.5rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-top: 3px solid var(--color-amber-primary);
+  border-radius: var(--radius-xl);
   background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
 }
 
 .title {
-  font-size: 1.5rem;
+  font-size: 1.65rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
   margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
   color: var(--color-text-muted);
   font-size: 0.9375rem;
   margin-bottom: 1.5rem;
+  line-height: 1.5;
 }
 
 .footer {

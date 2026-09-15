@@ -121,7 +121,7 @@ export function CustomizationFieldManager({
       {fields.length === 0 ? (
         <AdminEmptyState
           title="No customization fields yet"
-          description="Add a field to let customers personalise this product at checkout."
+          description="Add a field to let customers personalize this product at checkout."
         />
       ) : (
         <AdminCard flush>

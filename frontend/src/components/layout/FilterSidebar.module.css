@@ -6,7 +6,8 @@
   padding: var(--space-5);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
   width: 280px;
 }
@@ -97,9 +98,10 @@
 }
 
 .categoryButtonActive {
-  background: var(--color-surface);
-  border-color: var(--color-accent);
-  color: var(--color-text-strong);
+  background: var(--color-craft-bg);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: var(--color-craft);
+  font-weight: var(--font-weight-bold);
 }
 
 .helperText {
@@ -275,4 +277,113 @@
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* ============================================================
+ * Panel Variant (Full-width expandable filter panel)
+ * ============================================================ */
+.panel {
+  position: static;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 1.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.doneBtn {
+  font-size: var(--text-xs);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+}
+
+.panel .form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.panel .categoryStack {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel .categoryButton {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast) ease;
+}
+
+.panel .categoryButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.panel .categoryButtonActive {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--color-primary-glow);
+}
+
+.panel .categoryButtonActive:hover {
+  background: var(--gradient-primary-hover);
+  color: #ffffff;
+}
+
+.panel .subCategoryPills {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.panel .subPill {
+  width: auto;
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 11px;
+}
+
+.panel .subPillActive {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--color-primary-glow);
+}
+
+.panel .ratingOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel .priceInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .panel .form {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
 }

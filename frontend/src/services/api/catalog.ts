@@ -42,11 +42,17 @@ import { apiClient } from './client'
 
 export async function fetchCategories(): Promise<Category[]> {
   const res = await apiClient.get<ApiSuccessResponse<Category[]>>('/categories')
+  if (res.data?.data === undefined) {
+    throw new Error('Failed to load categories: response data is missing')
+  }
   return res.data.data
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
   const res = await apiClient.get<ApiSuccessResponse<CategoryTreeNode[]>>('/categories/tree')
+  if (res.data?.data === undefined) {
+    throw new Error('Failed to load category tree: response data is missing')
+  }
   return res.data.data
 }
 

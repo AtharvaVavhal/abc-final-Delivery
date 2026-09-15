@@ -23,3 +23,26 @@ export function findCategoryPath(
 
   return []
 }
+
+/**
+ * Finds the category node whose slug matches `slug` (e.g. the "t-shirts"
+ * in `?category=t-shirts` links from CategoryStoryBar/Header/marketing
+ * cards). Returns undefined for a marketing sub-filter keyword ("3d",
+ * "navy", ...) that isn't a real category slug — callers fall back to a
+ * text-search approximation in that case.
+ */
+export function findCategoryBySlug(
+  nodes: CategoryTreeNode[],
+  slug?: string,
+): CategoryTreeNode | undefined {
+  if (!slug) return undefined
+
+  for (const node of nodes) {
+    if (node.slug === slug) return node
+
+    const match = findCategoryBySlug(node.children, slug)
+    if (match) return match
+  }
+
+  return undefined
+}

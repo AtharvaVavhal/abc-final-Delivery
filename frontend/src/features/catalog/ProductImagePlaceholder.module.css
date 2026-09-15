@@ -1,11 +1,46 @@
 .placeholder {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: var(--color-surface);
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, var(--color-surface) 100%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--color-text-muted);
+  overflow: hidden;
+}
+
+.vectorArt {
+  width: 72%;
+  height: 72%;
+  max-width: 180px;
+  max-height: 180px;
+  transition: transform var(--transition-base) ease;
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.08));
+}
+
+.placeholder:hover .vectorArt {
+  transform: scale(1.04);
+}
+
+.overlayTag {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  background: rgba(255, 251, 235, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--color-craft-border);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-craft);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(180, 83, 9, 0.1);
 }

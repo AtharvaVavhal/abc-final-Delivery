@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { ShoppingCart, Menu, X, User } from 'lucide-react'
+import { ShoppingCart, Menu, X, User, Package, ShieldCheck, Clock, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
 import { useCategoryTree } from '@/hooks/useCategoryTree'
@@ -9,10 +9,18 @@ import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { LogoutButton } from '@/features/auth/LogoutButton'
 import { CurrencySelector } from '@/components/layout/CurrencySelector'
-import { MegaMenuBar } from '@/components/layout/MegaMenu'
 import { CategoryAccordion } from '@/components/layout/CategoryAccordion'
 import { HeaderSearch } from './HeaderSearch'
 import styles from './Header.module.css'
+
+const UVPIXEL_DIRECT_LINKS = [
+  { label: 'All Products', to: ROUTES.PRODUCTS, categoryKey: null },
+  { label: 'Business Cards', to: `${ROUTES.PRODUCTS}?category=business-cards`, categoryKey: 'business-cards' },
+  { label: 'Logo', to: `${ROUTES.PRODUCTS}?category=logo`, categoryKey: 'logo' },
+  { label: 'Mugs', to: `${ROUTES.PRODUCTS}?category=mugs`, categoryKey: 'mugs' },
+  { label: 'Name Plates', to: `${ROUTES.PRODUCTS}?category=name-plates`, categoryKey: 'name-plates' },
+  { label: 'T-Shirts', to: `${ROUTES.PRODUCTS}?category=t-shirts`, categoryKey: 't-shirts' },
+]
 
 export function Header() {
   const { user, status } = useAuth()
@@ -20,7 +28,23 @@ export function Header() {
   const { data: categoryTree, isLoading: treeLoading } = useCategoryTree()
   const storeName = useStoreName()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
+
+  // Track active navigation link accurately by URL pathname & search query parameters
+  const searchParams = new URLSearchParams(location.search)
+  const currentCategoryParam = (searchParams.get('category') || searchParams.get('categoryId') || '').toLowerCase().trim()
+  const currentSearchParam = (searchParams.get('search') || '').toLowerCase().trim()
+  const isProductsCatalog = location.pathname === ROUTES.PRODUCTS
+
+  const isNavLinkActive = (categoryKey: string | null) => {
+    if (!isProductsCatalog) return false
+    if (categoryKey === null) {
+      return !currentCategoryParam && !currentSearchParam
+    }
+    const targetKey = categoryKey.toLowerCase()
+    return currentCategoryParam === targetKey || (!currentCategoryParam && currentSearchParam === targetKey)
+  }
 
   // "Sign up" carries the current page as `state.from` so a customer who
   // registers from the storefront chrome returns to where they were, the
@@ -50,7 +74,15 @@ export function Header() {
         </button>
 
         <NavLink to={ROUTES.HOME} className={styles.brand} aria-label={`${storeName} home`}>
-          {storeName}
+          <div className={styles.uvLogoFrame}>
+            <span className={styles.brandIcon} aria-hidden="true">
+              <span className={styles.uvDiamond}>
+                <span className={styles.uvDiamondDot} />
+              </span>
+            </span>
+            <span className={styles.brandText}>{storeName}</span>
+          </div>
+          <span className={styles.trademark} aria-hidden="true">&reg;</span>
         </NavLink>
 
         <HeaderSearch variant="bar" />
@@ -103,11 +135,88 @@ export function Header() {
       {/* Bottom navigation row - Desktop category menu */}
       <nav className={styles.navRowDesktop} aria-label="Product categories">
         <div className={styles.navInnerDesktop}>
-          {treeLoading ? (
-            <div className={styles.navSkeleton} aria-hidden="true" />
-          ) : (
-            <MegaMenuBar categories={categories} />
-          )}
+          <div className={styles.navCategoriesGroup}>
+            {treeLoading ? (
+              <div className={styles.navSkeleton} aria-hidden="true" />
+            ) : (
+              <ul className={styles.uvpixelDirectNav}>
+                {UVPIXEL_DIRECT_LINKS.map((link) => {
+                  const isActive = isNavLinkActive(link.categoryKey)
+                  return (
+                    <li key={link.label}>
+                      <NavLink
+                        to={link.to}
+                        className={cn(styles.uvDirectLink, isActive && styles.uvDirectLinkActive)}
+                      >
+                        {link.label}
+                      </NavLink>
+                    </li>
+                  )
+                })}
+                {categories.length > 0 && (
+                  <li
+                    className={styles.moreCategoriesItem}
+                    onMouseEnter={() => setMoreOpen(true)}
+                    onMouseLeave={() => setMoreOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      className={cn(styles.uvDirectLink, styles.moreBtn, moreOpen && styles.uvDirectLinkActive)}
+                      onClick={() => setMoreOpen((prev) => !prev)}
+                      aria-expanded={moreOpen}
+                      aria-haspopup="true"
+                    >
+                      <span>More Categories</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(styles.moreChevron, moreOpen && styles.moreChevronOpen)}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {moreOpen && (
+                      <div className={styles.moreDropdownMenu} role="menu">
+                        <NavLink
+                          to={ROUTES.PRODUCTS}
+                          className={styles.dropdownCategoryLink}
+                          onClick={() => setMoreOpen(false)}
+                          role="menuitem"
+                        >
+                          All Products
+                        </NavLink>
+                        {categories.map((cat) => (
+                          <NavLink
+                            key={cat.id}
+                            to={`${ROUTES.PRODUCTS}?categoryId=${encodeURIComponent(cat.id)}`}
+                            className={styles.dropdownCategoryLink}
+                            onClick={() => setMoreOpen(false)}
+                            role="menuitem"
+                          >
+                            {cat.name}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+          <div className={styles.navDesktopPerks} aria-label="Studio guarantees">
+            <NavLink to={ROUTES.ORDERS} className={styles.perkLink}>
+              <Package size={14} className={styles.perkIcon} aria-hidden="true" />
+              <span>Track Orders</span>
+            </NavLink>
+            <span className={styles.perkDivider} aria-hidden="true" />
+            <div className={styles.perkItem}>
+              <ShieldCheck size={14} className={styles.perkIconAmber} aria-hidden="true" />
+              <span>Free Delivery</span>
+            </div>
+            <span className={styles.perkDivider} aria-hidden="true" />
+            <div className={styles.perkItem}>
+              <Clock size={14} className={styles.perkIcon} aria-hidden="true" />
+              <span>48–72h Turnaround</span>
+            </div>
+          </div>
         </div>
       </nav>
 

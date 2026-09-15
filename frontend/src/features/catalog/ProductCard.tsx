@@ -29,6 +29,8 @@ export function ProductCard({
   // per-variant stock concept, so this only applies when variants exist.
   const isUnavailable =
     product.variants.length > 0 && product.variants.every((v) => !v.isAvailable);
+  const isCustomizable =
+    !isUnavailable && product.customizationFields && product.customizationFields.length > 0;
 
   return (
     <article className={cn(styles.card, isUnavailable && styles.unavailable)}>
@@ -38,6 +40,9 @@ export function ProductCard({
         </Link>
         {isUnavailable && (
           <span className={styles.unavailableBadge}>Currently unavailable</span>
+        )}
+        {isCustomizable && (
+          <span className={styles.customBadge}>Customizable</span>
         )}
         {onQuickView && (
           <IconButton

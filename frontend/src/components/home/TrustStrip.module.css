@@ -1,7 +1,8 @@
 .section {
-  padding: var(--space-8) var(--container-padding);
+  padding: 3.5rem var(--container-padding);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .grid {
@@ -16,14 +17,34 @@
 
 .item {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: flex-start;
+  background: var(--color-bg);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-base) ease, box-shadow var(--transition-base) ease, border-color var(--transition-base) ease;
+}
+
+.item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: rgba(229, 11, 11, 0.35);
 }
 
 .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(229, 11, 11, 0.08);
+  border: 1px solid rgba(229, 11, 11, 0.2);
+  color: var(--color-primary);
   flex-shrink: 0;
-  color: var(--color-accent);
-  margin-top: 2px;
+  padding: 10px;
 }
 
 .itemTitle {
@@ -37,7 +58,7 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Deliberately component-specific (not a canonical breakpoint — see

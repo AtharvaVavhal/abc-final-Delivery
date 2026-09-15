@@ -1,0 +1,116 @@
+.floatingBtn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.4), 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              background-color 0.2s ease;
+  outline: none;
+}
+
+.floatingBtn:hover {
+  transform: translateY(-3px) scale(1.08);
+  background: #20ba59;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.55), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.floatingBtn:focus-visible {
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #25d366;
+}
+
+.pulseRing {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid #25d366;
+  animation: pulseAnimation 2.2s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@keyframes pulseAnimation {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+.tooltip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #111827;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent transparent #111827;
+}
+
+.floatingBtn:hover .tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(-2px);
+}
+
+@media (max-width: 640px) {
+  .floatingBtn {
+    bottom: 18px;
+    right: 18px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .tooltip {
+    display: none;
+  }
+}

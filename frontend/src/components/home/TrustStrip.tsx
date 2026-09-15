@@ -17,7 +17,7 @@ const ITEMS = [
   {
     icon: Palette,
     title: 'Made to order',
-    text: 'Add text, colours, and uploads on products that support customisation — each item is printed for your order.',
+    text: 'Add text, colors, and uploads on products that support customization — each item is printed for your order.',
   },
   {
     icon: PackageSearch,

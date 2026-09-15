@@ -30,8 +30,9 @@ h1,
 h2,
 h3 {
   color: var(--color-text-strong);
-  line-height: 1.2;
+  line-height: 1.25;
   margin: 0 0 0.5em;
+  letter-spacing: -0.018em;
 }
 
 p {
@@ -40,6 +41,9 @@ p {
 
 a {
   color: var(--color-primary);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast) ease;
 }
 
 a:hover {
@@ -48,6 +52,7 @@ a:hover {
 
 button {
   font-family: inherit;
+  cursor: pointer;
 }
 
 img {

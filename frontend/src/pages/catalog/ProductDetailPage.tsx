@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ShieldCheck, Truck } from 'lucide-react'
 import { useProduct } from '@/hooks/useProduct'
 import { useCategoryTree } from '@/hooks/useCategoryTree'
 import { getApiErrorMessage } from '@/utils/apiError'
@@ -165,6 +166,17 @@ export function ProductDetailPage() {
           selectedVariantId={selectedVariantId}
           customization={customization}
         />
+
+        <div className={styles.studioTrust} aria-label="Studio craft guarantees">
+          <div className={styles.studioTrustItem}>
+            <ShieldCheck size={16} className={styles.studioTrustIcon} aria-hidden="true" />
+            <span>Artwork inspected by our studio printmakers before printing</span>
+          </div>
+          <div className={styles.studioTrustItem}>
+            <Truck size={16} className={styles.studioTrustIcon} aria-hidden="true" />
+            <span>Handcrafted & made to order (48–72h dispatch)</span>
+          </div>
+        </div>
       </div>
 
       <div className={styles.reviews}>

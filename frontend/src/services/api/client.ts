@@ -11,7 +11,18 @@ declare module 'axios' {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+export function resolveApiBaseUrl(rawUrl?: string): string {
+  const trimmed = rawUrl?.trim().replace(/\/+$/, '')
+  if (!trimmed) {
+    return '/api/v1'
+  }
+  if (!trimmed.endsWith('/api/v1')) {
+    return `${trimmed}/api/v1`
+  }
+  return trimmed
+}
+
+export const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 const REFRESH_PATH = '/auth/refresh'
 

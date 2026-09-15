@@ -82,9 +82,11 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-xs);
 }
 
 .name {
@@ -138,17 +140,18 @@
   position: absolute;
   left: 4px;
   top: 6px;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--color-amber-primary);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.45);
 }
 
 .timelineItem:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 7px;
-  top: 16px;
+  left: 8px;
+  top: 18px;
   bottom: calc(-1 * var(--space-3));
   width: 1px;
   background: var(--color-border);
@@ -179,7 +182,9 @@
 .summaryBlock {
   padding: 1.5rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

@@ -41,24 +41,25 @@
    the sr-only prefix — not colour — are what distinguish the three states. */
 .current {
   color: var(--color-text-strong);
-  border-top-color: var(--color-accent);
+  border-top-color: var(--color-amber-primary);
 }
 
 .current .marker {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
+  border-color: var(--color-amber-primary);
+  background: var(--color-amber-primary);
+  color: #090d16;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
 }
 
 .done {
   color: var(--color-text);
-  border-top-color: var(--color-accent);
+  border-top-color: var(--color-primary);
 }
 
 .done .marker {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
 }
 
 @media (max-width: 480px) {

@@ -3,6 +3,7 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar'
 import { ToastProvider } from '@/components/ui/toast/ToastProvider'
+import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import styles from './RootLayout.module.css'
 
 export function RootLayout() {
@@ -18,6 +19,7 @@ export function RootLayout() {
           <Outlet />
         </main>
         <Footer />
+        <WhatsAppButton />
       </div>
     </ToastProvider>
   )

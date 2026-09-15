@@ -20,6 +20,8 @@ interface FilterSidebarProps {
   onClearAll: () => void
   onFiltersChange?: () => void
   headingId?: string
+  variant?: 'sidebar' | 'panel'
+  onClose?: () => void
 }
 
 function toOptionalNumber(value: string | null): number | undefined {
@@ -34,6 +36,8 @@ export function FilterSidebar({
   onClearAll,
   onFiltersChange,
   headingId = 'filter-heading',
+  variant = 'sidebar',
+  onClose,
 }: FilterSidebarProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: categoryTree = [], isLoading: isCategoryTreeLoading } = useCategoryTree()
@@ -134,17 +138,27 @@ export function FilterSidebar({
   }
 
   return (
-    <aside className={styles.sidebar} aria-labelledby={headingId}>
+    <aside
+      className={cn(styles.sidebar, variant === 'panel' && styles.panel)}
+      aria-labelledby={headingId}
+    >
       <div className={styles.header}>
         <h2 id={headingId} className={styles.title}>
-          Filters
+          {variant === 'panel' ? 'Filter & Refine Options' : 'Filters'}
         </h2>
-        {hasActiveFilters && (
-          <Button variant="ghost" onClick={clearAllFilters} className={styles.clearAll}>
-            <X size={14} aria-hidden="true" />
-            Clear all
-          </Button>
-        )}
+        <div className={styles.headerActions}>
+          {hasActiveFilters && (
+            <Button variant="ghost" onClick={clearAllFilters} className={styles.clearAll}>
+              <X size={14} aria-hidden="true" />
+              Clear all
+            </Button>
+          )}
+          {variant === 'panel' && onClose && (
+            <Button variant="secondary" onClick={onClose} className={styles.doneBtn}>
+              Done
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className={styles.form}>

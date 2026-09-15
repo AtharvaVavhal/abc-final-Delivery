@@ -22,14 +22,21 @@
   flex-shrink: 0;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-decoration: none;
   white-space: nowrap;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: rgb(29 78 216 / 6%);
+  transition: background var(--transition-fast) ease, color var(--transition-fast) ease, transform var(--transition-fast) ease;
 }
 
 .viewAll:hover,
 .viewAll:focus-visible {
-  text-decoration: underline;
+  text-decoration: none;
+  background: rgb(29 78 216 / 12%);
+  color: var(--color-primary-hover);
+  transform: translateX(2px);
 }
 
 @media (max-width: 640px) {

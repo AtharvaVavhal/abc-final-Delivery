@@ -2,7 +2,11 @@ import { HeroCarousel } from '@/components/home/HeroCarousel'
 import { BannerGrid } from '@/components/home/BannerGrid'
 import { CategoryShowcase } from '@/components/home/CategoryShowcase'
 import { HomeHero } from '@/components/home/HomeHero'
-import { CategoryRail } from '@/components/home/CategoryRail'
+import { CategoryStoryBar } from '@/components/home/CategoryStoryBar'
+import { OccasionBar } from '@/components/home/OccasionBar'
+import { OccasionShowcase } from '@/components/home/OccasionShowcase'
+import { CraftPillars } from '@/components/home/CraftPillars'
+import { CraftImpactBar } from '@/components/home/CraftImpactBar'
 import { ProductRail } from '@/components/home/ProductRail'
 import { TrustStrip } from '@/components/home/TrustStrip'
 import { useHomepageSettings } from '@/hooks/useHomepageSettings'
@@ -10,10 +14,12 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ROUTES } from '@/constants/routes'
 import { Seo } from '@/seo/Seo'
 import { websiteJsonLd } from '@/seo/jsonLd'
+import { StudioProcess } from '@/components/home/StudioProcess'
+import { StudioStandards } from '@/components/home/StudioStandards'
 import styles from './HomePage.module.css'
 
 const HOME_DESCRIPTION =
-  'Browse the PrintForge catalogue and personalise mugs, apparel, frames and more — each item printed for your order.'
+  'Browse the PrintForge catalog and personalize mugs, apparel, frames and more — each item printed for your order.'
 
 /**
  * Storefront landing page. Two data sources, both real:
@@ -42,6 +48,7 @@ export function HomePage() {
         canonicalPath="/"
         jsonLd={websiteJsonLd()}
       />
+      <CategoryStoryBar />
       {isLoading ? (
         <Skeleton className={styles.skeletonSlide} label="Loading homepage" />
       ) : heroSlides.length > 0 ? (
@@ -50,12 +57,16 @@ export function HomePage() {
         <HomeHero />
       )}
 
+      <OccasionBar />
+
+      <OccasionShowcase />
+
+      <CraftPillars />
+
       {banners.length > 0 && <BannerGrid banners={banners} />}
 
-      {showcaseCategories.length > 0 ? (
+      {showcaseCategories.length > 0 && (
         <CategoryShowcase categories={showcaseCategories} />
-      ) : (
-        <CategoryRail />
       )}
 
       <ProductRail
@@ -65,12 +76,18 @@ export function HomePage() {
         viewAllHref={`${ROUTES.PRODUCTS}?sort=newest`}
       />
 
+      <StudioProcess />
+
       <ProductRail
         id="home-top-rated-heading"
         title="Top rated"
         params={{ sort: 'rating_desc', minRating: 4 }}
         viewAllHref={`${ROUTES.PRODUCTS}?sort=rating_desc`}
       />
+
+      <CraftImpactBar />
+
+      <StudioStandards />
 
       <TrustStrip />
     </>

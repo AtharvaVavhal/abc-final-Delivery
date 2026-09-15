@@ -1,0 +1,218 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10000;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-height: 96vh;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.videoCard {
+  position: relative;
+  height: min(74vh, 620px);
+  aspect-ratio: 9 / 16;
+  max-width: calc(100vw - 2rem);
+  background: #000000;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7),
+              0 0 0 1px rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000000;
+}
+
+.closeButton {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(17, 24, 39, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 30;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.closeButton:hover {
+  background: #e11d48;
+  border-color: #ffffff;
+  transform: scale(1.1);
+}
+
+.closeButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.6);
+}
+
+.titleBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(17, 24, 39, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  max-width: 65%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ctaButton {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.875rem 1.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #fb7185 100%);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.45),
+              0 2px 6px rgba(0, 0, 0, 0.2);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              filter 0.2s ease;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(225, 29, 72, 0.6),
+              0 4px 10px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.05);
+}
+
+.ctaButton:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.ctaButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #e11d48;
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0.75rem;
+  }
+
+  .modalContent {
+    gap: 0.75rem;
+    max-height: 98vh;
+    width: 100%;
+  }
+
+  .videoCard {
+    height: min(70vh, 520px);
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .closeButton {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .titleBadge {
+    top: 10px;
+    left: 10px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  .ctaButton {
+    max-width: 100%;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .modalContent {
+    animation: none;
+  }
+
+  .closeButton,
+  .ctaButton {
+    transition: none;
+  }
+
+  .closeButton:hover,
+  .ctaButton:hover,
+  .ctaButton:active {
+    transform: none;
+  }
+}

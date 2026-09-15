@@ -155,36 +155,16 @@ describe('HomePage — storefront layout', () => {
     expect(heading.previousElementSibling).toHaveTextContent('PrintForge')
   })
 
-  it('renders "Shop by category" from the live categories API', async () => {
+  it('does not render the redundant "Shop by category" rail on the homepage', () => {
     mockHome({
       categories: [
         category({ id: 'c1', name: 'Mugs' }),
         category({ id: 'c2', name: 'Apparel' }),
-        category({ id: 'c3', name: 'Sub Tee', parentCategoryId: 'c2' }),
       ],
     })
     renderWithProviders(<HomePage />)
 
-    const mugs = await screen.findByRole('link', { name: 'Mugs' })
-    expect(mugs).toHaveAttribute('href', '/products?categoryId=c1')
-    expect(screen.getByRole('link', { name: 'Apparel' })).toBeInTheDocument()
-    // Child categories are not shown at the top level.
-    expect(screen.queryByRole('link', { name: 'Sub Tee' })).not.toBeInTheDocument()
-  })
-
-  it('shows only the categories the API returns — no hardcoded or test labels', async () => {
-    mockHome({
-      categories: [category({ id: 'c1', name: 'Mugs' }), category({ id: 'c2', name: 'Apparel' })],
-    })
-    renderWithProviders(<HomePage />)
-
-    const region = await screen.findByRole('region', { name: /shop by category/i })
-    await within(region).findByRole('link', { name: 'Mugs' })
-    within(region).getByRole('link', { name: 'Apparel' })
-    // Exactly the two API categories plus the single "All products" link —
-    // nothing hardcoded or injected.
-    expect(within(region).getAllByRole('link')).toHaveLength(3)
-    expect(within(region).queryByText(/test|smoke|sample|demo/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /shop by category/i })).not.toBeInTheDocument()
   })
 
   it('renders product discovery rails from GET /products', async () => {

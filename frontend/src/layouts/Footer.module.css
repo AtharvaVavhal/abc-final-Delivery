@@ -1,13 +1,14 @@
 .footer {
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-top: 1px solid #1e293b;
+  background: #090d16;
+  color: #e2e8f0;
   margin-top: auto;
 }
 
 .inner {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: var(--space-7) var(--container-padding) var(--space-5);
+  padding: 3.5rem var(--container-padding) 2rem;
 }
 
 .top {
@@ -18,21 +19,45 @@
 }
 
 .brandBlock {
-  max-width: 280px;
+  max-width: 320px;
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-lg);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-strong);
+  color: #ffffff;
   letter-spacing: -0.02em;
   text-decoration: none;
 }
 
+.brandIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--color-amber-primary);
+  flex-shrink: 0;
+}
+
 .tagline {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-2) 0 var(--space-1);
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  color: #cbd5e1;
+}
+
+.studioMotto {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: #94a3b8;
+  line-height: 1.5;
 }
 
 .columns {
@@ -47,11 +72,11 @@
 
 .columnHeading {
   margin: 0 0 var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
+  color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .columnList {
@@ -65,22 +90,22 @@
 
 .link {
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  color: #94a3b8;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast) ease;
 }
 
 .link:hover,
 .link:focus-visible {
-  color: var(--color-accent);
+  color: var(--color-amber-primary);
 }
 
 .copyright {
   margin: var(--space-6) 0 0;
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  border-top: 1px solid #1e293b;
+  font-size: var(--text-xs);
+  color: #64748b;
 }
 
 @media (max-width: 640px) {

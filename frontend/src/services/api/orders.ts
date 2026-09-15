@@ -23,3 +23,15 @@ export async function fetchOrder(orderId: string): Promise<OrderDetailView> {
   const res = await apiClient.get<ApiSuccessResponse<OrderDetailView>>(`/orders/${orderId}`)
   return res.data.data
 }
+
+/** POST /orders/:id/cancel — customer-initiated cancellation, allowed only
+ * from PAID/CONFIRMED (orders.service.ts's state machine); a 409 from an
+ * illegal-transition attempt surfaces via getApiErrorMessage like any
+ * other mutation error. */
+export async function cancelOrder(orderId: string, reason?: string): Promise<OrderDetailView> {
+  const res = await apiClient.post<ApiSuccessResponse<OrderDetailView>>(
+    `/orders/${orderId}/cancel`,
+    reason ? { reason } : undefined,
+  )
+  return res.data.data
+}

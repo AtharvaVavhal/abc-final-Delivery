@@ -6,47 +6,72 @@
    * and elevation. No dark mode in this pass.
    * ============================================================ */
 
-  /* ---- Brand / primary (the one interactive colour: CTAs, links,
-   *      focus, selected state) ---------------------------------- */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-active: #1e40af;
+  /* ---- Brand / primary (UVPixel Vibrant Red: signature energetic,
+   *      custom-printing brand character) ---------------------------- */
+  --color-primary: #e50b0b;
+  --color-primary-hover: #c90808;
+  --color-primary-active: #a30606;
   --color-primary-foreground: #ffffff;
-  --color-primary-ring: rgb(37 99 235 / 25%);
+  --color-primary-ring: rgb(229 11 11 / 22%);
 
   /* Historical alias. `--color-accent*` has always meant "the primary
    * interactive colour" across the storefront and the (frozen) admin —
-   * ~110 call sites. It now resolves to the primary blue; kept as an
-   * alias so none of those call sites have to change. Prefer
-   * `--color-primary*` in new code. */
+   * ~110 call sites. Resolves to the vibrant red. */
   --color-accent: var(--color-primary);
   --color-accent-hover: var(--color-primary-hover);
   --color-accent-contrast: var(--color-primary-foreground);
   --color-accent-ring: var(--color-primary-ring);
 
-  /* ---- Secondary accent — reserved for rare emphasis (never a
-   *      substitute for primary). Currently unused by components. --- */
-  --color-highlight: #7c3aed;
-  --color-highlight-hover: #6d28d9;
+  /* ---- Secondary accent — reserved for rare emphasis ---------------- */
+  --color-highlight: #6366f1;
+  --color-highlight-hover: #4f46e5;
   --color-highlight-foreground: #ffffff;
 
-  /* ---- Surfaces ------------------------------------------------- */
-  --color-canvas: #f8fafc;         /* the page behind everything */
-  --color-bg: #ffffff;             /* default surface: cards, inputs, header, modals, toasts */
-  --color-surface: #f1f5f9;        /* muted fill: footer, section bands, skeletons, subtle chips */
-  --color-surface-muted: var(--color-surface);   /* spec-name alias */
-  --color-surface-elevated: var(--color-bg);     /* spec-name alias */
+  /* ---- Luxe Obsidian & Midnight Structure (Header, Footer, Chrome) - */
+  --color-obsidian: #090d16;
+  --color-obsidian-surface: #0f172a;
+  --color-obsidian-border: #1e293b;
+  --color-obsidian-text: #f8fafc;
+  --color-obsidian-muted: #94a3b8;
 
-  /* ---- Text --------------------------------------------------- */
-  --color-text-strong: #0f172a;    /* headings, prices, primary content */
-  --color-text: #334155;           /* body */
-  --color-text-muted: #64748b;     /* supporting content */
-  --color-text-subtle: #94a3b8;    /* least emphasis: timestamps, counts, hints */
-  --color-text-inverse: #ffffff;   /* text on primary / dark surfaces */
+  /* ---- Warm Honey Amber & Craft Studio Accents (Badges, Stars, Proof) */
+  --color-craft: #b45309;
+  --color-craft-bg: #fffbeb;
+  --color-craft-border: #fef3c7;
+  --color-amber-primary: #f59e0b;
+  --color-amber-hover: #d97706;
+  --color-amber-dark: #b45309;
+  --color-amber-light: #fef3c7;
+  --color-amber-glow: rgb(245 158 11 / 20%);
+
+  /* ---- Surfaces (Warm Studio Gallery Paper + Pure White Cards) ----- */
+  --color-canvas: #fafaf9;
+  /* warm studio gallery canvas */
+  --color-bg: #ffffff;
+  /* default surface: cards, inputs, header, modals, toasts */
+  --color-surface: #f4f4f5;
+  /* muted fill: subtle bands, skeletons, chips */
+  --color-surface-muted: var(--color-surface);
+  /* spec-name alias */
+  --color-surface-elevated: var(--color-bg);
+  /* spec-name alias */
+
+  /* ---- Text (Deep Obsidian Ink & Refined Neutrals) ---------------- */
+  --color-text-strong: #090d16;
+  /* headings, prices, primary content: deep ink */
+  --color-text: #27272a;
+  /* body text */
+  --color-text-muted: #52525b;
+  /* supporting content */
+  --color-text-subtle: #71717a;
+  /* least emphasis: timestamps, counts, hints */
+  --color-text-inverse: #ffffff;
+  /* text on primary / dark surfaces */
 
   /* ---- Borders ----------------------------------------------- */
-  --color-border: #e2e8f0;
-  --color-border-strong: #cbd5e1;  /* input hover, dividers that need weight */
+  --color-border: #e4e4e7;
+  --color-border-strong: #cbd5e1;
+  /* input hover, dividers that need weight */
 
   /* ---- Semantic status ------------------------------------------
    * `-bg` is the spec tint. The base colour is pulled a shade darker
@@ -68,27 +93,31 @@
   --color-danger-solid: #dc2626;
   --color-danger-bg: #fef2f2;
   --color-danger-ring: rgb(220 38 38 / 30%);
-  --color-error: var(--color-danger);            /* spec-name alias */
-  --color-error-bg: var(--color-danger-bg);      /* spec-name alias */
+  --color-error: var(--color-danger);
+  /* spec-name alias */
+  --color-error-bg: var(--color-danger-bg);
+  /* spec-name alias */
 
   --color-info: #1d4ed8;
   --color-info-solid: #2563eb;
   --color-info-bg: #eff6ff;
-  --color-info-ring: rgb(37 99 235 / 25%);
+  --color-info-ring: rgb(29 78 216 / 22%);
 
   /* ---- Non-semantic accents -------------------------------- */
-  --color-rating: #f59e0b;         /* star fills — a rating is not a "primary action" */
+  --color-rating: #f59e0b;
+  /* star fills — warm gold */
 
   /* ---- Radii ------------------------------------------------ */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 999px;
 
-  --container-max: 1120px;
+  --container-max: 1140px;
   --container-padding: 1.5rem;
 
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -100,20 +129,30 @@
   --space-8: 64px;
 
   /* rem, same convention as --container-padding — 1rem = 16px body default */
-  --text-xs: 0.75rem; /* 12px */
-  --text-sm: 0.8125rem; /* 13px */
-  --text-base: 1rem; /* 16px — matches body's default font-size */
-  --text-md: 1.125rem; /* 18px */
-  --text-lg: 1.25rem; /* 20px */
-  --text-xl: 1.5rem; /* 24px */
-  --text-2xl: 2rem; /* 32px */
-  --text-3xl: 2.5rem; /* 40px */
+  --text-xs: 0.75rem;
+  /* 12px */
+  --text-sm: 0.8125rem;
+  /* 13px */
+  --text-base: 1rem;
+  /* 16px — matches body's default font-size */
+  --text-md: 1.125rem;
+  /* 18px */
+  --text-lg: 1.25rem;
+  /* 20px */
+  --text-xl: 1.5rem;
+  /* 24px */
+  --text-2xl: 2rem;
+  /* 32px */
+  --text-3xl: 2.5rem;
+  /* 40px */
 
-  /* Cool slate-tinted, deliberately soft — "subtle elevation", not
-   * heavy SaaS drop shadows. */
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 6%);
-  --shadow-md: 0 4px 12px rgb(15 23 42 / 8%), 0 1px 3px rgb(15 23 42 / 6%);
-  --shadow-lg: 0 12px 32px rgb(15 23 42 / 12%);
+  /* Multi-layered soft ambient shadows with studio depth */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 5%), 0 1px 2px rgb(15 23 42 / 3%);
+  --shadow-md: 0 4px 16px -2px rgb(15 23 42 / 8%), 0 2px 6px -1px rgb(15 23 42 / 4%);
+  --shadow-lg: 0 16px 36px -4px rgb(15 23 42 / 10%), 0 6px 14px -2px rgb(15 23 42 / 4%);
+  --shadow-glow: 0 0 24px rgb(245 158 11 / 18%);
+  --shadow-glow-blue: 0 0 24px rgb(29 78 216 / 15%);
 
   /* One keyboard-focus ring for every interactive control — pair with
    * `outline: none` and only ever under :focus-visible (never :focus), so

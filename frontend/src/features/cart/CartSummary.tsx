@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ShieldCheck, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { formatPrice } from '@/utils/formatPrice'
@@ -52,6 +53,17 @@ export function CartSummary({ subtotal, itemCount, hasUnavailableItems }: CartSu
           <Button className={styles.checkoutButton}>Proceed to checkout</Button>
         </Link>
       )}
+
+      <div className={styles.trustFooter} aria-label="Checkout guarantees">
+        <div className={styles.trustItem}>
+          <ShieldCheck size={16} className={styles.trustIcon} aria-hidden="true" />
+          <span>256-bit SSL encrypted checkout</span>
+        </div>
+        <div className={styles.trustItem}>
+          <CheckCircle2 size={16} className={styles.trustIcon} aria-hidden="true" />
+          <span>Free digital proof review</span>
+        </div>
+      </div>
     </aside>
   )
 }

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useOrder } from '@/hooks/useOrder'
 import { orderInvoicePath, ROUTES } from '@/constants/routes'
 import { useRetryPayment } from '@/hooks/useRetryPayment'
+import { useCancelOrder } from '@/hooks/useCancelOrder'
 import { useRazorpayCheckout } from '@/features/checkout/useRazorpayCheckout'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
@@ -20,6 +21,10 @@ import { OrderStatusBadge } from '@/features/orders/OrderStatusBadge'
 import styles from './OrderDetailPage.module.css'
 
 const RETRYABLE_STATUSES = new Set<OrderStatus>(['PENDING_PAYMENT', 'PAYMENT_FAILED'])
+
+/** Mirrors the backend order state machine (order-state-machine.ts): only
+ * PAID and CONFIRMED can transition to CANCELLED. */
+const CANCELLABLE_STATUSES = new Set<OrderStatus>(['PAID', 'CONFIRMED'])
 
 /** Mirrors the backend INVOICEABLE_STATUSES gate — an invoice exists only
  * once payment has succeeded (Phase 13.4). */
@@ -51,7 +56,9 @@ export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: order, isPending, isError, error, refetch } = useOrder(id!)
   const retryPayment = useRetryPayment()
+  const cancelOrder = useCancelOrder(id!)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [isConfirmingCancel, setIsConfirmingCancel] = useState(false)
   // See CheckoutPage.tsx's startPayment for why this must be a ref, not a
   // retryPayment.isPending check — a synchronous double-click's second call
   // lands on the same pre-re-render closure as the first, so an isPending
@@ -114,6 +121,7 @@ export function OrderDetailPage() {
   }
 
   const canRetryPayment = RETRYABLE_STATUSES.has(order.status)
+  const canCancel = CANCELLABLE_STATUSES.has(order.status)
   const latestAttempt = order.paymentAttempts.at(-1)
   const timeline = [...order.statusHistory].reverse()
 
@@ -145,6 +153,31 @@ export function OrderDetailPage() {
           <Button onClick={() => void handleRetry()} isLoading={retryPayment.isPending || isOpening || isVerifying}>
             {order.status === 'PAYMENT_FAILED' ? 'Retry payment' : 'Pay now'}
           </Button>
+        </div>
+      )}
+
+      {canCancel && (
+        <div className={styles.retryBlock}>
+          {cancelOrder.isError && <Alert variant="error">{getApiErrorMessage(cancelOrder.error)}</Alert>}
+          {isConfirmingCancel ? (
+            <>
+              <p>Are you sure you want to cancel this order?</p>
+              <Button
+                variant="secondary"
+                onClick={() => cancelOrder.mutate(undefined, { onSuccess: () => setIsConfirmingCancel(false) })}
+                isLoading={cancelOrder.isPending}
+              >
+                Yes, cancel order
+              </Button>
+              <Button variant="ghost" onClick={() => setIsConfirmingCancel(false)} disabled={cancelOrder.isPending}>
+                Never mind
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={() => setIsConfirmingCancel(true)}>
+              Cancel order
+            </Button>
+          )}
         </div>
       )}
 

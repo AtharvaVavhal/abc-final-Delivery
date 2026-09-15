@@ -1,0 +1,137 @@
+.container {
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0.6rem 0;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.inner {
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-right: 0.75rem;
+  border-right: 1.5px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.titleIcon {
+  color: #e50b0b;
+  display: flex;
+  align-items: center;
+}
+
+.titleText {
+  color: #0f172a;
+}
+
+.scrollWrapper {
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  display: flex;
+  align-items: center;
+}
+
+.scrollWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.chipTrack {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+}
+
+.chipWrapper {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #e50b0b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(229, 11, 11, 0.08);
+}
+
+.chipIcon {
+  color: #e50b0b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.chip:hover .chipIcon {
+  transform: scale(1.15);
+}
+
+.chipLabel {
+  letter-spacing: -0.01em;
+}
+
+.chipBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: #e50b0b;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0 0.85rem;
+  }
+
+  .titleWrapper {
+    border-right: none;
+    padding-right: 0;
+    font-size: 0.8rem;
+  }
+
+  .scrollWrapper {
+    width: 100%;
+  }
+}
