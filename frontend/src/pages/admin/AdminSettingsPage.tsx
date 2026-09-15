@@ -13,19 +13,46 @@ import { AdminSelect } from '@/components/admin/AdminSelect'
 import { AdminPageSkeleton } from '@/components/admin/AdminPageSkeleton'
 import { getApiErrorMessage } from '@/utils/apiError'
 import type { AdminSettingView } from '@/services/api/settings'
+import { PaymentAccountSettings } from '@/features/admin/PaymentAccountSettings'
+import { StoreLogoSettings } from '@/features/admin/StoreLogoSettings'
+import { HeroSlidesSettings } from '@/features/admin/HeroSlidesSettings'
 import styles from './AdminSettingsPage.module.css'
 
 /** Client-side presentation grouping only — derived from the setting
  * `key` prefixes the backend already uses (`tax.*`, `invoice.*`). It
  * adds no configuration and changes no value. */
-const STORE_IDENTITY_KEYS = ['storeName', 'storeAdminName']
+const STORE_IDENTITY_KEYS = ['storeName', 'storeAdminName', 'storeLogo']
+const STORE_CONTACT_KEYS = [
+  'whatsappNumber',
+  'storeContactEmail',
+  'storeContactPhone',
+  'storeAddress',
+]
+const STOREFRONT_CONTENT_KEYS = [
+  'announcement_text',
+  'hero_slides',
+  'brand_story',
+  'featured_media',
+]
 
 const GROUPS: { title: string; belongs: (key: string) => boolean }[] = [
   { title: 'Store identity', belongs: (k) => STORE_IDENTITY_KEYS.includes(k) },
   {
+    title: 'Storefront contact',
+    belongs: (k) => STORE_CONTACT_KEYS.includes(k),
+  },
+  {
+    title: 'Storefront content',
+    belongs: (k) => STOREFRONT_CONTENT_KEYS.includes(k),
+  },
+  {
     title: 'Storefront',
     belongs: (k) =>
-      !STORE_IDENTITY_KEYS.includes(k) && !k.startsWith('tax.') && !k.startsWith('invoice.'),
+      !STORE_IDENTITY_KEYS.includes(k) &&
+      !STORE_CONTACT_KEYS.includes(k) &&
+      !STOREFRONT_CONTENT_KEYS.includes(k) &&
+      !k.startsWith('tax.') &&
+      !k.startsWith('invoice.'),
   },
   { title: 'Tax (GST)', belongs: (k) => k.startsWith('tax.') },
   { title: 'Invoicing', belongs: (k) => k.startsWith('invoice.') },
@@ -50,8 +77,9 @@ function groupSettings(settings: AdminSettingView[]) {
  * straight from the API — EXCLUSIVE is locked server-side and simply not
  * offered.
  *
- * Homepage hero / banner / showcase content is settings-backed but not
- * exposed here (it needs a structured multi-item editor).
+ * Homepage banners / showcase categories are still settings-backed but not
+ * exposed here (they need their own structured editors). Hero slides are
+ * editable below.
  */
 export function AdminSettingsPage() {
   const settingsQuery = useAdminSettings()
@@ -74,12 +102,22 @@ export function AdminSettingsPage() {
       {groups.map((group) => (
         <AdminCard key={group.title} as="section" title={group.title}>
           <div className={styles.group}>
-            {group.settings.map((setting) => (
-              <SettingRow key={setting.key} setting={setting} />
-            ))}
+            {group.settings.map((setting) =>
+              setting.key === 'storeLogo' ? (
+                <StoreLogoSettings key={setting.key} setting={setting} />
+              ) : setting.key === 'hero_slides' ? (
+                <HeroSlidesSettings key={setting.key} setting={setting} />
+              ) : (
+                <SettingRow key={setting.key} setting={setting} />
+              ),
+            )}
           </div>
         </AdminCard>
       ))}
+
+      <AdminCard as="section" title="Payments">
+        <PaymentAccountSettings />
+      </AdminCard>
     </AdminPage>
   )
 }
@@ -124,6 +162,10 @@ function SettingRow({ setting }: SettingRowProps) {
 
   const fieldId = `setting-${setting.key}`
   const isChoice = setting.kind === 'boolean' || setting.kind === 'enum'
+  const isLongText =
+    setting.key === 'brand_story' ||
+    setting.key === 'featured_media' ||
+    setting.key === 'storeAddress'
   const choiceOptions =
     setting.kind === 'boolean' ? ['false', 'true'] : (setting.options ?? [])
 
@@ -142,6 +184,24 @@ function SettingRow({ setting }: SettingRowProps) {
             </option>
           ))}
         </AdminSelect>
+      ) : isLongText ? (
+        <div>
+          <label htmlFor={fieldId} className={styles.textareaLabel}>
+            {setting.label}
+          </label>
+          <textarea
+            id={fieldId}
+            className={styles.textarea}
+            rows={6}
+            aria-invalid={Boolean(errors.value?.message)}
+            {...register('value')}
+          />
+          {errors.value?.message ? (
+            <p className={styles.help} role="alert">
+              {errors.value.message}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <TextField
           label={setting.label}

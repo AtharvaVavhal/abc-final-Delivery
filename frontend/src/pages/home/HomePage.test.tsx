@@ -74,7 +74,7 @@ function mockHome({
   categories = [category()],
   newArrivals = NEW_ARRIVALS,
   topRated = TOP_RATED,
-  storeName = 'PrintForge',
+  storeName = 'AB Creations',
 }: HomeMockOptions & { storeName?: string } = {}) {
   // Real GET /settings?keys=… wire shape: the settings map is nested at
   // data.data and every value is a JSON string.
@@ -86,7 +86,19 @@ function mockHome({
   )
   mock.onGet('/settings').reply(200, { success: true, data: { data: settingsMap } })
   mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: storeName } })
+  mock.onGet('/settings/whatsappNumber').reply(200, { success: true, data: { value: '' } })
   mock.onGet('/categories').reply(...ok(categories))
+  mock.onGet('/categories/tree').reply(
+    ...ok(
+      categories.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        parentCategoryId: item.parentCategoryId,
+        children: [],
+      })),
+    ),
+  )
   mock.onGet('/products').reply((config: AxiosRequestConfig) => {
     const params = (config.params ?? {}) as Record<string, unknown>
     const items = params.minRating ? topRated : newArrivals
@@ -103,25 +115,28 @@ afterEach(() => {
 })
 
 describe('HomePage — storefront layout', () => {
-  it('shows a neutral catalogue hero when no promo is configured (no invented claims)', async () => {
+  it('shows the fallback hero when no promo is configured (no invented claims)', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
 
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: /custom prints, made to order/i,
+        name: /caricatures that capture the moment/i,
       }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: /browse the catalogue/i }),
-    ).toHaveAttribute('href', '/products')
+      screen.getByRole('link', { name: /shop caricatures/i }),
+    ).toHaveAttribute('href', '/products?category=acrylic-gifts')
   })
 
   it('announces the hero loading state politely while homepage settings are in flight', async () => {
     mock.onGet('/settings').reply(() => new Promise(() => {})) // never settles
-    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'PrintForge' } })
+    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'AB Creations' } })
     mock.onGet('/categories').reply(...ok([category()]))
+    mock.onGet('/categories/tree').reply(
+      ...ok([{ id: 'cat-mugs', name: 'Mugs', slug: 'mugs', parentCategoryId: null, children: [] }]),
+    )
     mock.onGet('/products').reply(...ok(NEW_ARRIVALS, { page: 1, limit: 12, total: 2, totalPages: 1 }))
     renderWithProviders(<HomePage />)
 
@@ -129,33 +144,35 @@ describe('HomePage — storefront layout', () => {
     expect(label.closest('[role="status"]')).toBeInTheDocument()
   })
 
-  it('renders the configured store name as the hero eyebrow', async () => {
+  it('renders the fallback hero eyebrow when no promo is configured', async () => {
     mockHome({ storeName: 'Atharva Prints' })
     renderWithProviders(<HomePage />)
 
     const heading = await screen.findByRole('heading', {
       level: 1,
-      name: /custom prints, made to order/i,
+      name: /caricatures that capture the moment/i,
     })
-    // The eyebrow sits just above the hero headline.
-    expect(heading.previousElementSibling).toHaveTextContent('Atharva Prints')
+    expect(heading.previousElementSibling).toHaveTextContent('Acrylic gifts')
   })
 
-  it('falls back to "PrintForge" for the hero eyebrow when the store-name endpoint fails', async () => {
+  it('still uses the fallback hero when the store-name endpoint fails', async () => {
     mock.onGet('/settings/storeName').reply(500)
     mock.onGet('/settings').reply(200, { success: true, data: { data: {} } })
     mock.onGet('/categories').reply(...ok([category()]))
+    mock.onGet('/categories/tree').reply(
+      ...ok([{ id: 'cat-mugs', name: 'Mugs', slug: 'mugs', parentCategoryId: null, children: [] }]),
+    )
     mock.onGet('/products').reply(...ok(NEW_ARRIVALS, { page: 1, limit: 12, total: 0, totalPages: 1 }))
     renderWithProviders(<HomePage />)
 
     const heading = await screen.findByRole('heading', {
       level: 1,
-      name: /custom prints, made to order/i,
+      name: /caricatures that capture the moment/i,
     })
-    expect(heading.previousElementSibling).toHaveTextContent('PrintForge')
+    expect(heading.previousElementSibling).toHaveTextContent('Acrylic gifts')
   })
 
-  it('does not render the redundant "Shop by category" rail on the homepage', () => {
+  it('renders live category chips from GET /categories/tree', async () => {
     mockHome({
       categories: [
         category({ id: 'c1', name: 'Mugs' }),
@@ -164,7 +181,15 @@ describe('HomePage — storefront layout', () => {
     })
     renderWithProviders(<HomePage />)
 
-    expect(screen.queryByRole('region', { name: /shop by category/i })).not.toBeInTheDocument()
+    const chips = await screen.findByRole('navigation', { name: /shop by category/i })
+    expect(within(chips).getByRole('link', { name: 'Mugs' })).toHaveAttribute(
+      'href',
+      '/products?categoryId=c1',
+    )
+    expect(within(chips).getByRole('link', { name: 'Apparel' })).toHaveAttribute(
+      'href',
+      '/products?categoryId=c2',
+    )
   })
 
   it('renders product discovery rails from GET /products', async () => {
@@ -172,14 +197,14 @@ describe('HomePage — storefront layout', () => {
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByRole('heading', { level: 3, name: 'Matte Poster' }),
-    ).toBeInTheDocument()
+      (await screen.findAllByRole('heading', { level: 3, name: 'Matte Poster' })).length,
+    ).toBeGreaterThan(0)
     expect(
       await screen.findByRole('heading', { level: 3, name: 'Signature Hoodie' }),
     ).toBeInTheDocument()
 
-    const newArrivals = screen.getByRole('region', { name: /new arrivals/i })
-    expect(within(newArrivals).getByRole('link', { name: /view all/i })).toHaveAttribute(
+    const featured = screen.getByRole('region', { name: /featured collection/i })
+    expect(within(featured).getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
       '/products?sort=newest',
     )
@@ -189,7 +214,7 @@ describe('HomePage — storefront layout', () => {
     mockHome({ topRated: [] })
     renderWithProviders(<HomePage />)
 
-    await screen.findByRole('heading', { level: 3, name: 'Matte Poster' })
+    await screen.findAllByRole('heading', { level: 3, name: 'Matte Poster' })
     await waitFor(() => {
       expect(screen.queryByRole('region', { name: /top rated/i })).not.toBeInTheDocument()
     })
@@ -198,23 +223,24 @@ describe('HomePage — storefront layout', () => {
   it('still renders the page when the catalogue APIs fail — rails just drop out', async () => {
     mock.onGet('/settings').reply(200, { success: true, data: { data: {} } })
     mock.onGet('/categories').reply(500)
+    mock.onGet('/categories/tree').reply(500)
     mock.onGet('/products').reply(500)
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /custom prints, made to order/i }),
+      await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
     ).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: /shop by category/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: /new arrivals/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /shop by category/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /featured collection/i })).not.toBeInTheDocument()
   })
 })
 
 describe('HomePage — heading hierarchy (UX-14)', () => {
-  it('has exactly one <h1> (the neutral hero) when no promo is configured', async () => {
+  it('has exactly one <h1> (the fallback hero) when no promo is configured', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
 
-    await screen.findByRole('heading', { level: 1, name: /custom prints, made to order/i })
+    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
@@ -262,9 +288,9 @@ describe('HomePage — configured promo content (data layer)', () => {
     })
     renderWithProviders(<HomePage />)
 
-    expect(await screen.findByRole('region', { name: /hero carousel/i })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: /promotional hero/i })).toBeInTheDocument()
     expect(
-      screen.queryByRole('heading', { level: 1, name: /custom prints, made to order/i }),
+      screen.queryByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
     ).not.toBeInTheDocument()
   })
 
@@ -293,15 +319,12 @@ describe('HomePage — configured promo content (data layer)', () => {
     })
     renderWithProviders(<HomePage />)
 
-    // "Shop <title>" links only exist in the curated CategoryShowcase.
-    const curatedLink = await screen.findByRole('link', { name: 'Shop Mugs' })
+    const curatedLink = await screen.findByRole('link', { name: 'Mugs' })
     expect(curatedLink).toHaveAttribute('href', '/products?categoryId=c1')
-    expect(screen.getByRole('link', { name: 'Shop Apparel' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Apparel' })).toHaveAttribute(
       'href',
       '/products?categoryId=c2',
     )
-    // The live rail is not rendered when a showcase is configured.
-    expect(screen.queryByRole('link', { name: 'Live Rail Category' })).not.toBeInTheDocument()
   })
 
   it('ignores a malformed hero_slides value and falls back to the neutral hero', async () => {
@@ -309,9 +332,9 @@ describe('HomePage — configured promo content (data layer)', () => {
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /custom prints, made to order/i }),
+      await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
     ).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: /hero carousel/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: /broken/i })).not.toBeInTheDocument()
   })
 })
 
@@ -319,7 +342,7 @@ describe('HomePage — content integrity', () => {
   it('does not present fabricated testimonials as real customer feedback', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
-    await screen.findByRole('heading', { level: 1, name: /custom prints, made to order/i })
+    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
 
     expect(screen.queryByText(/what our customers say/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/verified printforge customers/i)).not.toBeInTheDocument()
@@ -330,7 +353,7 @@ describe('HomePage — content integrity', () => {
   it('does not show a fake newsletter subscription', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
-    await screen.findByRole('heading', { level: 1, name: /custom prints, made to order/i })
+    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
 
     expect(screen.queryByRole('button', { name: /subscribe/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/stay updated/i)).not.toBeInTheDocument()
@@ -340,7 +363,7 @@ describe('HomePage — content integrity', () => {
   it('does not invent delivery, discount, or tax promises in the value section', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
-    const trust = await screen.findByRole('region', { name: /why shop with printforge/i })
+    const trust = await screen.findByRole('region', { name: /why shop with ab creations/i })
 
     expect(within(trust).queryByText(/free (delivery|shipping)/i)).not.toBeInTheDocument()
     expect(within(trust).queryByText(/\d+% off/i)).not.toBeInTheDocument()

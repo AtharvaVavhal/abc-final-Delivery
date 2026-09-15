@@ -1,39 +1,43 @@
-import { Star, Headphones, Clock, ShieldCheck } from 'lucide-react'
+import { Palette, Headphones, PackageSearch, ShieldCheck } from 'lucide-react'
 import { useStoreName } from '@/hooks/useStoreName'
 import styles from './CraftPillars.module.css'
 
 const PILLARS = [
   {
-    id: 'reviews',
-    icon: Star,
-    stat: '4,000+',
-    title: '5 Star Reviews',
-    description: 'Cherished by delighted gift givers across India with verified 5-star ratings.',
-    accent: '#f59e0b',
+    id: 'custom',
+    icon: Palette,
+    stat: 'Made to order',
+    title: 'Product customization',
+    description:
+      'Add text, colors, and file uploads on products that include those options in the catalog.',
+    accent: '#e50b0b',
   },
   {
     id: 'support',
     icon: Headphones,
-    stat: 'Responsive',
-    title: 'Customer Support',
-    description: 'Direct WhatsApp and specialist assistance for custom previews and questions.',
+    stat: 'WhatsApp',
+    title: 'Store chat',
+    description:
+      'Use the storefront chat button when a WhatsApp number is configured in store settings.',
     accent: '#3b82f6',
   },
   {
-    id: 'delivery',
-    icon: Clock,
-    stat: 'On Time Delivery',
-    title: 'Assurance Across India',
-    description: 'Padded multi-layer protection and reliable carrier dispatch straight to your door.',
+    id: 'orders',
+    icon: PackageSearch,
+    stat: 'Account orders',
+    title: 'Track every order',
+    description:
+      'Follow status from your account and download an invoice after payment is confirmed.',
     accent: '#10b981',
   },
   {
-    id: 'privacy',
+    id: 'checkout',
     icon: ShieldCheck,
-    stat: 'Data & Photo Privacy',
-    title: 'Guaranteed Safe',
-    description: '100% confidential media processing — your family memories remain strictly private.',
-    accent: '#e50b0b',
+    stat: 'Razorpay',
+    title: 'Secure checkout',
+    description:
+      'Card and UPI details are handled by Razorpay and never stored on this storefront.',
+    accent: '#f59e0b',
   },
 ]
 
@@ -43,12 +47,12 @@ export function CraftPillars() {
     <section className={styles.section} aria-labelledby="craft-pillars-heading">
       <div className={styles.container}>
         <div className={styles.header}>
-          <p className={styles.eyebrow}>{storeName} Studio Promise</p>
+          <p className={styles.eyebrow}>{storeName}</p>
           <h2 id="craft-pillars-heading" className={styles.title}>
-            Why Customers Love Us
+            Shopping with {storeName}
           </h2>
           <p className={styles.subtitle}>
-            Dedicated to creating memorable, emotional, and timeless personalized keepsakes.
+            Capabilities this storefront actually supports — not invented ratings or delivery promises.
           </p>
         </div>
 

@@ -82,7 +82,7 @@ export function AdminLayout() {
             <Menu size={20} aria-hidden="true" />
           </button>
 
-          <span className={styles.context}>PrintForge Admin</span>
+          <span className={styles.context}>AB Creations Admin</span>
 
           <div className={styles.actions}>
             {user?.email && <span className={styles.identity}>{user.email}</span>}

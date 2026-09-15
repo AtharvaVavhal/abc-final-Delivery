@@ -17,8 +17,8 @@ function stripComments(code: string): string {
 
 /**
  * Phase 6 W2. Unit tests against a mocked `PrismaService`. `resolve()`
- * calls `getTenantScopedClient(this.prisma, tenantId)` internally, which
- * calls `this.prisma.$extends(...)` — mocked exactly the way
+ * calls `scopedSubscriptionFindUnique`, which on a PrismaService uses
+ * `getTenantScopedClient(this.prisma, tenantId)` / `$extends(...)` — mocked exactly the way
  * `app-setting.service.spec.ts` already establishes for
  * `resolvePrimaryStoreId`'s own use of the same D4 tenant-scoped client:
  * `$extends: jest.fn().mockReturnValue({ subscription: subscriptionDelegate })`,

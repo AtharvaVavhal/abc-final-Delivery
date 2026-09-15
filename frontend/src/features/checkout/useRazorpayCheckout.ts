@@ -3,6 +3,7 @@ import { getApiErrorMessage } from '@/utils/apiError'
 import { loadRazorpayCheckout } from '@/services/razorpay/loadRazorpayCheckout'
 import { useVerifyPayment } from '@/hooks/useVerifyPayment'
 import type { InitiatePaymentView, VerifyPaymentView } from '@/types/payments'
+import { SITE_NAME } from '@/seo/siteConfig'
 
 interface OrderPrefill {
   orderNumber: string
@@ -60,7 +61,7 @@ export function useRazorpayCheckout({ onVerified, onDismissed, onError }: UseRaz
           amount: Number(payment.amountPaise),
           currency: payment.currency,
           order_id: payment.razorpayOrderId,
-          name: 'PrintForge',
+          name: SITE_NAME,
           description: `Order ${order.orderNumber}`,
           prefill: customer,
           handler: (response) => {

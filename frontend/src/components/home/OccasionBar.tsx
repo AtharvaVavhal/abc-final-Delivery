@@ -1,94 +1,51 @@
 import { Link } from 'react-router-dom'
-import { Sparkles, CreditCard, Coffee, Shirt, BadgeCheck, Package } from 'lucide-react'
+import { Layers, Sparkles } from 'lucide-react'
+import { useCategoryTree } from '@/hooks/useCategoryTree'
+import { sortCategoryTree } from '@/features/catalog/categoryNavOrder'
 import { ROUTES } from '@/constants/routes'
 import styles from './OccasionBar.module.css'
 
-interface OccasionItem {
-  id: string
-  label: string
-  icon: typeof Sparkles
-  query: string
-  badge?: string
-}
-
-const OCCASIONS: OccasionItem[] = [
-  {
-    id: 'all',
-    label: 'All Products',
-    icon: Package,
-    query: '',
-    badge: 'Catalogue',
-  },
-  {
-    id: 'business-cards',
-    label: 'Business Cards',
-    icon: CreditCard,
-    query: 'business-cards',
-    badge: '40% OFF',
-  },
-  {
-    id: 'logo',
-    label: 'Logo & Signage',
-    icon: Sparkles,
-    query: 'logo',
-    badge: 'Trending',
-  },
-  {
-    id: 'mugs',
-    label: 'Custom Mugs',
-    icon: Coffee,
-    query: 'mugs',
-    badge: 'Hot',
-  },
-  {
-    id: 'name-plates',
-    label: 'Name Plates',
-    icon: BadgeCheck,
-    query: 'name-plates',
-    badge: 'Premium',
-  },
-  {
-    id: 't-shirts',
-    label: 'Custom T-Shirts',
-    icon: Shirt,
-    query: 't-shirts',
-    badge: 'Best Seller',
-  },
-]
-
 export function OccasionBar() {
+  const { data: tree = [], isPending, isError } = useCategoryTree()
+  const groups = sortCategoryTree(tree)
+
+  if (isError || isPending || groups.length === 0) {
+    return null
+  }
+
   return (
-    <section className={styles.container} aria-label="Shop by Core Products">
+    <section
+      className={styles.container}
+      aria-labelledby="home-categories-heading"
+    >
       <div className={styles.inner}>
         <div className={styles.titleWrapper}>
           <span className={styles.titleIcon} aria-hidden="true">
             <Sparkles size={16} />
           </span>
-          <span className={styles.titleText}>Core Products</span>
+          <span id="home-categories-heading" className={styles.titleText}>
+            Shop by category
+          </span>
         </div>
 
         <div className={styles.scrollWrapper}>
           <div className={styles.chipTrack} role="list">
-            {OCCASIONS.map((item) => {
-              const Icon = item.icon
-              const toUrl = item.query
-                ? `${ROUTES.PRODUCTS}?category=${encodeURIComponent(item.query)}`
-                : ROUTES.PRODUCTS
-              return (
-                <div key={item.id} role="listitem" className={styles.chipWrapper}>
-                  <Link
-                    to={toUrl}
-                    className={styles.chip}
-                  >
-                    <Icon size={16} className={styles.chipIcon} aria-hidden="true" />
-                    <span className={styles.chipLabel}>{item.label}</span>
-                    {item.badge && (
-                      <span className={styles.chipBadge}>{item.badge}</span>
-                    )}
-                  </Link>
-                </div>
-              )
-            })}
+            <div role="listitem" className={styles.chipWrapper}>
+              <Link to={ROUTES.PRODUCTS} className={styles.chip}>
+                <Layers size={16} className={styles.chipIcon} aria-hidden="true" />
+                <span className={styles.chipLabel}>All products</span>
+              </Link>
+            </div>
+            {groups.map((category) => (
+              <div key={category.id} role="listitem" className={styles.chipWrapper}>
+                <Link
+                  to={`${ROUTES.PRODUCTS}?categoryId=${encodeURIComponent(category.id)}`}
+                  className={styles.chip}
+                >
+                  <span className={styles.chipLabel}>{category.name}</span>
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </div>

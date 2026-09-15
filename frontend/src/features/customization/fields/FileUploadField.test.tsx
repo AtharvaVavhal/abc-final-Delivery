@@ -78,10 +78,10 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
     vi.restoreAllMocks()
   })
 
-  it('shows the file input and no selected-file card before anything is picked', () => {
+  it('shows a styled upload button and no selected-file card before anything is picked', () => {
     renderWithProviders(<Harness field={buildField({})} />)
 
-    expect(screen.getByLabelText('Logo *', { selector: 'input' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Upload logo' })).toBeVisible()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
   })
@@ -148,10 +148,10 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
     expect(apiMock.history.post).toHaveLength(0)
-    expect(screen.getByLabelText('Logo *', { selector: 'input' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Upload logo' })).toBeVisible()
   })
 
-  it('Remove clears the card, restores the input and resets the value', async () => {
+  it('Remove clears the card, restores the upload button and resets the value', async () => {
     const user = userEvent.setup()
     apiMock.onPost('/uploads').reply(201, UPLOAD_RESPONSE)
     const onChange = vi.fn()
@@ -168,7 +168,7 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
 
     expect(screen.queryByText('logo.png')).not.toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Logo *', { selector: 'input' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Upload logo' })).toBeVisible()
     expect(onChange).toHaveBeenLastCalledWith('')
   })
 
@@ -216,6 +216,16 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith('uploaded-file-id-1'))
     expect(apiMock.history.post).toHaveLength(1)
     expect(apiMock.history.post[0].url).toBe('/uploads')
+  })
+
+  it('opens the picker from the styled button', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<Harness field={buildField({})} />)
+
+    const input = screen.getByLabelText('Logo *', { selector: 'input' })
+    const click = vi.spyOn(input, 'click')
+    await user.click(screen.getByRole('button', { name: 'Upload logo' }))
+    expect(click).toHaveBeenCalled()
   })
 
   it('keeps Change / Remove operable by keyboard', async () => {

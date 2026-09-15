@@ -9,6 +9,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback'
 import type { FilterState } from '@/types/catalog'
 import { RATING_OPTIONS, SORT_OPTIONS } from '@/types/catalog'
 import { findCategoryPath } from '@/features/catalog/categoryTree'
+import { sortCategoryTree } from '@/features/catalog/categoryNavOrder'
 import { cn } from '@/utils/cn'
 import styles from './FilterSidebar.module.css'
 
@@ -41,10 +42,11 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: categoryTree = [], isLoading: isCategoryTreeLoading } = useCategoryTree()
+  const sortedTree = useMemo(() => sortCategoryTree(categoryTree), [categoryTree])
 
   const categoryPath = useMemo(
-    () => findCategoryPath(categoryTree, activeCategoryId),
-    [activeCategoryId, categoryTree],
+    () => findCategoryPath(sortedTree, activeCategoryId),
+    [activeCategoryId, sortedTree],
   )
   const activeRootCategory = categoryPath[0]
   const subCategories = activeRootCategory?.children ?? []
@@ -178,7 +180,7 @@ export function FilterSidebar({
                 Loading categories...
               </p>
             )}
-            {categoryTree.map((category) => (
+            {sortedTree.map((category) => (
               <button
                 key={category.id}
                 type="button"

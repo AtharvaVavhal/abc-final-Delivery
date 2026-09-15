@@ -66,10 +66,16 @@ export class StorefrontTenantResolver {
     }
 
     if (!tenantId) {
-      const mostRecent = await this.prisma.tenant.findFirst({
-        select: { id: true },
-        orderBy: { createdAt: 'desc' },
-      });
+      // Same platform-scoped case as the host lookup above: no tenant is
+      // known yet, so FORCE RLS would hide every Tenant row without the
+      // bypass GUC. The fallback is the single-origin / single-tenant
+      // path this resolver's header already documents.
+      const mostRecent = await withPlatformRlsBypass(this.prisma, (tx) =>
+        tx.tenant.findFirst({
+          select: { id: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
       tenantId = mostRecent?.id;
     }
 

@@ -51,6 +51,15 @@
   }
 }
 
+.pill {
+  border-radius: 9999px;
+}
+
+.lg {
+  padding: 1rem 2rem;
+  font-size: 1.0625rem;
+}
+
 .primary {
   background: var(--color-primary);
   color: var(--color-primary-foreground);

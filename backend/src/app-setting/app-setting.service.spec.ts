@@ -559,15 +559,69 @@ describe('AppSettingService — configurable settings', () => {
   });
 
   describe('store identity — storeName / storeAdminName (STORE-owned)', () => {
-    it('defaults storeName to "PrintForge" when no row exists (backward compatibility)', async () => {
+    it('defaults storeName to "AB Creations" when no row exists', async () => {
       const { service } = buildService();
       const list = await service.listConfigurable(tenantContext);
       const storeName = list.find((s) => s.key === 'storeName');
       expect(storeName).toMatchObject({
         kind: 'text',
-        value: 'PrintForge',
-        default: 'PrintForge',
+        value: 'AB Creations',
+        default: 'AB Creations',
       });
+    });
+
+    it('defaults storeLogo to the bundled catalog mark when no row exists', async () => {
+      const { service } = buildService();
+      const list = await service.listConfigurable(tenantContext);
+      const logo = list.find((s) => s.key === 'storeLogo');
+      expect(logo).toMatchObject({
+        kind: 'text',
+        value: '/catalog/logo.png',
+        default: '/catalog/logo.png',
+      });
+    });
+
+    it('accepts a Cloudinary logo URL', async () => {
+      const { service, storeSettingDelegate } = buildService();
+      const view = await service.updateConfigurable(
+        tenantContext,
+        actor,
+        'storeLogo',
+        'https://res.cloudinary.com/demo/image/upload/logo.png',
+      );
+      expect(view.value).toBe(
+        'https://res.cloudinary.com/demo/image/upload/logo.png',
+      );
+      expect(storeSettingDelegate.upsert).toHaveBeenCalled();
+    });
+
+    it('rejects a non-URL logo value', async () => {
+      const { service, storeSettingDelegate } = buildService();
+      await expect(
+        service.updateConfigurable(tenantContext, actor, 'storeLogo', 'not a url'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(storeSettingDelegate.upsert).not.toHaveBeenCalled();
+    });
+
+    it('accepts a hero_slides JSON array', async () => {
+      const { service, storeSettingDelegate } = buildService();
+      const payload = JSON.stringify([
+        {
+          imageUrl: '/catalog/hero-3.jpg',
+          headline: 'Acrylic caricatures',
+          subtext: 'Made to order',
+          ctaText: 'Shop',
+          ctaLink: '/products',
+        },
+      ]);
+      const view = await service.updateConfigurable(
+        tenantContext,
+        actor,
+        'hero_slides',
+        payload,
+      );
+      expect(JSON.parse(view.value)).toHaveLength(1);
+      expect(storeSettingDelegate.upsert).toHaveBeenCalled();
     });
 
     it('defaults storeAdminName to an empty string (no name field to seed from)', async () => {

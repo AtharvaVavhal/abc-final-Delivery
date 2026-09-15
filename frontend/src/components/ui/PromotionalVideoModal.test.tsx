@@ -17,7 +17,7 @@ describe('PromotionalVideoModal', () => {
   const sampleData: PromotionalVideoData = {
     videoUrl: '/videos/categories/t-shirts.webm',
     title: 'Customize T-shirt',
-    ctaText: 'आत्ताच खरेदी करा',
+    ctaText: 'Shop this category',
     ctaUrl: '/products?category=t-shirts',
   }
 
@@ -57,9 +57,9 @@ describe('PromotionalVideoModal', () => {
     expect(dialog).toBeInTheDocument()
     expect(screen.getByText('Customize T-shirt')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /close video/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /आत्ताच खरेदी करा/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /shop this category/i })).toBeInTheDocument()
 
-    const video = screen.getByLabelText(/Customize T-shirt promotional video/i)
+    const video = screen.getByLabelText(/Customize T-shirt category video/i)
     expect(video).toBeInTheDocument()
     expect(video).toHaveAttribute('src', '/videos/categories/t-shirts.webm')
   })
@@ -127,7 +127,7 @@ describe('PromotionalVideoModal', () => {
       </BrowserRouter>,
     )
 
-    const ctaButton = screen.getByRole('button', { name: /आत्ताच खरेदी करा/i })
+    const ctaButton = screen.getByRole('button', { name: /shop this category/i })
     fireEvent.click(ctaButton)
 
     expect(handleClose).toHaveBeenCalledTimes(1)

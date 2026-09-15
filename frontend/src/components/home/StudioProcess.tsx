@@ -7,26 +7,23 @@ const STEPS = [
   {
     step: '01',
     icon: Layers,
-    title: 'Select Your Canvas',
-    description:
-      'Explore our catalog of premium mugs, t-shirts, business cards, photo frames, and laser-cut name plates.',
-    badge: 'Curated blanks',
+    title: 'Pick a product',
+    description: 'Choose an acrylic gift, mug, clock, or corporate piece from the catalog.',
+    badge: 'Catalog',
   },
   {
     step: '02',
     icon: Sliders,
-    title: 'Personalize & Upload',
-    description:
-      'Add custom typography, upload your company logo or high-res artwork, and choose your preferred sizes and finishes.',
-    badge: 'Live customizer',
+    title: 'Send your photo',
+    description: 'Upload the picture or text that product asks for. We print from what you send.',
+    badge: 'Your files',
   },
   {
     step: '03',
     icon: Truck,
-    title: 'Studio Crafted & Delivered',
-    description:
-      'Every order is inspected by our printmakers, crafted with studio precision, and delivered straight to your door.',
-    badge: '48–72h turnaround',
+    title: 'We print and ship',
+    description: 'Pay on Razorpay. Production starts after payment — typically 3–5 working days.',
+    badge: 'Made to order',
   },
 ] as const
 
@@ -35,12 +32,12 @@ export function StudioProcess() {
     <section className={styles.section} aria-labelledby="studio-process-heading">
       <div className={styles.container}>
         <div className={styles.header}>
-          <p className={styles.eyebrow}>Seamless Workflow</p>
+          <p className={styles.eyebrow}>How ordering works</p>
           <h2 id="studio-process-heading" className={styles.title}>
-            How Custom Printing Works
+            How it works
           </h2>
           <p className={styles.subtitle}>
-            From your digital idea to a physical masterpiece in 3 simple steps.
+            Send a photo. We print it. You track the order from your account.
           </p>
         </div>
 

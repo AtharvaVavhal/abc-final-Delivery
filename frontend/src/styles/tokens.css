@@ -22,6 +22,10 @@
   --color-accent-contrast: var(--color-primary-foreground);
   --color-accent-ring: var(--color-primary-ring);
 
+  /* ---- Warm gold accent (distinct from brand red --color-accent) ------ */
+  --color-accent-warm: #b8873a;
+  --color-accent-warm-hover: #a67a34;
+
   /* ---- Secondary accent — reserved for rare emphasis ---------------- */
   --color-highlight: #6366f1;
   --color-highlight-hover: #4f46e5;

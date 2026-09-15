@@ -9,7 +9,7 @@ import { buildRobotsTxt, buildSitemapXml } from './src/seo/seoFiles.ts'
 /**
  * Emits robots.txt and a static sitemap.xml into the build output. The
  * site origin comes from VITE_SITE_URL (see .env.example) and otherwise
- * falls back to the architecture-frozen production origin. Build-time only
+ * falls back to DEFAULT_SITE_URL (local Vite origin). Build-time only
  * — the dev server doesn't need either file.
  */
 function seoFiles(siteUrl: string): Plugin {

@@ -7,12 +7,10 @@
   gap: var(--space-4);
 }
 
-.title {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-strong);
-  letter-spacing: -0.02em;
-  margin: 0;
+.subtitle {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .viewAll {

@@ -23,11 +23,11 @@ describe('useStoreName', () => {
     mock.restore()
   })
 
-  it('starts on the "PrintForge" fallback before the request resolves', () => {
+  it('starts on the "AB Creations" fallback before the request resolves', () => {
     mock.onGet('/settings/storeName').reply(() => new Promise(() => {}))
     const { result } = renderHook(() => useStoreName(), { wrapper: wrapper() })
-    expect(result.current).toBe('PrintForge')
-    expect(STORE_NAME_FALLBACK).toBe('PrintForge')
+    expect(result.current).toBe('AB Creations')
+    expect(STORE_NAME_FALLBACK).toBe('AB Creations')
   })
 
   it('returns the configured store name once loaded', async () => {
@@ -44,16 +44,16 @@ describe('useStoreName', () => {
     await waitFor(() => expect(result.current).toBe('Atharva Prints'))
   })
 
-  it('falls back to "PrintForge" when the value is null or blank', async () => {
+  it('falls back to "AB Creations" when the value is null or blank', async () => {
     mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: null } })
     const { result } = renderHook(() => useStoreName(), { wrapper: wrapper() })
     // Give the query a tick to settle; the value stays on the fallback.
-    await waitFor(() => expect(result.current).toBe('PrintForge'))
+    await waitFor(() => expect(result.current).toBe('AB Creations'))
   })
 
-  it('falls back to "PrintForge" when the endpoint errors', async () => {
+  it('falls back to "AB Creations" when the endpoint errors', async () => {
     mock.onGet('/settings/storeName').reply(500)
     const { result } = renderHook(() => useStoreName(), { wrapper: wrapper() })
-    await waitFor(() => expect(result.current).toBe('PrintForge'))
+    await waitFor(() => expect(result.current).toBe('AB Creations'))
   })
 })

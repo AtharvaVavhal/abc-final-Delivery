@@ -154,6 +154,10 @@ export class UploadsService {
     resourceType: string,
     deliveryType: string,
   ): string {
+    // Storefront files shipped in frontend/public — not Cloudinary objects.
+    if (cloudinaryPublicId.startsWith('local/')) {
+      return `/${cloudinaryPublicId.slice('local/'.length)}`;
+    }
     return this.cloudinary.signedUrl(
       cloudinaryPublicId,
       resourceType,

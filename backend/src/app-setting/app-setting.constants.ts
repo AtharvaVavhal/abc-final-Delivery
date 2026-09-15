@@ -17,6 +17,19 @@ export const PUBLIC_SETTING_KEYS = [
   // public: it is store-owner information, only ever read behind the admin
   // guard.
   'storeName',
+  // Navbar / brand mark. Empty means the storefront uses the bundled
+  // default (`/catalog/logo.png`) — never a fabricated third-party logo.
+  'storeLogo',
+  // Click-to-chat destination for the storefront WhatsApp button. Empty
+  // means the button is hidden — never a fabricated number.
+  'whatsappNumber',
+  // Optional public contact / story / press media. Empty hides the matching
+  // storefront surfaces — never fabricated from UvPixel or demo copy.
+  'storeContactEmail',
+  'storeContactPhone',
+  'storeAddress',
+  'brand_story',
+  'featured_media',
 ] as const;
 
 export type PublicSettingKey = (typeof PUBLIC_SETTING_KEYS)[number];
@@ -52,19 +65,13 @@ export interface AdminSettingDefinition {
 }
 
 /**
- * Phase 5 W9 (decision D11) — ownership for the 3 PUBLIC_SETTING_KEYS that
- * have no admin-write definition yet (`hero_slides`/`banners`/
- * `showcase_categories` — confirmed by inspection: no `ADMIN_SETTING_
- * DEFINITIONS` entry, no admin endpoint ever writes them; their current
- * values were seeded directly). All three are STORE-owned, same as every
- * other public key. Recorded here (not invented as a new admin-write
- * capability — that stays out of W9's scope) purely so the public
- * storefront read path can classify them correctly.
+ * Phase 5 W9 (decision D11) — ownership for PUBLIC_SETTING_KEYS that have
+ * no admin-write definition yet (`banners` / `showcase_categories`).
+ * `hero_slides` is STORE-owned and now has an admin-write definition.
  */
 export const PUBLIC_ONLY_SETTING_OWNERSHIP: Readonly<
   Record<string, SettingOwnership>
 > = {
-  hero_slides: 'STORE',
   banners: 'STORE',
   showcase_categories: 'STORE',
 };
@@ -83,8 +90,21 @@ const MAX_SHIPPING_FEE_RUPEES = 100000;
 const MAX_ANNOUNCEMENT_LENGTH = 200;
 const MAX_NAME_LENGTH = 200;
 const MAX_ADDRESS_LENGTH = 500;
+const MAX_BRAND_STORY_LENGTH = 4000;
+const MAX_FEATURED_MEDIA_LENGTH = 8000;
+const MAX_EMAIL_LENGTH = 120;
+const MAX_PHONE_DISPLAY_LENGTH = 30;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_STORE_NAME_LENGTH = 60;
 const MAX_STORE_ADMIN_NAME_LENGTH = 120;
+const MAX_STORE_LOGO_LENGTH = 2048;
+export const STORE_LOGO_DEFAULT = '/catalog/logo.png';
+export const MAX_HERO_SLIDES = 8;
+const MAX_HERO_SLIDES_JSON_LENGTH = 16000;
+const MAX_HERO_HEADLINE_LENGTH = 80;
+const MAX_HERO_SUBTEXT_LENGTH = 240;
+const MAX_HERO_CTA_TEXT_LENGTH = 40;
+const MAX_HERO_CTA_LINK_LENGTH = 300;
 const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/;
 const INVOICE_PREFIX_PATTERN = /^[A-Z0-9/-]{1,16}$/;
 
@@ -148,6 +168,249 @@ function normalizeStoreName(raw: string): NormalizeResult {
     };
   }
   return { valid: true, value: trimmed };
+}
+
+/** Navbar logo URL. Empty is allowed (storefront falls back to the bundled
+ * default). Must be an http(s) URL or a same-origin site path. */
+function normalizeStoreLogo(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return { valid: true, value: '' };
+  }
+  if (trimmed.length > MAX_STORE_LOGO_LENGTH) {
+    return {
+      valid: false,
+      error: `Logo URL cannot exceed ${MAX_STORE_LOGO_LENGTH} characters`,
+    };
+  }
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:')
+  ) {
+    return { valid: false, error: 'Logo must be an http(s) URL or a site path' };
+  }
+  if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith('/')) {
+    return {
+      valid: false,
+      error: 'Logo must be an http(s) URL or a site path',
+    };
+  }
+  return { valid: true, value: trimmed };
+}
+
+function isSafeHttpOrSitePath(value: string): boolean {
+  const lower = value.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:')
+  ) {
+    return false;
+  }
+  return /^https?:\/\//i.test(value) || value.startsWith('/');
+}
+
+/** Homepage hero carousel. Empty means the storefront uses its built-in
+ * fallback hero — never invented slides. */
+function normalizeHeroSlides(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return { valid: true, value: '' };
+  }
+  if (trimmed.length > MAX_HERO_SLIDES_JSON_LENGTH) {
+    return {
+      valid: false,
+      error: `Hero slides cannot exceed ${MAX_HERO_SLIDES_JSON_LENGTH} characters`,
+    };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return { valid: false, error: 'Hero slides must be valid JSON' };
+  }
+  if (!Array.isArray(parsed)) {
+    return { valid: false, error: 'Hero slides must be a JSON array' };
+  }
+  if (parsed.length > MAX_HERO_SLIDES) {
+    return {
+      valid: false,
+      error: `Hero cannot have more than ${MAX_HERO_SLIDES} slides`,
+    };
+  }
+  const slides: Array<{
+    imageUrl: string;
+    headline: string;
+    subtext: string;
+    ctaText: string;
+    ctaLink: string;
+  }> = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return { valid: false, error: 'Each hero slide must be an object' };
+    }
+    const record = item as Record<string, unknown>;
+    const imageUrl = typeof record.imageUrl === 'string' ? record.imageUrl.trim() : '';
+    const headline = typeof record.headline === 'string' ? record.headline.trim() : '';
+    const subtext = typeof record.subtext === 'string' ? record.subtext.trim() : '';
+    const ctaText = typeof record.ctaText === 'string' ? record.ctaText.trim() : '';
+    const ctaLink = typeof record.ctaLink === 'string' ? record.ctaLink.trim() : '';
+    if (!imageUrl || !isSafeHttpOrSitePath(imageUrl)) {
+      return {
+        valid: false,
+        error: 'Each slide needs an image that is an http(s) URL or a site path',
+      };
+    }
+    if (!headline) {
+      return { valid: false, error: 'Each slide needs a headline' };
+    }
+    if (headline.length > MAX_HERO_HEADLINE_LENGTH) {
+      return {
+        valid: false,
+        error: `Headline cannot exceed ${MAX_HERO_HEADLINE_LENGTH} characters`,
+      };
+    }
+    if (subtext.length > MAX_HERO_SUBTEXT_LENGTH) {
+      return {
+        valid: false,
+        error: `Subtext cannot exceed ${MAX_HERO_SUBTEXT_LENGTH} characters`,
+      };
+    }
+    if (ctaText.length > MAX_HERO_CTA_TEXT_LENGTH) {
+      return {
+        valid: false,
+        error: `Button text cannot exceed ${MAX_HERO_CTA_TEXT_LENGTH} characters`,
+      };
+    }
+    if (ctaLink.length > MAX_HERO_CTA_LINK_LENGTH) {
+      return {
+        valid: false,
+        error: `Button link cannot exceed ${MAX_HERO_CTA_LINK_LENGTH} characters`,
+      };
+    }
+    if (ctaLink && !isSafeHttpOrSitePath(ctaLink)) {
+      return {
+        valid: false,
+        error: 'Button link must be an http(s) URL or a site path',
+      };
+    }
+    if ((ctaText && !ctaLink) || (!ctaText && ctaLink)) {
+      return {
+        valid: false,
+        error: 'Button text and link must both be set, or both left blank',
+      };
+    }
+    slides.push({ imageUrl, headline, subtext, ctaText, ctaLink });
+  }
+  return { valid: true, value: JSON.stringify(slides) };
+}
+
+/** Storefront click-to-chat number. Empty hides the button. Canonical
+ * stored form is `91` + 10-digit Indian mobile (wa.me digits, no `+`). */
+function normalizeWhatsappNumber(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return { valid: true, value: '' };
+  }
+  const compact = trimmed.replace(/[\s\-().+]/g, '');
+  let digits = compact;
+  if (digits.startsWith('91') && digits.length === 12) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith('0') && digits.length === 11) {
+    digits = digits.slice(1);
+  }
+  if (!/^[6-9]\d{9}$/.test(digits)) {
+    return {
+      valid: false,
+      error: 'Enter a valid 10-digit Indian mobile number for WhatsApp',
+    };
+  }
+  return { valid: true, value: `91${digits}` };
+}
+
+function normalizeOptionalEmail(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') return { valid: true, value: '' };
+  if (trimmed.length > MAX_EMAIL_LENGTH) {
+    return {
+      valid: false,
+      error: `Email cannot exceed ${MAX_EMAIL_LENGTH} characters`,
+    };
+  }
+  if (!EMAIL_PATTERN.test(trimmed)) {
+    return { valid: false, error: 'Enter a valid email address' };
+  }
+  return { valid: true, value: trimmed.toLowerCase() };
+}
+
+function normalizeOptionalPhoneDisplay(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') return { valid: true, value: '' };
+  if (trimmed.length > MAX_PHONE_DISPLAY_LENGTH) {
+    return {
+      valid: false,
+      error: `Phone cannot exceed ${MAX_PHONE_DISPLAY_LENGTH} characters`,
+    };
+  }
+  if (!/^[+\d][\d\s().-]{6,}$/.test(trimmed)) {
+    return {
+      valid: false,
+      error: 'Enter a phone number using digits, spaces, or +, -, ()',
+    };
+  }
+  return { valid: true, value: trimmed };
+}
+
+/** One http(s) or same-origin path per line. Stored as a JSON string array. */
+function normalizeFeaturedMedia(raw: string): NormalizeResult {
+  const trimmed = raw.trim();
+  if (trimmed === '') return { valid: true, value: '' };
+  if (trimmed.length > MAX_FEATURED_MEDIA_LENGTH) {
+    return {
+      valid: false,
+      error: `Featured media cannot exceed ${MAX_FEATURED_MEDIA_LENGTH} characters`,
+    };
+  }
+  let urls: string[] = [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (!Array.isArray(parsed)) {
+        return { valid: false, error: 'Featured media JSON must be an array' };
+      }
+      urls = parsed.map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (
+          item &&
+          typeof item === 'object' &&
+          'imageUrl' in item &&
+          typeof (item as { imageUrl: unknown }).imageUrl === 'string'
+        ) {
+          return (item as { imageUrl: string }).imageUrl.trim();
+        }
+        return '';
+      });
+    } catch {
+      return { valid: false, error: 'Featured media JSON is not valid' };
+    }
+  } else {
+    urls = trimmed.split(/\r?\n/).map((line) => line.trim());
+  }
+  const cleaned = urls.filter(Boolean);
+  if (cleaned.length > 20) {
+    return { valid: false, error: 'Featured media cannot list more than 20 URLs' };
+  }
+  for (const url of cleaned) {
+    if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+      return {
+        valid: false,
+        error: 'Each featured media item must be an http(s) URL or a site path',
+      };
+    }
+  }
+  return { valid: true, value: JSON.stringify(cleaned) };
 }
 
 function normalizeBoolean(raw: string): NormalizeResult {
@@ -243,10 +506,18 @@ const NORMALIZERS: Record<string, (raw: string) => NormalizeResult> = {
   shippingFeeFlat: normalizeMoney,
   announcement_text: boundedText(MAX_ANNOUNCEMENT_LENGTH, 'Announcement text'),
   storeName: normalizeStoreName,
+  storeLogo: normalizeStoreLogo,
   // Store-owner display name — optional (the User model has no name column
   // to seed it from), only length-bounded. Same rule shape as the invoice
   // seller-identity fields.
   storeAdminName: boundedText(MAX_STORE_ADMIN_NAME_LENGTH, 'Store admin name'),
+  whatsappNumber: normalizeWhatsappNumber,
+  storeContactEmail: normalizeOptionalEmail,
+  storeContactPhone: normalizeOptionalPhoneDisplay,
+  storeAddress: boundedText(MAX_ADDRESS_LENGTH, 'Store address'),
+  brand_story: boundedText(MAX_BRAND_STORY_LENGTH, 'Brand story'),
+  featured_media: normalizeFeaturedMedia,
+  hero_slides: normalizeHeroSlides,
   'tax.enabled': normalizeBoolean,
   'tax.pricingMode': normalizeTaxPricingMode,
   'tax.ratePercent': normalizePercent,
@@ -263,11 +534,18 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
     ownership: 'STORE',
     label: 'Store name',
     description:
-      'The name customers see for this store — in the header, the homepage hero and the footer. This is the STORE name, not the "PrintForge" platform name. Required.',
+      'The name customers see for this store — in the header, the homepage hero and the footer. Required.',
     kind: 'text',
-    // Backward compatibility: the storefront shows exactly this until the
-    // owner changes it, matching the value that was previously hardcoded.
-    default: 'PrintForge',
+    default: 'AB Creations',
+  },
+  {
+    key: 'storeLogo',
+    ownership: 'STORE',
+    label: 'Store logo',
+    description:
+      'Shown in the storefront navbar. Upload a PNG or JPEG. Leave blank or reset to use the bundled AB Creations mark.',
+    kind: 'text',
+    default: STORE_LOGO_DEFAULT,
   },
   {
     key: 'storeAdminName',
@@ -293,6 +571,69 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
     label: 'Announcement bar text',
     description:
       'Shown in the storefront announcement bar. Leave blank to hide the bar.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'whatsappNumber',
+    ownership: 'STORE',
+    label: 'WhatsApp number',
+    description:
+      'Customer click-to-chat number shown as the storefront WhatsApp button. Leave blank to hide the button. Use a 10-digit Indian mobile; country code 91 is added automatically.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'storeContactEmail',
+    ownership: 'STORE',
+    label: 'Store contact email',
+    description:
+      'Shown in the storefront footer and contact page. Leave blank to hide — never guessed.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'storeContactPhone',
+    ownership: 'STORE',
+    label: 'Store contact phone',
+    description:
+      'Public phone number shown in the footer and contact page. Leave blank to hide.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'storeAddress',
+    ownership: 'STORE',
+    label: 'Store address',
+    description:
+      'Public studio/office address. Leave blank to hide until the client supplies it.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'brand_story',
+    ownership: 'STORE',
+    label: 'Brand story',
+    description:
+      'Homepage “Our Story” copy. Leave blank to use the general AB Creations description already on the About page — do not invent founder claims.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'featured_media',
+    ownership: 'STORE',
+    label: 'Got Featured media',
+    description:
+      'One image URL per line (or a JSON array) for the homepage press/media row. Leave blank to hide the section. Do not paste unrelated brand assets.',
+    kind: 'text',
+    default: '',
+  },
+  {
+    key: 'hero_slides',
+    ownership: 'STORE',
+    label: 'Homepage hero slides',
+    description:
+      'Images and copy for the homepage banner. Add, replace, or delete slides here. An empty list uses the built-in fallback hero. PNG or JPEG, up to 8 slides.',
     kind: 'text',
     default: '',
   },

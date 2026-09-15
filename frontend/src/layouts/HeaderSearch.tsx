@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,21 +12,24 @@ import {
 import styles from './Header.module.css'
 
 /**
- * The product search box. Rendered twice — once in the desktop header bar,
- * once inside the mobile navigation drawer — so search is reachable at
- * every breakpoint. Each instance owns its own form state; a submit
- * navigates to the listing page with `?search=` and calls `onSubmitted`
- * (used to close the drawer on mobile).
+ * The product search box. Rendered twice — once in the header search panel
+ * (opened from the search icon) and once inside the mobile navigation
+ * drawer — so search is reachable at every breakpoint. Each instance owns
+ * its own form state; a submit navigates to the listing page with `?search=`
+ * and calls `onSubmitted`.
  */
 export function HeaderSearch({
   variant,
   onSubmitted,
+  active = false,
 }: {
   variant: 'bar' | 'drawer'
   onSubmitted?: () => void
+  active?: boolean
 }) {
   const navigate = useNavigate()
   const inputId = useId()
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const {
     register,
     handleSubmit,
@@ -36,6 +39,11 @@ export function HeaderSearch({
     resolver: zodResolver(headerSearchSchema),
     defaultValues: EMPTY_HEADER_SEARCH_VALUES,
   })
+  const { ref: registerRef, ...queryField } = register('query')
+
+  useEffect(() => {
+    if (variant === 'bar' && active) inputRef.current?.focus()
+  }, [active, variant])
 
   function onValid(values: HeaderSearchFormValues) {
     reset(EMPTY_HEADER_SEARCH_VALUES)
@@ -60,7 +68,11 @@ export function HeaderSearch({
         placeholder="Search products…"
         className={styles.searchInput}
         aria-invalid={Boolean(errors.query)}
-        {...register('query')}
+        {...queryField}
+        ref={(element) => {
+          registerRef(element)
+          inputRef.current = element
+        }}
       />
       <button type="submit" className={styles.searchSubmit} aria-label="Search">
         <Search size={18} aria-hidden="true" />

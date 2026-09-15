@@ -3,11 +3,11 @@
  * to import from both browser code (via siteConfig.ts) and the Vite config
  * (Node context, where import.meta.env doesn't exist).
  */
-export const SITE_NAME = 'PrintForge'
+export const SITE_NAME = 'AB Creations'
 
 /**
- * Production frontend origin, per the frozen architecture docs
- * (docs/architecture/BLUEPRINT-v1.2.md §23, ARCHITECTURE-FREEZE.md). Not a
- * guess. Overridable per deploy with VITE_SITE_URL.
+ * Local/dev fallback origin for canonical URLs, og:url, JSON-LD, robots, and
+ * sitemap. Production MUST set VITE_SITE_URL to the real AB Creations domain
+ * — never ship printforge.in as the canonical host.
  */
-export const DEFAULT_SITE_URL = 'https://www.printforge.in'
+export const DEFAULT_SITE_URL = 'http://localhost:5173'

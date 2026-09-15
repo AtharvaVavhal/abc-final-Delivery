@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { ProductImage as ProductImageData } from '@/types/catalog'
+import { isVideoAsset } from '@/features/media/mediaAsset'
+import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { ProductImagePlaceholder } from './ProductImagePlaceholder'
 import styles from './ProductGallery.module.css'
 
 /**
- * Product-detail image viewer: one large image plus a thumbnail strip when
- * the product has more than one usable image. Images that fail to load are
- * dropped from the set (a real state — a URL can 404/expire); if nothing
- * usable remains it falls back to the shared placeholder. No zoom/lightbox
- * — kept deliberately simple, matching the rest of the storefront.
+ * Product-detail media viewer. Still images and Cloudinary videos from the
+ * product's own `images` list — never a second media source.
  */
 export function ProductGallery({
   images,
@@ -43,16 +42,28 @@ export function ProductGallery({
     setFailedIds((prev) => new Set(prev).add(id))
   }
 
+  const activeIsVideo = isVideoAsset(active)
+
   return (
     <div className={styles.gallery}>
       <div className={styles.main}>
-        <img
-          key={active.id}
-          src={active.url}
-          alt={label}
-          className={styles.mainImage}
-          onError={() => markFailed(active.id)}
-        />
+        {activeIsVideo ? (
+          <DeferredVideo
+            key={active.id}
+            src={active.url}
+            poster={usable.find((img) => !isVideoAsset(img))?.url}
+            label={label}
+            className={styles.mainImage}
+          />
+        ) : (
+          <img
+            key={active.id}
+            src={active.url}
+            alt={label}
+            className={styles.mainImage}
+            onError={() => markFailed(active.id)}
+          />
+        )}
       </div>
 
       {usable.length > 1 && (
@@ -66,13 +77,17 @@ export function ProductGallery({
                 aria-label={`Show image ${index + 1} of ${usable.length}`}
                 onClick={() => setActiveIndex(index)}
               >
-                <img
-                  src={img.url}
-                  alt=""
-                  className={styles.thumbImage}
-                  loading="lazy"
-                  onError={() => markFailed(img.id)}
-                />
+                {isVideoAsset(img) ? (
+                  <span className={styles.thumbImage}>Video</span>
+                ) : (
+                  <img
+                    src={img.url}
+                    alt=""
+                    className={styles.thumbImage}
+                    loading="lazy"
+                    onError={() => markFailed(img.id)}
+                  />
+                )}
               </button>
             </li>
           ))}

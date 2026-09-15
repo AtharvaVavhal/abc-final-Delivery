@@ -5,7 +5,7 @@ import { cleanup } from '@testing-library/react'
 afterEach(() => {
   cleanup()
   // Storefront features stash small bits of state in web storage (pending
-  // cart add, announcement-bar dismissal). Reset between tests so one
+  // cart add). Reset between tests so one
   // test's write can never leak into the next.
   try {
     window.sessionStorage.clear()
@@ -19,6 +19,24 @@ afterEach(() => {
   }
 })
 
+if (typeof window !== 'undefined' && !window.IntersectionObserver) {
+  window.IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+  } as unknown as typeof IntersectionObserver
+}
+
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
 if (typeof window !== 'undefined' && window.HTMLMediaElement) {
   window.HTMLMediaElement.prototype.play = () => Promise.resolve()
   window.HTMLMediaElement.prototype.pause = () => {}

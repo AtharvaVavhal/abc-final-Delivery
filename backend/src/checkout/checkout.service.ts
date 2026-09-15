@@ -67,6 +67,13 @@ type OrderWithItems = Prisma.OrderGetPayload<{
   include: typeof ORDER_DETAIL_INCLUDE;
 }>;
 
+/** Prisma's default interactive-transaction budget (5s) is too tight for
+ * this transaction's full sequence (cart lock, idempotency claim, coupon
+ * validation, order/item/customization writes, cart clearing) against the
+ * remote Postgres instance's per-round-trip latency — raised the same way
+ * `tenant-rls.ts`'s scoped-client transactions already are. */
+const CHECKOUT_TRANSACTION_TIMEOUT_MS = 20_000;
+
 /**
  * §17: checkout owns order creation; orders owns the post-creation state
  * machine/history (see completion report for the full reasoning). One
@@ -447,7 +454,7 @@ export class CheckoutService {
       await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
 
       return { orderId: createdOrder.id, created: true };
-    });
+    }, { timeout: CHECKOUT_TRANSACTION_TIMEOUT_MS });
 
     return {
       view: await this.loadOrderView(result.orderId, userId),

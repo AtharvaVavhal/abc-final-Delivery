@@ -100,6 +100,14 @@
   color: var(--color-amber-primary);
 }
 
+.address {
+  font-size: var(--text-sm);
+  color: #94a3b8;
+  line-height: 1.5;
+  max-width: 220px;
+  white-space: pre-wrap;
+}
+
 .copyright {
   margin: var(--space-6) 0 0;
   padding-top: var(--space-4);

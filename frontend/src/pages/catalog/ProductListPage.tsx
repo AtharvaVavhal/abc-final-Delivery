@@ -14,16 +14,12 @@ import { MobileFilterDrawer } from '@/components/layout/MobileFilterDrawer'
 import { ActiveFilterChips } from '@/features/catalog/ActiveFilterChips'
 import { findCategoryBySlug, findCategoryPath } from '@/features/catalog/categoryTree'
 import { Seo } from '@/seo/Seo'
+import { SITE_NAME } from '@/seo/siteConfig.constants'
 import { breadcrumbJsonLd } from '@/seo/jsonLd'
 import { EmptyCatalog } from '@/features/catalog/EmptyCatalog'
 import { ProductCard } from '@/features/catalog/ProductCard'
 import { ProductGridSkeleton } from '@/features/catalog/ProductGridSkeleton'
 import { CategoryStoryBar } from '@/components/home/CategoryStoryBar'
-import { CategoryHeroBanner } from '@/components/catalog/CategoryHeroBanner'
-import { CategoryShowcaseGrid } from '@/components/catalog/CategoryShowcaseGrid'
-import { CraftPillars } from '@/components/home/CraftPillars'
-import { CraftImpactBar } from '@/components/home/CraftImpactBar'
-import { resolveCoreCategory } from '@/components/catalog/categoryData'
 import gridStyles from '@/features/catalog/ProductGrid.module.css'
 import type { ListProductsParams } from '@/types/catalog'
 import styles from './ProductListPage.module.css'
@@ -85,31 +81,17 @@ export function ProductListPage() {
     () => findCategoryPath(categoryTree, categoryId),
     [categoryTree, categoryId],
   )
-  const activeCategory = categoryPath.at(-1)
-
-  const coreCategory = useMemo(() => {
-    return resolveCoreCategory(categoryParam, search, activeCategory?.name)
-  }, [categoryParam, search, activeCategory?.name])
-
-  const isCoreCategoryMatch = Boolean(
-    categoryParam ||
-    (search &&
-      (search.toLowerCase().includes('business') ||
-        search.toLowerCase().includes('logo') ||
-        search.toLowerCase().includes('mug') ||
-        search.toLowerCase().includes('name') ||
-        search.toLowerCase().includes('plat') ||
-        search.toLowerCase().includes('shirt') ||
-        search.toLowerCase().includes('apparel'))),
+  const categoryBySlug = useMemo(
+    () => findCategoryBySlug(categoryTree, categoryParam),
+    [categoryTree, categoryParam],
   )
+  const activeCategory = categoryPath.at(-1) ?? categoryBySlug
 
   const pageTitle = activeCategory
     ? activeCategory.name
-    : isCoreCategoryMatch
-      ? coreCategory.title
-      : search
-        ? 'Search results'
-        : 'All products'
+    : search
+      ? 'Search results'
+      : 'All products'
 
   const breadcrumbs: Crumb[] = [
     { label: 'Home', to: ROUTES.HOME },
@@ -123,10 +105,10 @@ export function ProductListPage() {
           ? undefined
           : `${ROUTES.PRODUCTS}?categoryId=${node.id}`,
     })),
-    ...(isCoreCategoryMatch && !activeCategory
-      ? [{ label: coreCategory.title }]
-      : search && !activeCategory
-        ? [{ label: `“${search}”` }]
+    ...(search && !activeCategory
+      ? [{ label: `“${search}”` }]
+      : categoryBySlug && categoryPath.length === 0
+        ? [{ label: categoryBySlug.name }]
         : []),
   ]
 
@@ -150,27 +132,17 @@ export function ProductListPage() {
       ? `${ROUTES.PRODUCTS}?category=${categoryParam}`
       : ROUTES.PRODUCTS
   const seoDescription = activeCategory
-    ? `Shop ${activeCategory.name} at PrintForge — custom-printed, made to order.`
-    : isCoreCategoryMatch
-      ? `${coreCategory.title} at PrintForge — ${coreCategory.subtitle}`
-      : 'Browse every product in the PrintForge catalog. Personalize and order custom prints made to order.'
+    ? `Shop ${activeCategory.name} at ${SITE_NAME} — custom-printed, made to order.`
+    : `Browse every product in the ${SITE_NAME} catalog. Personalize and order custom prints made to order.`
 
-  // `?category=<slug>` links (Header, CategoryStoryBar, marketing cards)
-  // pass a category *slug*, not the *id* GET /products actually filters
-  // by — resolve it against the fetched tree so real category slugs
-  // (t-shirts, mugs, ...) become a proper categoryId filter instead of a
-  // free-text search that rarely matches any product name. A slug that
-  // isn't a real category (a marketing sub-filter keyword like "navy" or
-  // "3d") falls through to the pre-existing search approximation.
-  const categoryBySlug = useMemo(
-    () => findCategoryBySlug(categoryTree, categoryParam),
-    [categoryTree, categoryParam],
-  )
+  // `?category=<slug>` links pass a category *slug*, not the *id* GET
+  // /products filters by — resolve against the live tree. Unknown slugs
+  // fall through to a free-text search on the slug itself.
   const effectiveCategoryId = categoryId ?? categoryBySlug?.id
 
   const productsQuery = useProducts({
     categoryId: effectiveCategoryId,
-    search: search || (categoryParam && !categoryBySlug ? coreCategory.title : undefined),
+    search: search || (categoryParam && !categoryBySlug ? categoryParam : undefined),
     page,
     limit: DEFAULT_LIMIT,
     minPrice,
@@ -221,7 +193,7 @@ export function ProductListPage() {
         <div className={styles.header}>
           <div>
             <h1 className={styles.title}>{pageTitle}</h1>
-            {search && !activeCategory && !isCoreCategoryMatch && (
+            {search && !activeCategory && (
               <p className={styles.searchResultLabel}>Results for "{search}"</p>
             )}
           </div>
@@ -231,12 +203,6 @@ export function ProductListPage() {
             </p>
           )}
         </div>
-
-        {/* Dedicated Panoramic Hero Banner according to page heading */}
-        <CategoryHeroBanner data={coreCategory} />
-
-        {/* Dedicated Showcase Cards with 40% OFF badges & Personalize buttons */}
-        <CategoryShowcaseGrid cards={coreCategory.cards} categoryTitle={coreCategory.title} />
 
         <ActiveFilterChips />
 
@@ -349,9 +315,6 @@ export function ProductListPage() {
           onClearAll={handleClearAllFilters}
         />
       </section>
-
-      <CraftPillars />
-      <CraftImpactBar />
     </>
   )
 }

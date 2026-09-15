@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithProviders } from '@/test/test-utils'
 import { AboutPage } from './AboutPage'
 import { ContactPage } from './ContactPage'
 import { PrivacyPage } from './PrivacyPage'
@@ -19,19 +20,19 @@ describe('Static pages render without error', () => {
   it('AboutPage', () => {
     renderPage(AboutPage)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'About PrintForge'
+      'About AB Creations'
     )
   })
 
   it('ContactPage', () => {
-    renderPage(ContactPage)
+    renderWithProviders(<ContactPage />)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Contact Us'
     )
   })
 
   it('ContactPage does not present a working or fake contact form', () => {
-    renderPage(ContactPage)
+    renderWithProviders(<ContactPage />)
 
     // No form to collect (and silently discard) a message.
     expect(document.querySelector('form')).toBeNull()
@@ -46,7 +47,7 @@ describe('Static pages render without error', () => {
     expect(screen.queryByText(/demo/i)).not.toBeInTheDocument()
 
     // Clearly communicates that real contact details require client input.
-    expect(screen.getByText(/contact details coming soon/i)).toBeInTheDocument()
+    expect(screen.getByText(/whatsapp chat/i)).toBeInTheDocument()
   })
 
   it('PrivacyPage', () => {

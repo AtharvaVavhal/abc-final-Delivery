@@ -163,6 +163,7 @@ describe('LimitEnforcementService', () => {
 
     expect(entitlementService.resolve).toHaveBeenCalledWith(
       'a-specific-tenant',
+      tx,
     );
     expect(usageService.reserve).toHaveBeenCalledWith(
       tx,

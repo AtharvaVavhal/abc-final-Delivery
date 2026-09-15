@@ -55,7 +55,7 @@ export class AppSettingController {
       key,
     );
     // When no row exists yet, fall back to the admin definition's default
-    // (e.g. storeName → "PrintForge") so the public read is authoritative
+    // (e.g. storeName → "AB Creations") so the public read is authoritative
     // for the default too, not just for a value an admin has saved.
     const value = stored ?? getAdminSettingDefinition(key)?.default ?? null;
     return { value };

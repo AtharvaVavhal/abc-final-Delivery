@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { Upload } from 'lucide-react'
 import type { CustomizationField } from '@/types/catalog'
 import { useUploadFile } from '@/hooks/useUploadFile'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { RequiredMark } from '@/components/ui/RequiredMark'
 import styles from './FileUploadField.module.css'
+
+function pickerLabel(type: CustomizationField['type']): string {
+  switch (type) {
+    case 'IMAGE_UPLOAD':
+      return 'Upload photo'
+    case 'LOGO_UPLOAD':
+      return 'Upload logo'
+    case 'DESIGN_FILE_UPLOAD':
+      return 'Upload artwork'
+    default:
+      return 'Upload file'
+  }
+}
 
 interface FieldConstraints {
   allowedFormats?: string[]
@@ -181,8 +195,9 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
       </label>
       {field.helpText && <p className={styles.helpText}>{field.helpText}</p>}
 
-      {/* Kept mounted (hidden while a file is selected) so the label stays
-          associated and the Change button can re-open the picker. */}
+      {/* Native picker stays in the tree (visually hidden) so the field
+          label and Change action can open it. The visible control is the
+          styled button below. */}
       <input
         ref={inputRef}
         id={field.id}
@@ -192,8 +207,21 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
         disabled={upload.isPending}
         aria-invalid={Boolean(displayError)}
         aria-required={field.isRequired || undefined}
-        className={selected ? styles.inputHidden : undefined}
+        className="srOnly"
       />
+
+      {!selected && (
+        <button
+          type="button"
+          className={styles.picker}
+          onClick={handleChange}
+          disabled={upload.isPending}
+          aria-invalid={Boolean(displayError) || undefined}
+        >
+          <Upload size={18} strokeWidth={2} aria-hidden="true" />
+          {pickerLabel(field.type)}
+        </button>
+      )}
 
       {selected && (
         <div className={styles.preview}>

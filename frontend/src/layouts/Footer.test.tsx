@@ -6,7 +6,7 @@ import { Footer } from './Footer'
 function renderFooter() {
   // Footer reads the configured store name (useStoreName → TanStack Query),
   // so it needs the provider stack. No /settings/storeName mock here — the
-  // hook falls back to "PrintForge", which is what these tests assert.
+  // hook falls back to "AB Creations", which is what these tests assert.
   return renderWithProviders(<Footer />)
 }
 
@@ -16,6 +16,7 @@ describe('Footer', () => {
     const expected: [string, string][] = [
       ['About', '/about'],
       ['Contact', '/contact'],
+      ['Search', '/products'],
       ['Privacy', '/privacy'],
       ['Terms', '/terms'],
       ['Refund Policy', '/refund-policy'],

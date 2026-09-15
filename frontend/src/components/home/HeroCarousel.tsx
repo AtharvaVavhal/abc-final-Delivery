@@ -4,7 +4,12 @@ import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
 import type { HeroSlide } from '@/services/api/settings'
+import { isVideoUrl } from '@/features/media/mediaAsset'
+import { DeferredVideo } from '@/components/media/DeferredVideo'
+import { useWhatsappNumber } from '@/hooks/useWhatsappNumber'
 import styles from './HeroCarousel.module.css'
+
+const AUTOPLAY_MS = 8000
 
 interface HeroCarouselProps {
   slides: HeroSlide[]
@@ -13,7 +18,9 @@ interface HeroCarouselProps {
 export function HeroCarousel({ slides }: HeroCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
+  const [hoverPaused, setHoverPaused] = useState(false)
   const carouselRef = useRef<HTMLElement>(null)
+  const whatsapp = useWhatsappNumber()
 
   const slideCount = slides.length
 
@@ -25,22 +32,16 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
   const prevSlide = useCallback(() => goToSlide(-1), [goToSlide])
 
   useEffect(() => {
-    if (!isPlaying || slideCount <= 1) return
-    const timer = setInterval(nextSlide, 5000)
+    if (!isPlaying || hoverPaused || slideCount <= 1) return
+    const timer = setInterval(nextSlide, AUTOPLAY_MS)
     return () => clearInterval(timer)
-  }, [isPlaying, slideCount, nextSlide])
+  }, [isPlaying, hoverPaused, slideCount, nextSlide])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Arrow keys only. Space is deliberately left alone so it keeps
-    // scrolling the page; the on-screen Pause/Play button is the keyboard
-    // control for auto-advance (WCAG 2.1.4 — no global character-key
-    // shortcuts, nothing that blocks the page's own keys).
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
 
     const root = carouselRef.current
     const target = e.target as HTMLElement | null
-    // Only respond when focus is actually inside the carousel — never
-    // hijack arrow keys while the user is typing or navigating elsewhere.
     if (!root || !target || !root.contains(target)) return
     if (target.closest('input, textarea, select, [contenteditable="true"]')) return
 
@@ -58,33 +59,64 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
 
   if (!slides.length) return null
 
+  const whatsappHref = whatsapp
+    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent('Hi! I want to order a personalised gift.')}`
+    : ''
+
   return (
-    <section ref={carouselRef} className={styles.carousel} aria-label="Hero carousel">
+    <section
+      ref={carouselRef}
+      className={styles.carousel}
+      aria-label="Hero carousel"
+      onMouseEnter={() => setHoverPaused(true)}
+      onMouseLeave={() => setHoverPaused(false)}
+    >
       <div className={styles.track} role="list">
         {slides.map((slide, index) => (
-          <div key={index} className={cn(styles.slide, index === currentIndex && styles.active)} role="listitem" aria-hidden={index !== currentIndex}>
-            {slide.imageUrl && (
-              <img
-                src={slide.imageUrl}
-                alt={index === currentIndex ? slide.headline : ''}
-                className={styles.image}
-                loading={index === currentIndex ? 'eager' : 'lazy'}
-              />
-            )}
+          <div
+            key={index}
+            className={cn(styles.slide, index === currentIndex && styles.active)}
+            role="listitem"
+            aria-hidden={index !== currentIndex}
+          >
+            {slide.imageUrl &&
+              (isVideoUrl(slide.imageUrl) ? (
+                <DeferredVideo
+                  src={slide.imageUrl}
+                  label={slide.headline}
+                  className={styles.image}
+                />
+              ) : (
+                <img
+                  src={slide.imageUrl}
+                  alt={index === currentIndex ? slide.headline : ''}
+                  className={styles.image}
+                  loading={index === currentIndex ? 'eager' : 'lazy'}
+                />
+              ))}
+            <div className={styles.scrim} aria-hidden="true" />
             <div className={styles.content}>
-              {/* Only the active slide's headline is the page <h1> (UX-14) —
-                  a carousel has no single stable heading, so the h1 travels
-                  with the visible slide. Inactive slides are aria-hidden and
-                  visibility:hidden, so their <p> is never seen or announced. */}
               {index === currentIndex ? (
                 <h1 className={styles.headline}>{slide.headline}</h1>
               ) : (
                 <p className={styles.headline}>{slide.headline}</p>
               )}
               <p className={styles.subtext}>{slide.subtext}</p>
-              <Link to={slide.ctaLink} className={styles.ctaWrapper}>
-                <Button>{slide.ctaText}</Button>
-              </Link>
+              <div className={styles.actions}>
+                <Link to={slide.ctaLink} className={styles.ctaWrapper}>
+                  <Button>{slide.ctaText}</Button>
+                </Link>
+                {whatsappHref ? (
+                  <a
+                    href={whatsappHref}
+                    className={styles.whatsappCta}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Chat on WhatsApp
+                  </a>
+                ) : null}
+              </div>
             </div>
           </div>
         ))}
@@ -96,7 +128,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             className={cn(styles.navBtn, styles.prev)}
             onClick={prevSlide}
             aria-label="Previous slide"
-            disabled={!isPlaying}
+            type="button"
           >
             <ChevronLeft size={28} aria-hidden="true" />
           </button>
@@ -104,7 +136,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             className={cn(styles.navBtn, styles.next)}
             onClick={nextSlide}
             aria-label="Next slide"
-            disabled={!isPlaying}
+            type="button"
           >
             <ChevronRight size={28} aria-hidden="true" />
           </button>
@@ -113,10 +145,11 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             {slides.map((_, index) => (
               <button
                 key={index}
+                type="button"
                 className={cn(styles.dot, index === currentIndex && styles.active)}
                 onClick={() => setCurrentIndex(index)}
                 aria-label={`Go to slide ${index + 1}`}
-                aria-current={index === currentIndex ? 'true' : 'false'}
+                aria-current={index === currentIndex ? 'true' : undefined}
               />
             ))}
           </div>
@@ -126,6 +159,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             onClick={() => setIsPlaying((p) => !p)}
             aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
             aria-pressed={isPlaying}
+            type="button"
           >
             {isPlaying ? <Pause size={20} aria-hidden="true" /> : <Play size={20} aria-hidden="true" />}
           </button>

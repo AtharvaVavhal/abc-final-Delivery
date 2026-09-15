@@ -2,8 +2,8 @@ import { SITE_NAME, absoluteUrl, clampDescription, pageTitle } from './siteConfi
 import type { JsonLdObject } from './jsonLd'
 
 interface SeoProps {
-  /** The page name — turned into "<name> | PrintForge". Pass "" for the
-   * home page (renders just "PrintForge"). */
+  /** The page name — turned into "<name> | AB Creations". Pass "" for the
+   * home page (renders just "AB Creations"). */
   title: string
   description?: string
   /** Root-relative path (with query string if it's part of the canonical

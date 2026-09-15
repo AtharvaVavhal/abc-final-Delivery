@@ -316,9 +316,13 @@ export class ProductsService {
     minRating?: number,
     sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating_desc',
   ): Promise<PaginatedResult<ProductWithRelations>> {
+    const categoryFilter = categoryId
+      ? await this.publicCategoryIds(categoryId)
+      : undefined
+
     const where: Prisma.ProductWhereInput = {
       isActive: true,
-      ...(categoryId ? { categoryId } : {}),
+      ...(categoryFilter ? { categoryId: { in: categoryFilter } } : {}),
       ...(search
         ? { name: { contains: search, mode: 'insensitive' as const } }
         : {}),
@@ -369,6 +373,18 @@ export class ProductsService {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
+  }
+
+  /**
+   * Public listing: a parent category includes products filed on it or on
+   * any active direct child (one nesting level, matching Category).
+   */
+  private async publicCategoryIds(categoryId: string): Promise<string[]> {
+    const children = await this.prisma.category.findMany({
+      where: { parentCategoryId: categoryId, isActive: true },
+      select: { id: true },
+    })
+    return [categoryId, ...children.map((child) => child.id)]
   }
 
   async getProductBySlug(slug: string): Promise<ProductWithRelations> {

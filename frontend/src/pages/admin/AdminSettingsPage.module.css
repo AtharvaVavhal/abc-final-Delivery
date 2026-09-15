@@ -22,8 +22,116 @@
   color: var(--color-text-muted);
 }
 
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-strong);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.textareaLabel {
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
   margin-top: var(--space-1);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.logoPreviewFrame {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 4rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+
+.logoPreview {
+  display: block;
+  height: 44px;
+  width: auto;
+  max-width: 12.5rem;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.logoActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.heroEditor {
+  max-width: 48rem;
+}
+
+.heroList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.heroCard {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.heroThumbWrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: #f4f4f5;
+}
+
+.heroThumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroThumbFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.heroFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .heroCard {
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    align-items: start;
+  }
 }

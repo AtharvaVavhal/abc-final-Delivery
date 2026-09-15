@@ -62,8 +62,10 @@
 }
 
 .specRow {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(7rem, 34%) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
   padding-bottom: var(--space-2);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   font-size: var(--text-sm);
@@ -84,7 +86,8 @@
   margin: 0;
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-strong);
-  text-align: right;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .studioTrust {

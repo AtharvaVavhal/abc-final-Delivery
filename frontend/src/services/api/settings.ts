@@ -26,7 +26,12 @@ export interface HomepageSettings {
   hero_slides?: HeroSlide[]
   banners?: Banner[]
   showcase_categories?: ShowcaseCategory[]
+  brand_story?: string
+  featured_media?: string[]
 }
+
+const HOMEPAGE_SETTING_KEYS =
+  'hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 /**
  * `GET /settings?keys=…` is the one bulk public-settings read. Its wire
@@ -46,7 +51,7 @@ export interface HomepageSettings {
  */
 export async function fetchHomepageSettings(): Promise<HomepageSettings> {
   const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
-    params: { keys: 'hero_slides,banners,showcase_categories' },
+    params: { keys: HOMEPAGE_SETTING_KEYS },
   })
   const raw = res.data.data?.data ?? {}
 
@@ -60,10 +65,17 @@ export async function fetchHomepageSettings(): Promise<HomepageSettings> {
     }
   }
 
+  const featured = parseList<string | { imageUrl?: string }>(raw.featured_media)
+  const featuredUrls = featured
+    ?.map((item) => (typeof item === 'string' ? item : item.imageUrl ?? ''))
+    .filter(Boolean)
+
   return {
     hero_slides: parseList<HeroSlide>(raw.hero_slides),
     banners: parseList<Banner>(raw.banners),
     showcase_categories: parseList<ShowcaseCategory>(raw.showcase_categories),
+    brand_story: raw.brand_story?.trim() || undefined,
+    featured_media: featuredUrls,
   }
 }
 
@@ -78,6 +90,42 @@ export async function fetchStoreName(): Promise<string | null> {
     '/settings/storeName',
   )
   return res.data.data?.value ?? null
+}
+
+/** Navbar logo URL. `null` means the endpoint was unreachable; `''` means
+ * use the bundled fallback. */
+export async function fetchStoreLogo(): Promise<string | null> {
+  const res = await apiClient.get<ApiSuccessResponse<{ value: string | null }>>(
+    '/settings/storeLogo',
+  )
+  return res.data.data?.value ?? null
+}
+
+/** Public click-to-chat number (`91` + 10 digits). `null` means the
+ * endpoint was unreachable; `''` means the store has not configured one. */
+export async function fetchWhatsappNumber(): Promise<string | null> {
+  const res = await apiClient.get<ApiSuccessResponse<{ value: string | null }>>(
+    '/settings/whatsappNumber',
+  )
+  return res.data.data?.value ?? null
+}
+
+export interface StoreContact {
+  email: string
+  phone: string
+  address: string
+}
+
+export async function fetchStoreContact(): Promise<StoreContact> {
+  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
+    params: { keys: 'storeContactEmail,storeContactPhone,storeAddress' },
+  })
+  const raw = res.data.data?.data ?? {}
+  return {
+    email: raw.storeContactEmail?.trim() ?? '',
+    phone: raw.storeContactPhone?.trim() ?? '',
+    address: raw.storeAddress?.trim() ?? '',
+  }
 }
 
 // ─── Admin: configurable app settings ──────────────────────────────────

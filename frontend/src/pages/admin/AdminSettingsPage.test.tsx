@@ -12,10 +12,18 @@ const SETTINGS_RESPONSE = {
     {
       key: 'storeName',
       label: 'Store name',
-      description: 'The name customers see for this store. This is the STORE name, not the "PrintForge" platform name. Required.',
+      description: 'The name customers see for this store. Required.',
       kind: 'text',
-      value: 'PrintForge',
-      default: 'PrintForge',
+      value: 'AB Creations',
+      default: 'AB Creations',
+    },
+    {
+      key: 'storeLogo',
+      label: 'Store logo',
+      description: 'Shown in the storefront navbar. Upload a PNG or JPEG.',
+      kind: 'text',
+      value: '/catalog/logo.png',
+      default: '/catalog/logo.png',
     },
     {
       key: 'storeAdminName',
@@ -39,6 +47,22 @@ const SETTINGS_RESPONSE = {
       description: 'Leave blank to hide the bar.',
       kind: 'text',
       value: 'Free shipping this week',
+      default: '',
+    },
+    {
+      key: 'hero_slides',
+      label: 'Homepage hero slides',
+      description: 'Add, replace, or delete homepage banner slides.',
+      kind: 'text',
+      value: JSON.stringify([
+        {
+          imageUrl: '/catalog/hero-3.jpg',
+          headline: 'Acrylic caricatures',
+          subtext: 'Made to order',
+          ctaText: 'Shop acrylic',
+          ctaLink: '/products?category=acrylic-gifts',
+        },
+      ]),
       default: '',
     },
     {
@@ -94,6 +118,11 @@ describe('AdminSettingsPage', () => {
   beforeEach(() => {
     mock = new MockAdapter(apiClient)
     mock.onGet('/admin/settings').reply(200, SETTINGS_RESPONSE)
+    mock.onGet('/admin/payment-accounts').reply(200, {
+      success: true,
+      data: [],
+      meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    })
   })
 
   afterEach(() => {
@@ -107,7 +136,12 @@ describe('AdminSettingsPage', () => {
 
     expect(await screen.findByLabelText('Flat shipping fee (₹)')).toBeInTheDocument()
     expect(screen.getByLabelText('Announcement bar text')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(SETTINGS_RESPONSE.data.length)
+    const saveable = SETTINGS_RESPONSE.data.filter(
+      (s) => s.key !== 'storeLogo' && s.key !== 'hero_slides',
+    )
+    expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(saveable.length)
+    expect(screen.getByRole('button', { name: 'Upload logo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save slides' })).toBeInTheDocument()
   })
 
   it('disables Save until the value is changed', async () => {
@@ -194,9 +228,10 @@ describe('AdminSettingsPage', () => {
 
     const storefront = screen.getByRole('region', { name: 'Storefront' })
     expect(within(storefront).getByLabelText('Flat shipping fee (₹)')).toBeInTheDocument()
-    expect(within(storefront).getByLabelText('Announcement bar text')).toBeInTheDocument()
-    // Store identity fields are NOT duplicated into Storefront.
     expect(within(storefront).queryByLabelText('Store name')).not.toBeInTheDocument()
+
+    const content = screen.getByRole('region', { name: 'Storefront content' })
+    expect(within(content).getByLabelText('Announcement bar text')).toBeInTheDocument()
 
     const tax = screen.getByRole('region', { name: 'Tax (GST)' })
     expect(within(tax).getByLabelText('GST / tax enabled')).toBeInTheDocument()
@@ -371,6 +406,130 @@ describe('AdminSettingsPage', () => {
     expect(mock.history.patch[0].url).toBe('/admin/settings/storeAdminName')
   })
 
+  it('uploads a store logo and saves the returned image URL', async () => {
+    const user = userEvent.setup()
+    mock.onPost('/uploads').reply(200, {
+      success: true,
+      data: {
+        id: 'file-1',
+        url: 'https://res.cloudinary.com/demo/image/upload/logo.png',
+        format: 'png',
+        bytes: 12,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    })
+    mock.onPatch('/admin/settings/storeLogo').reply(200, {
+      success: true,
+      data: {
+        key: 'storeLogo',
+        label: 'Store logo',
+        description: 'Shown in the storefront navbar. Upload a PNG or JPEG.',
+        kind: 'text',
+        value: 'https://res.cloudinary.com/demo/image/upload/logo.png',
+        default: '/catalog/logo.png',
+      },
+    })
+    renderWithProviders(<AdminSettingsPage />)
+
+    const input = await screen.findByLabelText('Store logo')
+    const file = new File(['img'], 'logo.png', { type: 'image/png' })
+    await user.upload(input, file)
+
+    await waitFor(() => expect(mock.history.patch).toHaveLength(1))
+    expect(mock.history.patch[0].url).toBe('/admin/settings/storeLogo')
+    expect(JSON.parse(mock.history.patch[0].data as string)).toEqual({
+      value: 'https://res.cloudinary.com/demo/image/upload/logo.png',
+    })
+    expect(await screen.findByText(/logo saved/i)).toBeInTheDocument()
+  })
+
+  it('loads existing hero slides and saves copy edits', async () => {
+    const user = userEvent.setup()
+    mock.onPatch('/admin/settings/hero_slides').reply(200, {
+      success: true,
+      data: {
+        key: 'hero_slides',
+        label: 'Homepage hero slides',
+        description: 'Add, replace, or delete homepage banner slides.',
+        kind: 'text',
+        value: JSON.stringify([
+          {
+            imageUrl: '/catalog/hero-3.jpg',
+            headline: 'Updated headline',
+            subtext: 'Made to order',
+            ctaText: 'Shop acrylic',
+            ctaLink: '/products?category=acrylic-gifts',
+          },
+        ]),
+        default: '',
+      },
+    })
+    renderWithProviders(<AdminSettingsPage />)
+
+    const headline = await screen.findByLabelText('Slide 1 headline')
+    expect(headline).toHaveValue('Acrylic caricatures')
+    await user.clear(headline)
+    await user.type(headline, 'Updated headline')
+    await user.click(screen.getByRole('button', { name: 'Save slides' }))
+
+    await waitFor(() => expect(mock.history.patch).toHaveLength(1))
+    expect(mock.history.patch[0].url).toBe('/admin/settings/hero_slides')
+    const saved = JSON.parse(mock.history.patch[0].data as string) as { value: string }
+    expect(JSON.parse(saved.value)[0].headline).toBe('Updated headline')
+    expect(await screen.findByText(/hero slides saved/i)).toBeInTheDocument()
+  })
+
+  it('replaces a hero image via upload', async () => {
+    const user = userEvent.setup()
+    mock.onPost('/uploads').reply(200, {
+      success: true,
+      data: {
+        id: 'hero-file',
+        url: 'https://res.cloudinary.com/demo/image/upload/hero-new.jpg',
+        format: 'jpg',
+        bytes: 20,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    })
+    renderWithProviders(<AdminSettingsPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Replace image' }))
+    const replaceInput = screen.getByLabelText('Replace hero image')
+    await user.upload(replaceInput, new File(['img'], 'hero.jpg', { type: 'image/jpeg' }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: 'Slide 1 image' })).toHaveAttribute(
+        'src',
+        'https://res.cloudinary.com/demo/image/upload/hero-new.jpg',
+      ),
+    )
+  })
+
+  it('deletes a hero slide after confirmation, then saves the empty list', async () => {
+    const user = userEvent.setup()
+    mock.onPatch('/admin/settings/hero_slides').reply(200, {
+      success: true,
+      data: {
+        key: 'hero_slides',
+        label: 'Homepage hero slides',
+        description: 'Add, replace, or delete homepage banner slides.',
+        kind: 'text',
+        value: '',
+        default: '',
+      },
+    })
+    renderWithProviders(<AdminSettingsPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete slide' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Delete slide' }))
+    expect(await screen.findByText('No hero slides yet')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save slides' }))
+
+    await waitFor(() => expect(mock.history.patch).toHaveLength(1))
+    expect(JSON.parse(mock.history.patch[0].data as string)).toEqual({ value: '' })
+  })
+
   // ─── Negative assertions ───────────────────────────────────────────────
 
   it('renders only the settings the API returns — no add/remove, no unsupported fields, no analytics', async () => {
@@ -378,7 +537,7 @@ describe('AdminSettingsPage', () => {
 
     await screen.findByLabelText('Flat shipping fee (₹)')
     // No way to add or delete a setting.
-    expect(screen.queryByRole('button', { name: /add setting|new setting|delete/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /add setting|new setting/i })).not.toBeInTheDocument()
     // No invented tax/legal fields beyond what the API returned.
     expect(screen.queryByLabelText('Seller PAN')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('CGST rate')).not.toBeInTheDocument()

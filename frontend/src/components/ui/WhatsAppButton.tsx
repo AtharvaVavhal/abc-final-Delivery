@@ -1,3 +1,4 @@
+import { useWhatsappNumber } from '@/hooks/useWhatsappNumber'
 import styles from './WhatsAppButton.module.css'
 
 interface WhatsAppButtonProps {
@@ -6,13 +7,16 @@ interface WhatsAppButtonProps {
 }
 
 export function WhatsAppButton({
-  phoneNumber = '',
+  phoneNumber,
   message = 'Hi! I have an inquiry about custom printing at your store.',
 }: WhatsAppButtonProps) {
-  const cleanNumber = phoneNumber.replace(/[^0-9]/g, '')
-  const whatsappUrl = cleanNumber
-    ? `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
-    : `https://wa.me/?text=${encodeURIComponent(message)}`
+  const configuredNumber = useWhatsappNumber()
+  const cleanNumber = (phoneNumber ?? configuredNumber).replace(/[^0-9]/g, '')
+  if (!cleanNumber) {
+    return null
+  }
+
+  const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
 
   return (
     <a

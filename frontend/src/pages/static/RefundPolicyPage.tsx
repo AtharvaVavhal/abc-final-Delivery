@@ -9,7 +9,7 @@ export function RefundPolicyPage() {
     <section className={styles.page}>
       <Seo
         title="Refund Policy"
-        description="When PrintForge orders are eligible for a refund, how to request one, refund amounts by order stage, and how defective or incorrect items are handled."
+        description="When AB Creations orders are eligible for a refund, how to request one, refund amounts by order stage, and how defective or incorrect items are handled."
         canonicalPath={ROUTES.REFUND_POLICY}
         ogType="article"
       />
