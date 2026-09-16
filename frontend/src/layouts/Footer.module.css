@@ -25,39 +25,31 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
-  color: #ffffff;
-  letter-spacing: -0.02em;
   text-decoration: none;
 }
 
-.brandIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+.brand:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
-  background: var(--color-obsidian-surface);
-  border: 1px solid var(--color-obsidian-border);
-  color: var(--color-obsidian-text);
-  flex-shrink: 0;
+}
+
+.brandLogo {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 11rem;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.55rem;
 }
 
 .tagline {
-  margin: var(--space-2) 0 var(--space-1);
+  margin: var(--space-3) 0 0;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
   color: #cbd5e1;
-}
-
-.studioMotto {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: #94a3b8;
-  line-height: 1.5;
 }
 
 .columns {
@@ -117,16 +109,27 @@
 }
 
 @media (max-width: 640px) {
+  .inner {
+    padding: 2rem var(--container-padding) 1.5rem;
+  }
+
   .top {
+    flex-direction: column;
     gap: var(--space-5);
   }
 
+  .brandBlock {
+    max-width: none;
+  }
+
   .columns {
-    gap: var(--space-5);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-5) var(--space-4);
     width: 100%;
   }
 
   .column {
-    flex: 1 1 40%;
+    min-width: 0;
   }
 }
