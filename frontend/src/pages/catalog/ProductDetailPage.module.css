@@ -94,6 +94,22 @@
   margin: 0;
 }
 
+.specsDetails {
+  margin: var(--space-3) 0;
+}
+
+.specsSummary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+  list-style: none;
+}
+
+.specsSummary::-webkit-details-marker {
+  display: none;
+}
+
 .specs {
   margin: var(--space-3) 0;
   padding: var(--space-4);

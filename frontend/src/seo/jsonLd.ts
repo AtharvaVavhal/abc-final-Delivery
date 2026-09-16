@@ -1,5 +1,6 @@
 import type { Product } from '@/types/catalog'
 import type { Crumb } from '@/components/ui/Breadcrumbs'
+import { visibleSpecEntries } from '@/utils/visibleSpecifications'
 import { SITE_NAME, absoluteUrl } from './siteConfig'
 
 /**
@@ -78,7 +79,7 @@ export function describeProduct(product: Product): string | null {
   const specs = product.specifications
   if (specs && typeof specs === 'object') {
     const parts: string[] = []
-    for (const [key, value] of Object.entries(specs)) {
+    for (const [key, value] of visibleSpecEntries(specs)) {
       if (parts.length >= 4) break
       if (
         typeof value === 'string' ||

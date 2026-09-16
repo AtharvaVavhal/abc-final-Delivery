@@ -12,6 +12,8 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 SITEMAP_URL = "https://www.mahakaladvertising.com/sitemap.html"
+STOREFRONT_ORIGIN = "https://www.abcmanufactures.com"
+STOREFRONT_SOURCE = "AB Creations listing on abcmanufactures.com"
 OUT = Path(__file__).with_name("identica-products.json")
 
 # IndiaMART page file -> seeded group slug
@@ -395,10 +397,8 @@ def make_product(
     price_part = price.replace(".", "-")
     slug = f"identica-{group}-{name_part}-{price_part}-{unit_part}"[:180]
     specifications = {
-        "Source": "Identica listing on mahakaladvertising.com",
-        "Listing": f"https://www.mahakaladvertising.com/{page}#{hash_slug}"
-        if hash_slug
-        else f"https://www.mahakaladvertising.com/{page}",
+        "Source": STOREFRONT_SOURCE,
+        "Listing": f"{STOREFRONT_ORIGIN}/products/{slug}",
         **specs,
     }
     if unit:
@@ -605,7 +605,7 @@ def main() -> None:
             with_specs += 1
 
     payload = {
-        "source": "https://www.mahakaladvertising.com/ category listings + sitemap",
+        "source": f"{STOREFRONT_ORIGIN} catalog listings",
         "count": len(products),
         "products": products,
     }

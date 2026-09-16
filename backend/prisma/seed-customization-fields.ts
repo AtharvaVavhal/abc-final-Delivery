@@ -86,13 +86,13 @@ function logo(sortOrder = 0, isRequired = true): FieldSpec {
   }
 }
 
-function design(sortOrder = 0): FieldSpec {
+function design(sortOrder = 0, isRequired = true): FieldSpec {
   return {
     label: 'Artwork file',
     type: CustomizationFieldType.DESIGN_FILE_UPLOAD,
-    isRequired: true,
+    isRequired,
     sortOrder,
-    helpText: 'High-resolution PNG, JPEG, or PDF of the final print layout.',
+    helpText: 'High-resolution PNG, JPEG, or PDF of the logo or final layout.',
     constraints: DESIGN_CONSTRAINTS,
   }
 }
@@ -151,6 +151,10 @@ const BY_CATEGORY: Record<string, FieldSpec[]> = {
     text('Second line', 1, false, 40, 'House name, title, or short line under the name.'),
     notes(2),
   ],
+  'divine-frames': [
+    text('Gift message or name', 0, false, 80, 'Optional line for a gift or dedication.'),
+    notes(1),
+  ],
   clocks: PHOTO_AND_NOTES,
   'wall-art': PHOTO_AND_NOTES,
   'corporate-t-shirts': [
@@ -180,6 +184,78 @@ const BY_CATEGORY: Record<string, FieldSpec[]> = {
   'vinyl-printing': [design(), notes(1)],
 }
 
+const SIGNAGE_NAME_PLATE: FieldSpec[] = [
+  text('Name or wording', 0, true, 80, 'The name or line shown on the plate.'),
+  text('Second line', 1, false, 80, 'Title, department, or house name.'),
+  logo(2, false),
+  design(3, false),
+  notes(4),
+]
+
+const SIGNAGE_LETTERS: FieldSpec[] = [
+  text(
+    'Lettering / company name',
+    0,
+    true,
+    80,
+    'The wording that should appear in the letters.',
+  ),
+  logo(1, false),
+  design(2, false),
+  notes(3),
+]
+
+const SIGNAGE_LOGO: FieldSpec[] = [
+  logo(0, true),
+  design(1, false),
+  text('Brand or company name', 2, false, 80),
+  notes(3),
+]
+
+const SIGNAGE_ARTWORK: FieldSpec[] = [
+  design(0, true),
+  logo(1, false),
+  text('Brand or company name', 2, false, 80),
+  notes(3),
+]
+
+/** Leaf or group slugs whose parent is not already this template. */
+const NAME_PLATE_SLUGS = new Set([
+  'signage-name-plates',
+  'office-name-plate',
+  'acrylic-office-name-board',
+  'stainless-steel-metal-labels',
+])
+
+const LETTER_SLUGS = new Set([
+  'led-letters',
+  'acrylic-box-solid-letters',
+  'solid-letters',
+  'stainless-steel-3d-letters',
+  'metal-brass-3d-solid-letter',
+  'acrylic-led-letter',
+  '3d-box-letter',
+  'rose-gold-letter',
+  'ss-signage-letters',
+  'led-box-type-letters',
+  'led-backlite-letters',
+  'acrylic-box-letters',
+  'letter-signage-board',
+  'acrylic-letters-signs',
+  'letter-sign-boards',
+  'acrylic-solid-letter',
+  'acrylic-and-metal-letter',
+  'cladding-with-3d-letters-signage',
+])
+
+const LOGO_SLUGS = new Set(['led-signages-logo'])
+
+const ARTWORK_SLUGS = new Set([
+  'graphics-service',
+  'uv-printing-services',
+  'flex-branding-work',
+])
+
 const BY_SLUG: Record<string, FieldSpec[]> = {
   'acrylic-photo-standee-4-photos-5mm': [
     photo('Photo 1', 0),
@@ -200,10 +276,31 @@ const BY_SLUG: Record<string, FieldSpec[]> = {
   ],
 }
 
-function fieldsFor(slug: string, categorySlug: string): FieldSpec[] | null {
-  if (BY_SLUG[slug]) return BY_SLUG[slug]
+function fieldsForCategory(categorySlug: string | null | undefined): FieldSpec[] | null {
+  if (!categorySlug) return null
   if (BY_CATEGORY[categorySlug]) return BY_CATEGORY[categorySlug]
+  if (NAME_PLATE_SLUGS.has(categorySlug)) return SIGNAGE_NAME_PLATE
+  if (LETTER_SLUGS.has(categorySlug)) return SIGNAGE_LETTERS
+  if (LOGO_SLUGS.has(categorySlug)) return SIGNAGE_LOGO
+  if (ARTWORK_SLUGS.has(categorySlug)) return SIGNAGE_ARTWORK
   return null
+}
+
+function fieldsFor(
+  slug: string,
+  categorySlug: string,
+  parentCategorySlug?: string | null,
+): FieldSpec[] | null {
+  if (BY_SLUG[slug]) return BY_SLUG[slug]
+  if (slug === 'brass-pocket-badges' || categorySlug === 'brass-pocket-badges') {
+    return BY_CATEGORY.badges
+  }
+  const fromLeaf = fieldsForCategory(categorySlug)
+  if (fromLeaf) return fromLeaf
+  const fromParent = fieldsForCategory(parentCategorySlug)
+  if (fromParent) return fromParent
+  if (slug.startsWith('identica-')) return SIGNAGE_ARTWORK
+  return [notes(0)]
 }
 
 function loadLocalEnv(): void {
@@ -261,7 +358,12 @@ async function main(): Promise<void> {
         const products = await tx.product.findMany({
           where: { tenantId: tenant.id, isActive: true },
           include: {
-            category: { select: { slug: true } },
+            category: {
+              select: {
+                slug: true,
+                parentCategory: { select: { slug: true } },
+              },
+            },
             customizationFields: true,
           },
         })
@@ -269,9 +371,14 @@ async function main(): Promise<void> {
         const created: string[] = []
         const updated: string[] = []
         const skipped: string[] = []
+        const toCreate: Prisma.CustomizationFieldCreateManyInput[] = []
 
         for (const product of products) {
-          const wanted = fieldsFor(product.slug, product.category.slug)
+          const wanted = fieldsFor(
+            product.slug,
+            product.category.slug,
+            product.category.parentCategory?.slug,
+          )
           if (!wanted) {
             skipped.push(product.slug)
             continue
@@ -282,65 +389,47 @@ async function main(): Promise<void> {
 
           for (const spec of wanted) {
             const existing = byLabel.get(spec.label)
-            if (!existing) {
-              await tx.customizationField.create({
-                data: {
-                  productId: product.id,
-                  label: spec.label,
-                  type: spec.type,
-                  isRequired: spec.isRequired,
-                  sortOrder: spec.sortOrder,
-                  helpText: spec.helpText ?? null,
-                  constraints: (spec.constraints ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-                  surchargeType: SurchargeType.NONE,
-                  surchargeAmount: 0,
-                  tenantId: tenant.id,
-                  storeId: product.storeId,
-                },
-              })
-              created.push(`${product.slug} / ${spec.label}`)
-              productTouched = true
-              continue
-            }
+            if (existing) continue
 
-            const needsUpdate =
-              existing.type !== spec.type ||
-              existing.isRequired !== spec.isRequired ||
-              existing.sortOrder !== spec.sortOrder ||
-              (existing.helpText ?? null) !== (spec.helpText ?? null) ||
-              !sameConstraints(existing.constraints, spec.constraints)
-
-            if (!needsUpdate) continue
-
-            await tx.customizationField.update({
-              where: { id: existing.id },
-              data: {
-                type: spec.type,
-                isRequired: spec.isRequired,
-                sortOrder: spec.sortOrder,
-                helpText: spec.helpText ?? null,
-                constraints: (spec.constraints ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-                storeId: existing.storeId ?? product.storeId,
-              },
+            toCreate.push({
+              productId: product.id,
+              label: spec.label,
+              type: spec.type,
+              isRequired: spec.isRequired,
+              sortOrder: spec.sortOrder,
+              helpText: spec.helpText ?? null,
+              constraints: (spec.constraints ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+              surchargeType: SurchargeType.NONE,
+              surchargeAmount: 0,
+              tenantId: tenant.id,
+              storeId: product.storeId,
             })
-            updated.push(`${product.slug} / ${spec.label}`)
+            created.push(`${product.slug} / ${spec.label}`)
             productTouched = true
           }
 
           if (!productTouched) skipped.push(product.slug)
         }
 
+        const chunkSize = 200
+        for (let i = 0; i < toCreate.length; i += chunkSize) {
+          await tx.customizationField.createMany({
+            data: toCreate.slice(i, i + chunkSize),
+          })
+        }
+
         return { created, updated, skipped }
       },
-      { maxWait: 15_000, timeout: 120_000 },
+      { maxWait: 15_000, timeout: 180_000 },
     )
 
     console.log(`created ${result.created.length}`)
-    for (const line of result.created) console.log(`  + ${line}`)
+    for (const line of result.created.slice(0, 12)) console.log(`  + ${line}`)
+    if (result.created.length > 12) {
+      console.log(`  … ${result.created.length - 12} more`)
+    }
     console.log(`updated ${result.updated.length}`)
-    for (const line of result.updated) console.log(`  ~ ${line}`)
     console.log(`unchanged/skipped ${result.skipped.length}`)
-    for (const slug of result.skipped) console.log(`  = ${slug}`)
   } finally {
     await prisma.$disconnect()
   }

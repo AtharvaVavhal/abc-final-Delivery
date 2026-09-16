@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Breadcrumbs, type Crumb } from '@/components/ui/Breadcrumbs'
 import { ProductGallery } from '@/features/catalog/ProductGallery'
 import { findCategoryPath } from '@/features/catalog/categoryTree'
+import { visibleSpecEntries } from '@/utils/visibleSpecifications'
 import { Seo } from '@/seo/Seo'
 import { SITE_NAME } from '@/seo/siteConfig.constants'
 import { productJsonLd, breadcrumbJsonLd, describeProduct } from '@/seo/jsonLd'
@@ -103,6 +104,7 @@ export function ProductDetailPage() {
   const canonicalPath = productDetailPath(product.slug)
   const primaryImage =
     product.images.find((img) => img.isPrimary)?.url ?? product.images[0]?.url
+  const visibleSpecs = visibleSpecEntries(product.specifications)
 
   return (
     <section className={styles.wrap}>
@@ -138,17 +140,6 @@ export function ProductDetailPage() {
             : `Minimum order quantity: ${product.minQuantity}`}
         </p>
 
-        {product.specifications && Object.keys(product.specifications).length > 0 && (
-          <dl className={styles.specs}>
-            {Object.entries(product.specifications).map(([key, value]) => (
-              <div key={key} className={styles.specRow}>
-                <dt>{key}</dt>
-                <dd>{String(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-
         {product.variants.length > 0 && (
           <VariantSelector
             variants={product.variants}
@@ -167,6 +158,20 @@ export function ProductDetailPage() {
           selectedVariantId={selectedVariantId}
           customization={customization}
         />
+
+        {visibleSpecs.length > 0 && (
+          <details className={styles.specsDetails} open={visibleSpecs.length <= 8}>
+            <summary className={styles.specsSummary}>Product specifications</summary>
+            <dl className={styles.specs}>
+              {visibleSpecs.map(([key, value]) => (
+                <div key={key} className={styles.specRow}>
+                  <dt>{key}</dt>
+                  <dd>{String(value)}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        )}
 
         <div className={styles.studioTrust} aria-label="Studio craft guarantees">
           <div className={styles.studioTrustItem}>

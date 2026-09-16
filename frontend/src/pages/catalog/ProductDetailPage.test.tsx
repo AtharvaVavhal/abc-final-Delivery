@@ -95,6 +95,60 @@ describe('ProductDetailPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('does not show Source or Listing provenance in the specifications list', async () => {
+    mock.onGet('/products/ceramic-mug').reply(200, {
+      success: true,
+      data: {
+        ...SAMPLE_PRODUCT,
+        specifications: {
+          Source: 'AB Creations listing on abcmanufactures.com',
+          Listing:
+            'https://www.abcmanufactures.com/products/identica-corporate-signage-directional-signage-board-1500-00-piece',
+          Material: 'Acrylic',
+        },
+      },
+    })
+
+    renderAtSlug('ceramic-mug')
+
+    expect(await screen.findByText('Material')).toBeInTheDocument()
+    expect(screen.getByText('Acrylic')).toBeInTheDocument()
+    expect(screen.queryByText('Source')).not.toBeInTheDocument()
+    expect(screen.queryByText('Listing')).not.toBeInTheDocument()
+    expect(screen.queryByText(/mahakaladvertising/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the customization form above specifications so it is not buried', async () => {
+    mock.onGet('/products/ceramic-mug').reply(200, {
+      success: true,
+      data: {
+        ...SAMPLE_PRODUCT,
+        customizationFields: [
+          {
+            id: 'field-1',
+            productId: 'prod-1',
+            label: 'Artwork file',
+            type: 'DESIGN_FILE_UPLOAD',
+            isRequired: true,
+            sortOrder: 0,
+            helpText: null,
+            constraints: { allowedFormats: ['png', 'jpeg', 'pdf'], maxFileSizeMb: 10 },
+            surchargeType: 'NONE',
+            surchargeAmount: '0',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    })
+
+    renderAtSlug('ceramic-mug', AUTHENTICATED)
+
+    const heading = await screen.findByRole('heading', { name: 'Customize this item' })
+    const specSummary = screen.getByText('Product specifications')
+    expect(heading.compareDocumentPosition(specSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('places the product heading after the gallery so mobile stacks image then title', async () => {
     mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
 

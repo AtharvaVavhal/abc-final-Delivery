@@ -11,6 +11,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { formatPrice } from '@/utils/formatPrice';
 import { Modal } from '@/components/ui/Modal';
 import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset';
+import { visibleSpecEntries } from '@/utils/visibleSpecifications';
 import styles from './QuickView.module.css';
 
 const EMPTY_CUSTOMIZATION_STATE: CustomizationFormState = {
@@ -60,6 +61,7 @@ export function QuickView({ slug, onClose }: QuickViewProps) {
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
   const total = Number(product.basePrice) + Number(selectedVariant?.priceDelta ?? 0) + customization.surcharge;
+  const visibleSpecs = visibleSpecEntries(product.specifications);
 
   // Determine if drawer on mobile via CSS (Modal handles responsive)
   return (
@@ -93,9 +95,9 @@ export function QuickView({ slug, onClose }: QuickViewProps) {
           <StarRating avgRating={product.avgRating} reviewCount={product.reviewCount} />
           <p className={styles.price}>{formatPrice(total)}</p>
 
-          {product.specifications && Object.keys(product.specifications).length > 0 && (
+          {visibleSpecs.length > 0 && (
             <dl className={styles.specs}>
-              {Object.entries(product.specifications).map(([key, value]) => (
+              {visibleSpecs.map(([key, value]) => (
                 <div key={key} className={styles.specRow}>
                   <dt>{key}</dt>
                   <dd>{String(value)}</dd>

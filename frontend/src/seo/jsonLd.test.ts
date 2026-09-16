@@ -118,6 +118,24 @@ describe('describeProduct', () => {
     )
     expect(desc).toBe('Ceramic Mug. Material: Ceramic. Capacity: 11oz.')
   })
+
+  it('skips Source and Listing provenance so JSON-LD uses real product specs', () => {
+    const desc = describeProduct(
+      buildProduct({
+        name: 'Directional Signage Board',
+        specifications: {
+          Source: 'AB Creations listing on abcmanufactures.com',
+          Listing:
+            'https://www.abcmanufactures.com/products/identica-corporate-signage-directional-signage-board-1500-00-piece',
+          Material: 'Acrylic',
+          Shape: 'Rectangular',
+        },
+      }),
+    )
+    expect(desc).toBe('Directional Signage Board. Material: Acrylic. Shape: Rectangular.')
+    expect(desc).not.toContain('mahakaladvertising')
+    expect(desc).not.toContain('Listing')
+  })
 })
 
 describe('breadcrumbJsonLd', () => {

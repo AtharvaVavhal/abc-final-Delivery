@@ -5,7 +5,8 @@ import { withPlatformRlsBypass } from '../src/common/tenant/tenant-rls'
 import type { PrismaService } from '../src/common/database/prisma.service'
 
 /**
- * Idempotent Identica catalog from mahakaladvertising.com sitemap listings.
+ * Idempotent Identica catalog. Listing URLs are the AB Creations
+ * storefront pages on abcmanufactures.com (not the scrape source).
  * Maps each listing onto the seeded Identica category / subcategory tree.
  * Prices and images come from the listing; quote-only rows stay 0.00.
  *
