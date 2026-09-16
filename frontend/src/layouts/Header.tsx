@@ -264,7 +264,7 @@ export function Header() {
         </nav>
 
         <div className={styles.searchSlot}>
-          <HeaderSearch variant="bar" active />
+          <HeaderSearch variant="bar" />
         </div>
 
         <div className={styles.actions}>
