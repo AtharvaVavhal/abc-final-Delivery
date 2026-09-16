@@ -33,7 +33,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const technicalMessage = isHttpException
       ? this.extractMessage(exception)
       : 'Internal server error';
-    const isThrottled = status === 429;
+    const isThrottled = status === Number(HttpStatus.TOO_MANY_REQUESTS);
 
     const body: ApiErrorResponse = {
       success: false,

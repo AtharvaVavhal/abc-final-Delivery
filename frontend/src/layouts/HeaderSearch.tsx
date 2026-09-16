@@ -71,6 +71,12 @@ export function HeaderSearch({
   const { ref: registerRef, ...queryField } = register('query')
   const typedQuery = useWatch({ control, name: 'query' }) ?? ''
   const liveQuery = typedQuery.trim()
+  const [trackedQuery, setTrackedQuery] = useState(liveQuery)
+  if (trackedQuery !== liveQuery) {
+    setTrackedQuery(liveQuery)
+    setDismissed(false)
+    setActiveIndex(-1)
+  }
   const { data, isFetching, isFetched, isError, debouncedQuery } =
     useProductSearchSuggestions(liveQuery)
 
@@ -85,11 +91,6 @@ export function HeaderSearch({
   useEffect(() => {
     if (variant === 'bar' && active) inputRef.current?.focus()
   }, [active, variant])
-
-  useEffect(() => {
-    setDismissed(false)
-    setActiveIndex(-1)
-  }, [liveQuery])
 
   function clearQuery() {
     setValue('query', '', { shouldDirty: true })

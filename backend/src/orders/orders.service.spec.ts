@@ -88,7 +88,7 @@ describe('OrdersService.adminTransitionStatus — illegal transition rejection',
   });
 
   it('never looks up a captured payment attempt for a rejected CANCELLED transition', async () => {
-    const { service, prisma } = buildService(OrderStatus.PENDING_PAYMENT);
+    const { service, prisma } = buildService(OrderStatus.SHIPPED);
 
     await expect(
       service.adminTransitionStatus(tenantContext, admin, 'order-1', {

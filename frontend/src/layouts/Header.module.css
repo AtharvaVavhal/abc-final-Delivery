@@ -693,18 +693,46 @@
 
 @media (max-width: 1023px) {
   .inner {
-    grid-template-columns: minmax(0, 1fr) auto;
+    position: relative;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
     min-height: 3.75rem;
-    column-gap: var(--space-2);
-    padding: 0 1rem;
+    column-gap: 0;
+    padding: 0 0.75rem;
+  }
+
+  .brandCluster {
+    grid-column: 1;
+    width: 44px;
+    overflow: visible;
+  }
+
+  .brand {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
   }
 
   .brandLogo {
     height: 40px;
-    width: 9.5rem;
+    width: auto;
+    max-width: min(10.5rem, calc(100vw - 7.5rem));
+    object-fit: contain;
   }
 
   .navDesktop {
+    display: none;
+  }
+
+  .actions {
+    grid-column: 3;
+    width: auto;
+    justify-content: flex-end;
+    background: transparent;
+  }
+
+  .headerBarAction {
     display: none;
   }
 

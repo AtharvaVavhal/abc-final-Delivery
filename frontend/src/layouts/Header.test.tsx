@@ -210,17 +210,14 @@ describe('Header', () => {
     expect(screen.queryByLabelText('Loading categories')).not.toBeInTheDocument()
   })
 
-  it('renders a product search in the bar and inside the mobile nav drawer', () => {
+  it('renders product search in the header bar, not inside the mobile nav drawer', () => {
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
-    // Both are always in the DOM; CSS shows the right one per breakpoint.
-    expect(screen.getAllByRole('search', { hidden: true })).toHaveLength(2)
+    expect(screen.getAllByRole('search', { hidden: true })).toHaveLength(1)
 
     const drawer = document.getElementById('mobile-nav') as HTMLElement
-    expect(within(drawer).getByRole('search', { hidden: true })).toBeInTheDocument()
-    expect(
-      within(drawer).getByPlaceholderText('Search products…'),
-    ).toBeInTheDocument()
+    expect(within(drawer).queryByRole('search', { hidden: true })).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search products…')).toBeInTheDocument()
   })
 
   it('exposes account + orders + log out inside the nav drawer for an authenticated user (UX-16)', () => {
@@ -231,8 +228,8 @@ describe('Header', () => {
     // The drawer is always in the DOM; CSS toggles it open per breakpoint.
     expect(within(drawer).getByRole('link', { name: 'My account', hidden: true })).toBeInTheDocument()
     expect(within(drawer).getByRole('link', { name: 'My orders', hidden: true })).toBeInTheDocument()
-    // The auth cluster now collapses into the drawer below 560px, so logout
-    // must be reachable there and not only in the top row.
+    // Account lives in the drawer on small screens so the logo can stay
+    // centered; search stays on the header bar.
     expect(
       within(drawer).getByRole('button', { name: 'Log out', hidden: true }),
     ).toBeInTheDocument()

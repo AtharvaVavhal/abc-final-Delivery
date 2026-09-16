@@ -152,7 +152,7 @@ export function getTenantScopedClient(
           const scopedArgs = applyTenantScope(
             model,
             operation,
-            (args ?? {}) as Record<string, unknown>,
+            { ...(args ?? {}) },
             tenantId,
           );
 

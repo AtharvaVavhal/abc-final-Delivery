@@ -21,10 +21,21 @@ afterEach(() => {
 
 if (typeof window !== 'undefined' && !window.IntersectionObserver) {
   window.IntersectionObserver = class {
+    readonly root: Element | Document | null = null
+    readonly rootMargin = ''
+    readonly scrollMargin = ''
+    readonly thresholds: readonly number[] = []
+    constructor(
+      callback?: IntersectionObserverCallback,
+      options?: IntersectionObserverInit,
+    ) {
+      void callback
+      void options
+    }
     observe() {}
     unobserve() {}
     disconnect() {}
-    takeRecords() {
+    takeRecords(): IntersectionObserverEntry[] {
       return []
     }
   }

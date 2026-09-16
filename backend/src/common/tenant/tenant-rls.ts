@@ -57,7 +57,7 @@ export async function withTenantRlsContext<T>(
     );
   }
 
-  const tx = prisma as Prisma.TransactionClient;
+  const tx = prisma;
   await tx.$executeRaw`SELECT set_config(${TENANT_ID_SETTING}, ${tenantId}, true)`;
   return fn(tx);
 }

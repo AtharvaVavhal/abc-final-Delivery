@@ -117,6 +117,14 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [])
 
+  useEffect(() => {
+    cancelMenuClose()
+    setMoreOpen(false)
+    setOpenGroupId(null)
+    setSearchOpen(false)
+    setMobileOpen(false)
+  }, [location.pathname, location.search])
+
   useEffect(() => () => cancelMenuClose(), [])
 
   return (
@@ -288,7 +296,11 @@ export function Header() {
             </button>
           </div>
 
-          <NavLink to={accountHref} className={styles.iconButton} aria-label={accountLabel}>
+          <NavLink
+            to={accountHref}
+            className={cn(styles.iconButton, styles.headerBarAction)}
+            aria-label={accountLabel}
+          >
             <User size={20} strokeWidth={1.5} aria-hidden="true" />
           </NavLink>
 
@@ -341,8 +353,6 @@ export function Header() {
               <X size={20} strokeWidth={1.5} aria-hidden="true" />
             </button>
           </div>
-
-          <HeaderSearch variant="drawer" onSubmitted={() => setMobileOpen(false)} />
 
           <NavLink to={ROUTES.HOME} className={styles.mobileAllProducts} onClick={() => setMobileOpen(false)}>
             Home
