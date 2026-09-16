@@ -8,6 +8,7 @@ import { AdminRoute } from '@/features/auth/AdminRoute'
 import { RootLayout } from '@/layouts/RootLayout'
 import { HomePage } from '@/pages/home/HomePage'
 import { FullPageLoader } from '@/components/ui/FullPageLoader'
+import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { ROUTES } from '@/constants/routes'
 
 function lazyNamed<T extends Record<string, ComponentType>>(
@@ -84,6 +85,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route element={<RootLayout />}>
               {/* Public routes */}

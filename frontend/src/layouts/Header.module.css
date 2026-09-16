@@ -45,9 +45,10 @@
 
 .brandLogo {
   display: block;
-  height: 44px;
-  width: clamp(9.25rem, 16vw, 11.75rem);
-  object-fit: cover;
+  height: 40px;
+  width: auto;
+  max-width: 11.5rem;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -689,6 +690,44 @@
 .drawerOverlay.visible {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Open sidebar: one continuous chrome bar. Logo is centered in the same
+   272px column as the nav below, so there is no seam between header and
+   sidebar. Nav starts immediately after that column. */
+@media (min-width: 1024px) {
+  :global([data-sidebar='open']) .inner {
+    grid-template-columns: var(--storefront-sidebar-width, 272px) minmax(0, 1fr) auto;
+    max-width: none;
+    margin: 0;
+    padding-left: 0;
+    padding-right: clamp(1.25rem, 3vw, 2rem);
+    column-gap: 0;
+    min-height: var(--storefront-header-height, 4.25rem);
+  }
+
+  :global([data-sidebar='open']) .brandCluster {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: var(--storefront-sidebar-width, 272px);
+    height: 100%;
+    min-height: var(--storefront-header-height, 4.25rem);
+  }
+
+  :global([data-sidebar='open']) .brand {
+    justify-content: center;
+  }
+
+  :global([data-sidebar='open']) .brandLogo {
+    height: 42px;
+    max-width: 11.25rem;
+  }
+
+  :global([data-sidebar='open']) .navDesktop {
+    justify-content: flex-start;
+    padding-left: 1.5rem;
+  }
 }
 
 @media (max-width: 1023px) {
