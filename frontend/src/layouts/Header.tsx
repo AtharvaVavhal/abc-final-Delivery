@@ -199,11 +199,7 @@ export function Header() {
                       <button
                         type="button"
                         className={cn(styles.navLink, styles.moreBtn, isActive && styles.navLinkActive)}
-                        onClick={() => {
-                          cancelMenuClose()
-                          setOpenGroupId((current) => (current === category.id ? null : category.id))
-                          setMoreOpen(false)
-                        }}
+                        onClick={() => openCategoryMenu(category.id)}
                         aria-expanded={menuOpen}
                         aria-haspopup="true"
                         aria-controls={`${category.id}-menu`}
