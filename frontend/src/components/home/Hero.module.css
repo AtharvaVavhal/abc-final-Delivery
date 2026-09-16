@@ -322,13 +322,21 @@
   }
 
   .stage {
-    aspect-ratio: 4 / 5;
-    min-height: 18rem;
-    max-height: min(28rem, 52dvh);
+    /* Slides are 1280×582 (~2.2:1). A 4:5 portrait stage with cover
+       zoomed into the centre of the photo. Copy already sits below the
+       image on this breakpoint, so keep the native landscape ratio. */
+    aspect-ratio: 2.2 / 1;
+    min-height: 0;
+    max-height: none;
   }
 
   .image {
-    object-position: center 30%;
+    object-position: center;
+  }
+
+  .kenBurns {
+    animation: none;
+    transform: none;
   }
 
   .scrim {

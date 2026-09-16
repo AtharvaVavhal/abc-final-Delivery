@@ -135,13 +135,13 @@ html[data-storefront-home] #storefront-shell {
   }
 
   .pf-hero-stage {
-    aspect-ratio: 4 / 5;
-    min-height: 18rem;
-    max-height: min(28rem, 52dvh);
+    aspect-ratio: 2.2 / 1;
+    min-height: 0;
+    max-height: none;
   }
 
   .pf-hero-stage img {
-    object-position: center 30%;
+    object-position: center;
   }
 
   .pf-hero-copy {
