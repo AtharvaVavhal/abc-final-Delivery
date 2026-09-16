@@ -8,6 +8,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AppConfig } from './common/config/configuration';
 import { API_PREFIX } from './common/constants/app.constants';
+import { corsAllowedOrigins } from './common/http/cors-origins';
 
 // §30 "Sentry (both apps)" — initialized before Nest bootstraps (so it's
 // live for any error during module init too), guarded by SENTRY_DSN: a
@@ -45,9 +46,12 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
   app.use(cookieParser());
 
-  // Exact origin, credentialed — never a wildcard (§23).
+  // Credentialed allowlist — never a wildcard (§23). FRONTEND_URL plus
+  // local Vite origins so localhost:5173 can call a Render API.
   app.enableCors({
-    origin: configService.get('frontendUrl', { infer: true }),
+    origin: corsAllowedOrigins(
+      configService.get('frontendUrl', { infer: true }),
+    ),
     credentials: true,
   });
 
