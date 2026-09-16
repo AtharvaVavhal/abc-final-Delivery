@@ -26,27 +26,27 @@ describe('Seo', () => {
       />,
     )
 
-    expect(document.title).toBe('About | PrintForge')
+    expect(document.title).toBe('About | AB Creations')
     expect(meta('meta[name="robots"]')).toBe('index, follow')
     expect(meta('meta[name="description"]')).toBe('Line one. Line two.')
-    expect(link('canonical')).toBe('https://www.printforge.in/about')
+    expect(link('canonical')).toBe('http://localhost:5173/about')
     expect(meta('meta[property="og:type"]')).toBe('article')
-    expect(meta('meta[property="og:title"]')).toBe('About | PrintForge')
-    expect(meta('meta[property="og:url"]')).toBe('https://www.printforge.in/about')
-    expect(meta('meta[property="og:site_name"]')).toBe('PrintForge')
+    expect(meta('meta[property="og:title"]')).toBe('About | AB Creations')
+    expect(meta('meta[property="og:url"]')).toBe('http://localhost:5173/about')
+    expect(meta('meta[property="og:site_name"]')).toBe('AB Creations')
     cleanup()
   })
 
-  it('renders just "PrintForge" for the home page (empty title)', () => {
+  it('renders just "AB Creations" for the home page (empty title)', () => {
     render(<Seo title="" canonicalPath="/" />)
-    expect(document.title).toBe('PrintForge')
+    expect(document.title).toBe('AB Creations')
     cleanup()
   })
 
   it('marks private routes noindex and emits no canonical / og:url', () => {
     render(<Seo title="Your cart" noindex canonicalPath="/cart" />)
 
-    expect(document.title).toBe('Your cart | PrintForge')
+    expect(document.title).toBe('Your cart | AB Creations')
     expect(meta('meta[name="robots"]')).toBe('noindex, nofollow')
     expect(link('canonical')).toBeNull()
     expect(meta('meta[property="og:url"]')).toBeNull()
@@ -93,15 +93,29 @@ describe('Seo', () => {
 
   it('swaps metadata cleanly on route change and tears it down on unmount', () => {
     const { rerender, unmount } = render(<Seo title="Page A" description="A" canonicalPath="/a" />)
-    expect(document.title).toBe('Page A | PrintForge')
-    expect(link('canonical')).toBe('https://www.printforge.in/a')
+    expect(document.title).toBe('Page A | AB Creations')
+    expect(link('canonical')).toBe('http://localhost:5173/a')
 
     rerender(<Seo title="Page B" noindex />)
-    expect(document.title).toBe('Page B | PrintForge')
+    expect(document.title).toBe('Page B | AB Creations')
     expect(link('canonical')).toBeNull()
     expect(meta('meta[name="robots"]')).toBe('noindex, nofollow')
 
     unmount()
     expect(document.head.querySelectorAll('title')).toHaveLength(0)
+  })
+
+  it('updates an existing index.html description tag instead of appending a duplicate', () => {
+    const existing = document.createElement('meta')
+    existing.setAttribute('name', 'description')
+    existing.setAttribute('content', 'Static shell description')
+    document.head.appendChild(existing)
+
+    render(<Seo title="" description="Route description" canonicalPath="/" />)
+
+    const tags = document.head.querySelectorAll('meta[name="description"]')
+    expect(tags).toHaveLength(1)
+    expect(tags[0]?.getAttribute('content')).toBe('Route description')
+    cleanup()
   })
 })

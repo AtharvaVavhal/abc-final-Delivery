@@ -1,42 +1,36 @@
 import { useState } from 'react'
 import type { ProductImage as ProductImageData } from '@/types/catalog'
+import { isVideoAsset, optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import { ProductImagePlaceholder } from './ProductImagePlaceholder'
 import styles from './ProductImage.module.css'
 
 interface ProductImageProps {
   images: ProductImageData[]
   label: string
+  /** Display width hint for Cloudinary `c_limit,w_*`. */
+  displayWidth?: number
 }
 
 /**
- * Renders a product's primary (or first) image as a real <img>, falling
- * back to ProductImagePlaceholder in two distinct cases that must both
- * keep working:
- *   - `images` is empty — a genuinely imageless product, a real expected
- *     state, not an error.
- *   - the image fails to load (onError) — a bad/expired URL is still a
- *     possible real-world state even though delivery is public now
- *     (fix/atharva/product-image-delivery).
- *
- * Callers should key this component by something that changes when the
- * displayed product changes (e.g. `key={product.id}`) — the load-failure
- * state below is local to this component instance and won't reset on its
- * own if the same instance is reused for a different product's images
- * (e.g. client-side nav between two product detail pages).
+ * Renders a product's primary still image. Video assets are skipped so a
+ * Cloudinary MP4 is never stuffed into an <img>.
  */
-export function ProductImage({ images, label }: ProductImageProps) {
+export function ProductImage({ images, label, displayWidth = 480 }: ProductImageProps) {
   const [failed, setFailed] = useState(false)
-  const image = images.find((img) => img.isPrimary) ?? images[0]
+  const stills = images.filter((img) => img.url && !isVideoAsset(img))
+  const image = stills.find((img) => img.isPrimary) ?? stills[0]
 
-  if (!image || !image.url || failed) {
+  if (!image || failed) {
     return <ProductImagePlaceholder label={label} />
   }
 
   return (
     <img
-      src={image.url}
+      src={optimizedCloudinaryUrl(image.url, displayWidth)}
       alt={label}
       className={styles.image}
+      width={displayWidth}
+      height={displayWidth}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}

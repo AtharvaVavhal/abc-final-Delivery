@@ -42,6 +42,10 @@ export const textSchema = z.object({
   value: z.string().trim().max(500, 'Too long'),
 })
 
+export const longTextSchema = z.object({
+  value: z.string().max(8000, 'Too long'),
+})
+
 export const STORE_NAME_MAX_LENGTH = 60
 
 /** `storeName` is the one text setting that is required — an empty value
@@ -62,9 +66,27 @@ export const enumSchema = z.object({
 
 export type SettingKind = 'money' | 'text' | 'boolean' | 'enum' | 'percent'
 
+export const storeLogoSchema = z.object({
+  value: z
+    .string()
+    .trim()
+    .max(2048, 'Too long')
+    .refine(
+      (v) =>
+        v === '' ||
+        /^https?:\/\//i.test(v) ||
+        v.startsWith('/'),
+      'Logo must be an http(s) URL or a site path',
+    ),
+})
+
 export function schemaForKind(kind: SettingKind, key?: string) {
   // A few settings need a rule stricter than their `kind` implies.
   if (key === 'storeName') return storeNameSchema
+  if (key === 'storeLogo') return storeLogoSchema
+  if (key === 'hero_slides' || key === 'brand_story' || key === 'featured_media' || key === 'storeAddress') {
+    return longTextSchema
+  }
   switch (kind) {
     case 'money':
       return moneySchema

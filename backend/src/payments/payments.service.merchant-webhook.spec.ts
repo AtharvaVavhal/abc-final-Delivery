@@ -392,6 +392,9 @@ describe('PaymentsService — merchant commerce webhooks (P8-10)', () => {
         },
         orderStatusHistory: { create: jest.fn().mockResolvedValue({}) },
         outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+        cart: { findFirst: jest.fn().mockResolvedValue(null) },
+        cartItem: { findMany: jest.fn() },
+        orderItem: { findMany: jest.fn() },
         attempts,
       };
     }

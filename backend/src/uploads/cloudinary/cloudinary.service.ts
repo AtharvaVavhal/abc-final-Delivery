@@ -2,6 +2,10 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { AppConfig } from '../../common/config/configuration';
+import {
+  cloudinaryUploadException,
+  unwrapCloudinaryError,
+} from './cloudinary-error.util';
 
 export interface CloudinaryUploadOptions {
   /**
@@ -72,11 +76,19 @@ export class CloudinaryService implements OnModuleInit {
         },
         (error, result) => {
           if (error || !result) {
-            reject(
-              error instanceof Error
-                ? error
-                : new Error('Cloudinary upload failed'),
+            const unwrapped = unwrapCloudinaryError(error);
+            const httpCode =
+              typeof unwrapped.http_code === 'number'
+                ? unwrapped.http_code
+                : undefined;
+            const rawMessage =
+              typeof unwrapped.message === 'string'
+                ? unwrapped.message
+                : 'Cloudinary upload failed';
+            this.logger.error(
+              `Cloudinary upload failed${httpCode != null ? ` (HTTP ${httpCode})` : ''}: ${rawMessage}`,
             );
+            reject(cloudinaryUploadException(error));
             return;
           }
           resolve(result);

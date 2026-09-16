@@ -4,9 +4,11 @@ import * as Sentry from '@sentry/node';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AppConfig } from './common/config/configuration';
 import { API_PREFIX } from './common/constants/app.constants';
+import { corsAllowedOrigins } from './common/http/cors-origins';
 
 // §30 "Sentry (both apps)" — initialized before Nest bootstraps (so it's
 // live for any error during module init too), guarded by SENTRY_DSN: a
@@ -27,17 +29,29 @@ async function bootstrap(): Promise<void> {
   // Razorpay signed (§12.3 "capture raw body before body-parsing
   // middleware"); this Nest/Express option exposes it as req.rawBody
   // without disabling normal JSON parsing for every other route.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
   const configService = app.get(ConfigService<AppConfig, true>);
+
+  // Render (and any TLS terminator) forwards the client IP in
+  // X-Forwarded-For. Without this, ThrottlerGuard keys every visitor on
+  // the proxy address and the refresh cookie's Secure flag still works
+  // because it is hardcoded, but req.ip would be wrong.
+  app.set('trust proxy', 1);
+  app.enableShutdownHooks();
 
   app.setGlobalPrefix(API_PREFIX);
 
   app.use(helmet());
   app.use(cookieParser());
 
-  // Exact origin, credentialed — never a wildcard (§23).
+  // Credentialed allowlist — never a wildcard (§23). FRONTEND_URL plus
+  // local Vite origins so localhost:5173 can call a Render API.
   app.enableCors({
-    origin: configService.get('frontendUrl', { infer: true }),
+    origin: corsAllowedOrigins(
+      configService.get('frontendUrl', { infer: true }),
+    ),
     credentials: true,
   });
 

@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Public } from '../decorators/public.decorator';
+import { SkipHttpThrottle } from '../throttling/throttle.decorators';
 import { PrismaService } from '../database/prisma.service';
 
 interface HealthStatus {
@@ -19,6 +20,7 @@ interface HealthStatus {
  * distinguish "process is up" from "database is reachable" as two
  * different failure modes — see GET /health/deep for the latter.
  */
+@SkipHttpThrottle()
 @Controller('health')
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);

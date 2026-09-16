@@ -122,7 +122,10 @@ describe('ProductListPage', () => {
 
     expect(await screen.findByText('Ceramic Mug')).toBeInTheDocument()
 
-    const productsCall = mock.history.get.find((request) => request.url === '/products')
+    const productsCall = mock.history.get.find((request) => {
+      const params = request.params as { limit?: number } | undefined
+      return request.url === '/products' && Number(params?.limit) === 20
+    })
     expect(productsCall?.params).toMatchObject({
       categoryId: 'cat-1',
       search: 'mug',

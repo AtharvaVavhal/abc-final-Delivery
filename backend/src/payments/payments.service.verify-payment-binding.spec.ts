@@ -73,6 +73,9 @@ describe('PaymentsService.verifyPayment — merchant PaymentAccount + provider a
           },
           orderStatusHistory: { create: jest.fn() },
           outboxEvent: { create: jest.fn() },
+          cart: { findFirst: jest.fn().mockResolvedValue(null) },
+          cartItem: { findMany: jest.fn() },
+          orderItem: { findMany: jest.fn() },
         }),
       ),
     };

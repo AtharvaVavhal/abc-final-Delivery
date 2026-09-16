@@ -14,9 +14,9 @@
 
 .card:hover,
 .card:has(:focus-visible) {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(229, 11, 11, 0.4);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-strong);
 }
 
 .imageWrapper {
@@ -42,24 +42,21 @@
 
 .card:hover .imageLink img,
 .card:hover .imageLink [role="img"] {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
 .customBadge {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  background: rgba(254, 242, 242, 0.95);
-  border: 1px solid rgba(229, 11, 11, 0.4);
-  backdrop-filter: blur(6px);
-  color: var(--color-primary);
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 6px rgba(229, 11, 11, 0.15);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
   pointer-events: none;
 }
 
@@ -71,12 +68,11 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
-  background: rgba(9, 13, 22, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
+  background: var(--color-obsidian);
+  border: 1px solid transparent;
   color: #ffffff;
-  border-radius: 999px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .card:hover .quickViewBtn,
@@ -100,7 +96,7 @@
 
 .nameLink:hover .name,
 .nameLink:focus-visible .name {
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 .name {
@@ -165,4 +161,23 @@
 .swatchPill.more {
   color: var(--color-text-muted);
   background: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .imageLink img,
+  .imageLink [role="img"],
+  .quickViewBtn {
+    transition: none;
+  }
+
+  .card:hover,
+  .card:has(:focus-visible) {
+    transform: none;
+  }
+
+  .card:hover .imageLink img,
+  .card:hover .imageLink [role="img"] {
+    transform: none;
+  }
 }

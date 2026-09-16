@@ -10,7 +10,7 @@ export function useUpdateAdminSetting() {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] })
       // announcement_text is also read by the public storefront bar.
       void queryClient.invalidateQueries({ queryKey: ['homepage'] })
-      // storeName is read by the storefront chrome (useStoreName).
+      // storeName / storeLogo are read by the storefront chrome.
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
     },
   })

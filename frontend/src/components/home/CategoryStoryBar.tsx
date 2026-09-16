@@ -1,158 +1,120 @@
-import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
+import { useMemo } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
+import { useCategoryTree } from '@/hooks/useCategoryTree'
+import { useProducts } from '@/hooks/useProducts'
+import { categoryLeaves, categoryStillImage } from '@/features/catalog/categoryNavOrder'
+import { optimizedCloudinaryUrl, stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
+import { DeferredVideo } from '@/components/media/DeferredVideo'
+import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
+import { NEWEST_PRODUCTS_QUERY } from '@/constants/query'
 import { ROUTES } from '@/constants/routes'
-import { PromotionalVideoModal } from '@/components/ui/PromotionalVideoModal'
+import type { CategoryTreeNode, Product } from '@/types/catalog'
 import styles from './CategoryStoryBar.module.css'
 
 export interface StoryCategory {
   id: string
   title: string
   image: string
-  video?: string
   href: string
-  ctaText?: string
-  ctaUrl?: string
+  video?: string
 }
 
-export const UVPIXEL_STORIES: StoryCategory[] = [
-  {
-    id: 'business-cards',
-    title: 'Business Cards',
-    image: '/images/products/store/bcard-blue-gold-premium.jpg',
-    video: '/videos/categories/business-cards.webm',
-    href: `${ROUTES.PRODUCTS}?category=business-cards`,
-    ctaText: 'आत्ताच खरेदी करा',
-    ctaUrl: `${ROUTES.PRODUCTS}?category=business-cards`,
-  },
-  {
-    id: 'logo',
-    title: 'Logo',
-    image: '/images/products/store/logo-iphone-led-sign.jpg',
-    video: '/videos/categories/logo.webm',
-    href: `${ROUTES.PRODUCTS}?category=logo`,
-    ctaText: 'आत्ताच खरेदी करा',
-    ctaUrl: `${ROUTES.PRODUCTS}?category=logo`,
-  },
-  {
-    id: 'mugs',
-    title: 'Mugs',
-    image: '/images/products/store/mug-classic-photo-memory.jpg',
-    video: '/videos/categories/mugs.webm',
-    href: `${ROUTES.PRODUCTS}?category=mugs`,
-    ctaText: 'आत्ताच खरेदी करा',
-    ctaUrl: `${ROUTES.PRODUCTS}?category=mugs`,
-  },
-  {
-    id: 'name-plates',
-    title: 'Name Plates',
-    image: '/images/products/store/nameplate-flat-104.jpg',
-    video: '/videos/categories/name-plates.webm',
-    href: `${ROUTES.PRODUCTS}?category=name-plates`,
-    ctaText: 'आत्ताच खरेदी करा',
-    ctaUrl: `${ROUTES.PRODUCTS}?category=name-plates`,
-  },
-  {
-    id: 't-shirts',
-    title: 'T-Shirts',
-    image: '/images/uvpixel/cat-custom-tshirt.jpg',
-    video: '/videos/categories/t-shirts.webm',
-    href: `${ROUTES.PRODUCTS}?category=t-shirts`,
-    ctaText: 'आत्ताच खरेदी करा',
-    ctaUrl: `${ROUTES.PRODUCTS}?category=t-shirts`,
-  },
-]
+export type CategoryCircleItem = StoryCategory
 
-function StoryCircle({ item }: { item: StoryCategory }) {
+function storiesFromCatalog(
+  tree: CategoryTreeNode[],
+  products: Product[],
+): StoryCategory[] {
+  return categoryLeaves(tree).map((category) => {
+    const inCategory = products.filter((product) => product.categoryId === category.id)
+    const withMedia = inCategory.find((product) => stillImageUrl(product) || videoUrl(product))
+    const video = inCategory.map(videoUrl).find(Boolean) ?? ''
+    return {
+      id: category.id,
+      title: category.name,
+      image: stillImageUrl(withMedia) || categoryStillImage(category.slug),
+      href: `${ROUTES.PRODUCTS}?categoryId=${encodeURIComponent(category.id)}`,
+      video: video || undefined,
+    }
+  })
+}
+
+function CircleMedia({ item }: { item: StoryCategory }) {
+  const initial = item.title.trim().charAt(0).toUpperCase() || '?'
   return (
     <div className={styles.circleWrapper}>
       <div className={styles.circleInner}>
-        <img
-          src={item.image}
-          alt={item.title}
-          className={styles.circleImage}
-          loading="lazy"
-        />
-        {item.video && (
-          <div className={styles.playBadge} aria-hidden="true">
-            <Play size={10} fill="currentColor" />
-          </div>
+        {item.video ? (
+          <DeferredVideo
+            src={item.video}
+            poster={item.image ? optimizedCloudinaryUrl(item.image, 320) : undefined}
+            label={`${item.title} category video`}
+            className={styles.circleImage}
+          />
+        ) : item.image ? (
+          <img
+            src={optimizedCloudinaryUrl(item.image, 320)}
+            alt=""
+            className={styles.circleImage}
+            width={320}
+            height={320}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span className={styles.imageFallback} aria-hidden="true">
+            {initial}
+          </span>
         )}
       </div>
     </div>
   )
 }
 
-export function CategoryStoryBar({ stories = UVPIXEL_STORIES }: { stories?: StoryCategory[] }) {
-  const [activeStory, setActiveStory] = useState<StoryCategory | null>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
+export function CategoryCircleCarousel({ stories }: { stories?: StoryCategory[] }) {
+  const location = useLocation()
+  const live = stories === undefined
+  const allowMedia = useDeferUntilIdle()
+  const treeQuery = useCategoryTree({ enabled: live })
+  const productsQuery = useProducts(NEWEST_PRODUCTS_QUERY, { enabled: live && allowMedia })
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (!trackRef.current) return
-    const offset = direction === 'left' ? -340 : 340
-    trackRef.current.scrollBy({ left: offset, behavior: 'smooth' })
-  }
+  const resolvedStories = useMemo(() => {
+    if (stories) return stories
+    return storiesFromCatalog(treeQuery.data ?? [], productsQuery.data?.items ?? [])
+  }, [stories, treeQuery.data, productsQuery.data?.items])
 
-  const handleStoryClick = (item: StoryCategory, e: React.MouseEvent) => {
-    if (item.video) {
-      e.preventDefault()
-      setActiveStory(item)
-    }
+  const activeParam = new URLSearchParams(location.search).get('categoryId')
+
+  if (live && (treeQuery.isPending || resolvedStories.length === 0)) {
+    return null
   }
 
   return (
-    <>
-      <nav className={styles.container} aria-label="Featured category stories">
-        <div className={styles.inner}>
-          <button
-            className={`${styles.scrollBtn} ${styles.scrollBtnLeft}`}
-            onClick={() => scroll('left')}
-            aria-label="Scroll categories left"
-            type="button"
-          >
-            <ChevronLeft size={20} aria-hidden="true" />
-          </button>
-
-          <div className={styles.scrollTrack} ref={trackRef}>
-            {stories.map((item) => (
-              <Link
-                key={item.id}
-                to={item.href}
-                className={styles.storyItem}
-                onClick={(e) => handleStoryClick(item, e)}
-                aria-haspopup={item.video ? 'dialog' : undefined}
-              >
-                <StoryCircle item={item} />
-                <span className={styles.title}>{item.title}</span>
-              </Link>
-            ))}
-          </div>
-
-          <button
-            className={`${styles.scrollBtn} ${styles.scrollBtnRight}`}
-            onClick={() => scroll('right')}
-            aria-label="Scroll categories right"
-            type="button"
-          >
-            <ChevronRight size={20} aria-hidden="true" />
-          </button>
-        </div>
-      </nav>
-
-      <PromotionalVideoModal
-        isOpen={Boolean(activeStory)}
-        onClose={() => setActiveStory(null)}
-        data={
-          activeStory
-            ? {
-                videoUrl: activeStory.video || '',
-                title: activeStory.title,
-                ctaText: activeStory.ctaText || 'आत्ताच खरेदी करा',
-                ctaUrl: activeStory.ctaUrl || activeStory.href,
-              }
-            : null
-        }
-      />
-    </>
+    <nav className={styles.container} aria-label="Shop by category">
+      <HorizontalScroller
+        ariaLabel="Categories"
+        className={styles.scroller}
+        trackClassName={styles.scrollTrack}
+      >
+        {resolvedStories.map((item) => {
+          const isActive = activeParam === item.id
+          return (
+            <Link
+              key={item.id}
+              to={item.href}
+              className={`${styles.storyItem} ${isActive ? styles.storyItemActive : ''}`}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <CircleMedia item={item} />
+              <span className={styles.title}>{item.title}</span>
+            </Link>
+          )
+        })}
+      </HorizontalScroller>
+    </nav>
   )
 }
+
+/** @deprecated Prefer CategoryCircleCarousel — kept for existing tests/imports. */
+export const CategoryStoryBar = CategoryCircleCarousel

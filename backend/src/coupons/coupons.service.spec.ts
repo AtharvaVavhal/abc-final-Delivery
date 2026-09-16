@@ -326,6 +326,22 @@ describe('CouponsService', () => {
         service.validateAndClaim(tx as never, buildParams()),
       ).resolves.toBeDefined();
     });
+
+    it('ignores the unpaid order a coupon is being attached to when counting prior orders', async () => {
+      const service = new CouponsService({} as never, {} as never);
+      const coupon = buildCoupon({ firstOrderOnly: true });
+      const tx = buildTx(coupon, { orderCount: 0 });
+
+      await expect(
+        service.validateAndClaim(
+          tx as never,
+          buildParams({ ignoreOrderId: 'order-unpaid-1' }),
+        ),
+      ).resolves.toBeDefined();
+      expect(tx.order.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', id: { not: 'order-unpaid-1' } },
+      });
+    });
   });
 
   describe('minOrderValue', () => {

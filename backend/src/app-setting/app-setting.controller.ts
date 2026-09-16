@@ -1,5 +1,13 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
+import { ThrottlePublicRead } from '../common/throttling/throttle.decorators';
 import type { RequestWithTenantContext } from '../common/tenant/tenant-context';
 import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { AppSettingService } from './app-setting.service';
@@ -7,6 +15,10 @@ import {
   getAdminSettingDefinition,
   isPublicSettingKey,
 } from './app-setting.constants';
+import {
+  PUBLIC_STOREFRONT_CACHE_CONTROL,
+  PUBLIC_STOREFRONT_CACHE_VARY,
+} from '../common/http/public-storefront-cache';
 
 type RequestWithHostname = RequestWithTenantContext & { hostname: string };
 
@@ -29,6 +41,7 @@ type RequestWithHostname = RequestWithTenantContext & { hostname: string };
  * `StorefrontTenantResolver`, anchored to `request.tenantContext` /
  * `request.hostname`, never a client-supplied id.
  */
+@ThrottlePublicRead()
 @Controller('settings')
 export class AppSettingController {
   constructor(
@@ -36,32 +49,35 @@ export class AppSettingController {
     private readonly tenantResolver: StorefrontTenantResolver,
   ) {}
 
-  private resolveTenantId(request: RequestWithHostname): Promise<string> {
-    return this.tenantResolver.resolveActiveTenantId(
+  private resolveStorefront(
+    request: RequestWithHostname,
+  ): Promise<{ tenantId: string; storeId: string }> {
+    return this.tenantResolver.resolveActiveStorefront(
       request.tenantContext,
       request.hostname,
     );
   }
 
   @Public()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get(':key')
   async getOne(@Param('key') key: string, @Req() request: RequestWithHostname) {
     if (!isPublicSettingKey(key)) {
       return { value: null };
     }
-    const tenantId = await this.resolveTenantId(request);
-    const stored = await this.appSettingService.getStoreValueForTenant(
-      tenantId,
-      key,
-    );
+    const { storeId } = await this.resolveStorefront(request);
+    const stored = await this.appSettingService.getStoreValue(storeId, key);
     // When no row exists yet, fall back to the admin definition's default
-    // (e.g. storeName → "PrintForge") so the public read is authoritative
+    // (e.g. storeName → "AB Creations") so the public read is authoritative
     // for the default too, not just for a value an admin has saved.
     const value = stored ?? getAdminSettingDefinition(key)?.default ?? null;
     return { value };
   }
 
   @Public()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get()
   async getMany(
     @Query('keys') keys: string | undefined,
@@ -74,9 +90,9 @@ export class AppSettingController {
           .filter(Boolean)
       : [];
     const allowed = requested.filter(isPublicSettingKey);
-    const tenantId = await this.resolveTenantId(request);
-    const values = await this.appSettingService.getManyStoreValuesForTenant(
-      tenantId,
+    const { storeId } = await this.resolveStorefront(request);
+    const values = await this.appSettingService.getManyStoreValues(
+      storeId,
       allowed,
     );
     return { data: values };

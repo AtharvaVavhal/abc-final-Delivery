@@ -173,6 +173,27 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByText('Payment confirmed')).not.toBeInTheDocument()
     expect(screen.getByText(/confirming your payment/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel order' })).toBeInTheDocument()
+  })
+
+  it('cancels a pending order after confirmation', async () => {
+    const user = userEvent.setup()
+    let status: OrderStatus = 'PENDING_PAYMENT'
+    mock.onGet('/orders/order-1').reply(() => [200, { success: true, data: buildOrder(status) }])
+    mock.onPost('/orders/order-1/cancel').reply(() => {
+      status = 'CANCELLED'
+      return [200, { success: true, data: buildOrder('CANCELLED') }]
+    })
+
+    renderOrderDetail()
+    await screen.findByRole('button', { name: 'Cancel order' })
+    await user.click(screen.getByRole('button', { name: 'Cancel order' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel order' }))
+
+    await waitFor(() =>
+      expect(mock.history.post.some((r) => r.url === '/orders/order-1/cancel')).toBe(true),
+    )
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument()
   })
 
   it('renders "Payment confirmed" only once the order\'s own status field says PAID, with no retry action', async () => {

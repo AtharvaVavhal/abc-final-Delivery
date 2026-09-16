@@ -1,229 +1,323 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { useState } from 'react'
-import { ShoppingCart, Menu, X, User, Package, ShieldCheck, Clock, ChevronDown } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { ChevronDown, Menu, Search, ShoppingBag, User, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
 import { useCategoryTree } from '@/hooks/useCategoryTree'
-import { useStoreName } from '@/hooks/useStoreName'
+import { STORE_NAME_FALLBACK, useStoreName } from '@/hooks/useStoreName'
+import { STORE_LOGO_FALLBACK, useStoreLogo } from '@/hooks/useStoreLogo'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { LogoutButton } from '@/features/auth/LogoutButton'
 import { CurrencySelector } from '@/components/layout/CurrencySelector'
 import { CategoryAccordion } from '@/components/layout/CategoryAccordion'
+import type { CategoryTreeNode } from '@/types/catalog'
+import { sortCategoryTree } from '@/features/catalog/categoryNavOrder'
 import { HeaderSearch } from './HeaderSearch'
 import styles from './Header.module.css'
 
-const UVPIXEL_DIRECT_LINKS = [
-  { label: 'All Products', to: ROUTES.PRODUCTS, categoryKey: null },
-  { label: 'Business Cards', to: `${ROUTES.PRODUCTS}?category=business-cards`, categoryKey: 'business-cards' },
-  { label: 'Logo', to: `${ROUTES.PRODUCTS}?category=logo`, categoryKey: 'logo' },
-  { label: 'Mugs', to: `${ROUTES.PRODUCTS}?category=mugs`, categoryKey: 'mugs' },
-  { label: 'Name Plates', to: `${ROUTES.PRODUCTS}?category=name-plates`, categoryKey: 'name-plates' },
-  { label: 'T-Shirts', to: `${ROUTES.PRODUCTS}?category=t-shirts`, categoryKey: 't-shirts' },
-]
+/** Keep long group names from colliding with brand and cart icons. */
+const VISIBLE_CATEGORY_LIMIT = 3
+/** Pointer can cross the trigger → panel gap without the menu unmounting. */
+const MENU_CLOSE_MS = 180
+
+function brandLabel(storeName: string): string {
+  return storeName.trim().toLowerCase() === 'printforge' ? STORE_NAME_FALLBACK : storeName
+}
+
+function categoryMatches(node: CategoryTreeNode, param: string): boolean {
+  if (!param) return false
+  const target = param.toLowerCase()
+  if (node.id.toLowerCase() === target || node.slug.toLowerCase() === target) return true
+  return node.children.some((child) => categoryMatches(child, target))
+}
+
+function categoryHref(id: string): string {
+  return `${ROUTES.PRODUCTS}?categoryId=${encodeURIComponent(id)}`
+}
 
 export function Header() {
   const { user, status } = useAuth()
   const { data: cart } = useCart()
   const { data: categoryTree, isLoading: treeLoading } = useCategoryTree()
-  const storeName = useStoreName()
+  const storeName = brandLabel(useStoreName())
+  const storeLogo = useStoreLogo()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const location = useLocation()
+  const searchPanelId = useId()
+  const moreMenuId = useId()
+  const moreRef = useRef<HTMLLIElement>(null)
+  const searchWrapRef = useRef<HTMLDivElement>(null)
+  const searchPanelRef = useRef<HTMLDivElement>(null)
+  const menuCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  // Track active navigation link accurately by URL pathname & search query parameters
-  const searchParams = new URLSearchParams(location.search)
-  const currentCategoryParam = (searchParams.get('category') || searchParams.get('categoryId') || '').toLowerCase().trim()
-  const currentSearchParam = (searchParams.get('search') || '').toLowerCase().trim()
-  const isProductsCatalog = location.pathname === ROUTES.PRODUCTS
-
-  const isNavLinkActive = (categoryKey: string | null) => {
-    if (!isProductsCatalog) return false
-    if (categoryKey === null) {
-      return !currentCategoryParam && !currentSearchParam
+  const cancelMenuClose = () => {
+    if (menuCloseTimer.current) {
+      clearTimeout(menuCloseTimer.current)
+      menuCloseTimer.current = undefined
     }
-    const targetKey = categoryKey.toLowerCase()
-    return currentCategoryParam === targetKey || (!currentCategoryParam && currentSearchParam === targetKey)
   }
 
-  // "Sign up" carries the current page as `state.from` so a customer who
-  // registers from the storefront chrome returns to where they were, the
-  // same way ProtectedRoute forwards it (UX-04). Skipped on the auth pages
-  // themselves so registration can't resolve back to /login or /register.
-  // "Log in" is unchanged.
+  const openCategoryMenu = (id: string) => {
+    cancelMenuClose()
+    setMoreOpen(false)
+    setOpenGroupId(id)
+  }
+
+  const scheduleCloseCategoryMenu = (id: string) => {
+    cancelMenuClose()
+    menuCloseTimer.current = setTimeout(() => {
+      setOpenGroupId((current) => (current === id ? null : current))
+      menuCloseTimer.current = undefined
+    }, MENU_CLOSE_MS)
+  }
+
+  const searchParams = new URLSearchParams(location.search)
+  const currentCategoryParam = (searchParams.get('category') || searchParams.get('categoryId') || '')
+    .toLowerCase()
+    .trim()
+  const isHome = location.pathname === ROUTES.HOME
+
   const onAuthPage =
     location.pathname === ROUTES.LOGIN || location.pathname === ROUTES.REGISTER
   const registerState = onAuthPage ? undefined : { from: location }
 
-  const categories = categoryTree ?? []
+  const categories = sortCategoryTree(categoryTree ?? [])
+  const visibleCategories = categories.slice(0, VISIBLE_CATEGORY_LIMIT)
+  const overflowCategories = categories.slice(VISIBLE_CATEGORY_LIMIT)
   const isAuthenticated = status === 'authenticated' && Boolean(user)
   const cartCount = cart?.itemCount ?? 0
+  const accountHref = isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN
+  const accountLabel = isAuthenticated ? 'Account' : 'Log in'
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setMoreOpen(false)
+      setOpenGroupId(null)
+      setSearchOpen(false)
+      setMobileOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node
+      if (moreRef.current && !moreRef.current.contains(target)) setMoreOpen(false)
+      const inSearch =
+        searchWrapRef.current?.contains(target) || searchPanelRef.current?.contains(target)
+      if (!inSearch) setSearchOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [])
+
+  useEffect(() => () => cancelMenuClose(), [])
 
   return (
     <header className={styles.header}>
-      {/* Top row */}
-      <div className={styles.topRow}>
-        <button
-          className={styles.mobileMenuButton}
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav"
-        >
-          {mobileOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
-        </button>
+      <div className={styles.inner}>
+        <div className={styles.brandCluster}>
+          <button
+            className={styles.mobileMenuButton}
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            type="button"
+          >
+            <Menu size={22} strokeWidth={1.5} aria-hidden="true" />
+          </button>
 
-        <NavLink to={ROUTES.HOME} className={styles.brand} aria-label={`${storeName} home`}>
-          <div className={styles.uvLogoFrame}>
-            <span className={styles.brandIcon} aria-hidden="true">
-              <span className={styles.uvDiamond}>
-                <span className={styles.uvDiamondDot} />
-              </span>
-            </span>
-            <span className={styles.brandText}>{storeName}</span>
-          </div>
-          <span className={styles.trademark} aria-hidden="true">&reg;</span>
-        </NavLink>
-
-        <HeaderSearch variant="bar" />
-
-        {/* Right side actions */}
-        <div className={styles.actions}>
-          <CurrencySelector />
-
-          <NavLink to={ROUTES.CART} className={styles.cartLink} aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? '' : 's'}` : ''}`}>
-            <ShoppingCart size={20} aria-hidden="true" />
-            {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+          <NavLink to={ROUTES.HOME} className={styles.brand} aria-label={`${storeName} home`}>
+            <img
+              src={storeLogo || STORE_LOGO_FALLBACK}
+              alt=""
+              className={styles.brandLogo}
+              width={188}
+              height={44}
+              decoding="async"
+            />
           </NavLink>
-
-          {/* Auth cluster. Below the 560px breakpoint it collapses into the
-              nav drawer (which carries the same actions) so the top row
-              never has to squeeze brand + cart + login + sign-up onto one
-              line (UX-16). */}
-          <div className={styles.authActions}>
-            {isAuthenticated ? (
-              <>
-                {user?.role === 'ADMIN' && (
-                  <NavLink to={ROUTES.ADMIN_DASHBOARD} className={styles.navLink}>
-                    Admin
-                  </NavLink>
-                )}
-                <NavLink to={ROUTES.ACCOUNT} className={styles.accountLink}>
-                  <User size={18} aria-hidden="true" />
-                  <span className={styles.accountLabel}>Account</span>
-                </NavLink>
-                <LogoutButton />
-              </>
-            ) : status === 'unauthenticated' ? (
-              <>
-                <NavLink to={ROUTES.LOGIN} className={styles.navLink}>
-                  Log in
-                </NavLink>
-                <NavLink
-                  to={ROUTES.REGISTER}
-                  state={registerState}
-                  className={styles.signUpLink}
-                >
-                  Sign up
-                </NavLink>
-              </>
-            ) : null}
-          </div>
         </div>
-      </div>
 
-      {/* Bottom navigation row - Desktop category menu */}
-      <nav className={styles.navRowDesktop} aria-label="Product categories">
-        <div className={styles.navInnerDesktop}>
-          <div className={styles.navCategoriesGroup}>
+        <nav
+          className={cn(styles.navDesktop, (openGroupId || moreOpen) && styles.navDesktopRaised)}
+          aria-label="Product categories"
+        >
+          <ul className={styles.navList}>
+            <li>
+              <NavLink
+                to={ROUTES.HOME}
+                end
+                className={cn(styles.navLink, isHome && styles.navLinkActive)}
+              >
+                Home
+              </NavLink>
+            </li>
             {treeLoading ? (
-              <div className={styles.navSkeleton} aria-hidden="true" />
+              <li className={styles.navSkeletonItem} aria-hidden="true">
+                <div className={styles.navSkeleton} />
+              </li>
             ) : (
-              <ul className={styles.uvpixelDirectNav}>
-                {UVPIXEL_DIRECT_LINKS.map((link) => {
-                  const isActive = isNavLinkActive(link.categoryKey)
+              <>
+                {visibleCategories.map((category) => {
+                  const isActive = categoryMatches(category, currentCategoryParam)
+                  if (category.children.length === 0) {
+                    return (
+                      <li key={category.id}>
+                        <NavLink
+                          to={categoryHref(category.id)}
+                          className={cn(styles.navLink, isActive && styles.navLinkActive)}
+                        >
+                          {category.name}
+                        </NavLink>
+                      </li>
+                    )
+                  }
+
+                  const menuOpen = openGroupId === category.id
                   return (
-                    <li key={link.label}>
-                      <NavLink
-                        to={link.to}
-                        className={cn(styles.uvDirectLink, isActive && styles.uvDirectLinkActive)}
+                    <li
+                      key={category.id}
+                      className={cn(styles.moreItem, menuOpen && styles.moreItemOpen)}
+                      onMouseEnter={() => openCategoryMenu(category.id)}
+                      onMouseLeave={() => scheduleCloseCategoryMenu(category.id)}
+                    >
+                      <button
+                        type="button"
+                        className={cn(styles.navLink, styles.moreBtn, isActive && styles.navLinkActive)}
+                        onClick={() => openCategoryMenu(category.id)}
+                        aria-expanded={menuOpen}
+                        aria-haspopup="true"
+                        aria-controls={`${category.id}-menu`}
                       >
-                        {link.label}
-                      </NavLink>
+                        <span>{category.name}</span>
+                        <ChevronDown
+                          size={14}
+                          strokeWidth={1.75}
+                          className={cn(styles.moreChevron, menuOpen && styles.moreChevronOpen)}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {menuOpen && (
+                        <div className={styles.moreMenu} id={`${category.id}-menu`} role="menu">
+                          {category.children.map((child) => (
+                            <NavLink
+                              key={child.id}
+                              to={categoryHref(child.id)}
+                              className={styles.moreLink}
+                              onClick={() => setOpenGroupId(null)}
+                              role="menuitem"
+                            >
+                              {child.name}
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
                     </li>
                   )
                 })}
-                {categories.length > 0 && (
-                  <li
-                    className={styles.moreCategoriesItem}
-                    onMouseEnter={() => setMoreOpen(true)}
-                    onMouseLeave={() => setMoreOpen(false)}
-                  >
+                {overflowCategories.length > 0 && (
+                  <li className={cn(styles.moreItem, moreOpen && styles.moreItemOpen)} ref={moreRef}>
                     <button
                       type="button"
-                      className={cn(styles.uvDirectLink, styles.moreBtn, moreOpen && styles.uvDirectLinkActive)}
-                      onClick={() => setMoreOpen((prev) => !prev)}
+                      className={cn(styles.navLink, styles.moreBtn, moreOpen && styles.navLinkActive)}
+                      onClick={() => setMoreOpen((open) => !open)}
                       aria-expanded={moreOpen}
                       aria-haspopup="true"
+                      aria-controls={moreMenuId}
                     >
-                      <span>More Categories</span>
+                      <span>More</span>
                       <ChevronDown
                         size={14}
+                        strokeWidth={1.75}
                         className={cn(styles.moreChevron, moreOpen && styles.moreChevronOpen)}
                         aria-hidden="true"
                       />
                     </button>
                     {moreOpen && (
-                      <div className={styles.moreDropdownMenu} role="menu">
-                        <NavLink
-                          to={ROUTES.PRODUCTS}
-                          className={styles.dropdownCategoryLink}
-                          onClick={() => setMoreOpen(false)}
-                          role="menuitem"
-                        >
-                          All Products
-                        </NavLink>
-                        {categories.map((cat) => (
+                      <div className={cn(styles.moreMenu, styles.moreMenuEnd)} id={moreMenuId} role="menu">
+                        {overflowCategories.map((category) => (
                           <NavLink
-                            key={cat.id}
-                            to={`${ROUTES.PRODUCTS}?categoryId=${encodeURIComponent(cat.id)}`}
-                            className={styles.dropdownCategoryLink}
+                            key={category.id}
+                            to={categoryHref(category.id)}
+                            className={styles.moreLink}
                             onClick={() => setMoreOpen(false)}
                             role="menuitem"
                           >
-                            {cat.name}
+                            {category.name}
                           </NavLink>
                         ))}
                       </div>
                     )}
                   </li>
                 )}
-              </ul>
+              </>
             )}
-          </div>
-          <div className={styles.navDesktopPerks} aria-label="Studio guarantees">
-            <NavLink to={ROUTES.ORDERS} className={styles.perkLink}>
-              <Package size={14} className={styles.perkIcon} aria-hidden="true" />
-              <span>Track Orders</span>
-            </NavLink>
-            <span className={styles.perkDivider} aria-hidden="true" />
-            <div className={styles.perkItem}>
-              <ShieldCheck size={14} className={styles.perkIconAmber} aria-hidden="true" />
-              <span>Free Delivery</span>
-            </div>
-            <span className={styles.perkDivider} aria-hidden="true" />
-            <div className={styles.perkItem}>
-              <Clock size={14} className={styles.perkIcon} aria-hidden="true" />
-              <span>48–72h Turnaround</span>
-            </div>
-          </div>
-        </div>
-      </nav>
+          </ul>
+        </nav>
 
-      {/* Mobile drawer: overlay + panel. Both live inside <header> so they
-          share its stacking context — the panel (z-index: dropdown) then
-          reliably sits above the overlay (dropdown - 1) and stays
-          interactive. */}
+        <div className={styles.actions}>
+          <CurrencySelector />
+
+          {user?.role === 'ADMIN' && (
+            <NavLink to={ROUTES.ADMIN_DASHBOARD} className={styles.adminLink}>
+              Admin
+            </NavLink>
+          )}
+
+          <div ref={searchWrapRef}>
+            <button
+              type="button"
+              className={cn(styles.iconButton, searchOpen && styles.iconButtonActive)}
+              aria-label="Search"
+              aria-expanded={searchOpen}
+              aria-controls={searchPanelId}
+              onClick={() => {
+                setSearchOpen((open) => !open)
+                setMoreOpen(false)
+              }}
+            >
+              <Search size={20} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          </div>
+
+          <NavLink
+            to={accountHref}
+            className={cn(styles.iconButton, styles.headerBarAction)}
+            aria-label={accountLabel}
+          >
+            <User size={20} strokeWidth={1.5} aria-hidden="true" />
+          </NavLink>
+
+          <NavLink
+            to={ROUTES.CART}
+            className={styles.iconButton}
+            aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? '' : 's'}` : ''}`}
+          >
+            <ShoppingBag size={20} strokeWidth={1.5} aria-hidden="true" />
+            {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+          </NavLink>
+        </div>
+      </div>
+
+      <div
+        id={searchPanelId}
+        ref={searchPanelRef}
+        className={cn(styles.searchPanel, searchOpen && styles.searchPanelOpen)}
+        hidden={!searchOpen}
+      >
+        <div className={styles.searchPanelInner}>
+          <HeaderSearch variant="bar" active={searchOpen} onSubmitted={() => setSearchOpen(false)} />
+        </div>
+      </div>
+
       {mobileOpen && (
         <div
           className={cn(styles.drawerOverlay, styles.visible)}
@@ -234,12 +328,7 @@ export function Header() {
       <nav
         id="mobile-nav"
         className={cn(styles.navRowMobile, mobileOpen && styles.open)}
-        aria-label="Categories"
-        role="navigation"
-        // Any link tap (category, "All products", account) closes the drawer
-        // so the customer lands on the new page unobstructed. Covers the
-        // recursive CategoryAccordion links too, which have no per-link
-        // handler of their own.
+        aria-label="Mobile categories"
         onClick={(event) => {
           if ((event.target as HTMLElement).closest('a')) setMobileOpen(false)
         }}
@@ -251,13 +340,15 @@ export function Header() {
               className={styles.mobileNavClose}
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
+              type="button"
             >
-              <X size={24} aria-hidden="true" />
+              <X size={20} strokeWidth={1.5} aria-hidden="true" />
             </button>
           </div>
 
-          <HeaderSearch variant="drawer" onSubmitted={() => setMobileOpen(false)} />
-
+          <NavLink to={ROUTES.HOME} className={styles.mobileAllProducts} onClick={() => setMobileOpen(false)}>
+            Home
+          </NavLink>
           <NavLink
             to={ROUTES.PRODUCTS}
             className={styles.mobileAllProducts}

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../common/audit/audit.module';
 import { OrdersModule } from '../orders/orders.module';
+import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { ReviewsController } from './reviews.controller';
 import { ProductReviewsController } from './product-reviews.controller';
 import { ReviewsService } from './reviews.service';
@@ -30,7 +31,7 @@ import { ReviewsService } from './reviews.service';
 @Module({
   imports: [OrdersModule, AuditModule],
   controllers: [ReviewsController, ProductReviewsController],
-  providers: [ReviewsService],
+  providers: [ReviewsService, StorefrontTenantResolver],
   exports: [ReviewsService],
 })
 export class ReviewsModule {}

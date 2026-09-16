@@ -3,12 +3,9 @@ import { DEFAULT_SITE_URL, SITE_NAME } from './siteConfig.constants'
 /**
  * Single source of truth for SEO-facing site identity.
  *
- * The production frontend origin is `https://www.printforge.in` — established
- * by the frozen architecture docs (docs/architecture/BLUEPRINT-v1.2.md §23,
- * docs/architecture/ARCHITECTURE-FREEZE.md), not guessed here. DNS cutover is
- * still pending (Readme.md "Project Status"), so it is overridable per deploy
- * via the `VITE_SITE_URL` env var (see .env.example) for preview/staging
- * environments that live on a different hostname.
+ * Production MUST set `VITE_SITE_URL` to the live AB Creations origin.
+ * When unset, `DEFAULT_SITE_URL` is the local Vite origin so crawler tags
+ * never fall back to printforge.in.
  */
 export { SITE_NAME, DEFAULT_SITE_URL }
 
@@ -27,8 +24,8 @@ export function absoluteUrl(pathAndQuery: string): string {
   return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-/** `<title>` text: "<page> | PrintForge", or just "PrintForge" for the home
- * page (passing an empty string). */
+/** `<title>` text: "<page> | AB Creations", or just "AB Creations" for the
+ * home page (passing an empty string). */
 export function pageTitle(page?: string): string {
   return page && page.trim().length > 0 ? `${page.trim()} | ${SITE_NAME}` : SITE_NAME
 }

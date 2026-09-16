@@ -4,7 +4,7 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, PaymentAttemptStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
 import { assertTenantActive } from '../common/tenant/tenant-lifecycle';
 import { resolvePrimaryStoreId } from '../common/tenant/primary-store';
@@ -18,6 +18,8 @@ import { CouponsService } from '../coupons/coupons.service';
 import { IdempotencyService } from './idempotency/idempotency.service';
 import { OrderLinePricing, PricingService } from './pricing/pricing.service';
 import { TaxService } from './tax/tax.service';
+import { cartMatchesUnpaidOrder } from './unpaid-cart-match';
+import { assertTransitionAllowed } from '../orders/order-lifecycle.util';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CheckoutPreviewView, OrderView } from './dto/order-view.interface';
 import { LimitEnforcementService } from '../limits/limit-enforcement.service';
@@ -66,6 +68,13 @@ const ORDER_DETAIL_INCLUDE = {
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: typeof ORDER_DETAIL_INCLUDE;
 }>;
+
+/** Prisma's default interactive-transaction budget (5s) is too tight for
+ * this transaction's full sequence (cart lock, idempotency claim, coupon
+ * validation, order/item/customization writes, cart clearing) against the
+ * remote Postgres instance's per-round-trip latency — raised the same way
+ * `tenant-rls.ts`'s scoped-client transactions already are. */
+const CHECKOUT_TRANSACTION_TIMEOUT_MS = 20_000;
 
 /**
  * §17: checkout owns order creation; orders owns the post-creation state
@@ -148,11 +157,12 @@ export class CheckoutService {
       // the same cart, *different* Idempotency-Keys) race-safe. The
       // idempotency claim below only dedupes two requests sharing the same
       // key; without this lock, two concurrent transactions with different
-      // keys would both read the same cart items before either deleted
-      // them and both create an order. Locking first (rather than after
-      // the claim) also means a same-key retry that loses this lock race
-      // resumes only after the winner has committed its claim, so the
-      // raced-claim lookup below reliably sees the winner's resultOrderId.
+      // keys would both read the same cart items before either created
+      // an order. Locking first (rather than after the claim) also means
+      // a same-key retry that loses this lock race resumes only after the
+      // winner has committed, so the raced-claim lookup below reliably
+      // sees the winner's resultOrderId. Cart lines stay until payment is
+      // captured so dismissing Razorpay does not empty the bag.
       const [lockedCart] = await tx.$queryRaw<
         { id: string; tenantId: string }[]
       >`
@@ -174,6 +184,91 @@ export class CheckoutService {
         lockedCart.tenantId,
         'This store is currently unavailable',
       );
+
+      // Keep cart items until payment is captured. A dismissed Razorpay
+      // modal must not empty the bag. Concurrent checkouts still serialize
+      // on this lock. Resume the unpaid order only when the cart is still
+      // the same merchandise — a newly added/removed product must place a
+      // fresh order, not replay the previous one.
+      const cart = await tx.cart.findUnique({
+        where: { id: lockedCart.id },
+        include: {
+          items: {
+            orderBy: { createdAt: 'asc' },
+            include: CHECKOUT_CART_ITEM_INCLUDE,
+          },
+        },
+      });
+
+      const existingUnpaidOrders = await tx.order.findMany({
+        where: {
+          userId,
+          tenantId: lockedCart.tenantId,
+          status: {
+            in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAYMENT_FAILED],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: { customizations: true },
+            orderBy: { id: 'asc' },
+          },
+        },
+      });
+      if (existingUnpaidOrders.length > 0) {
+        const cartLines =
+          cart?.items.map((item) => ({
+            productId: item.productId,
+            variantLabel: item.variant?.label ?? null,
+            quantity: item.quantity,
+            customizations: item.customizations.map((c) => ({
+              fieldLabel: c.customizationField.label,
+              textValue: c.textValue,
+              uploadedFileId: c.uploadedFileId,
+            })),
+          })) ?? [];
+        const matchingUnpaid =
+          cartLines.length === 0
+            ? existingUnpaidOrders[0]
+            : existingUnpaidOrders.find((unpaid) =>
+                cartMatchesUnpaidOrder(
+                  cartLines,
+                  unpaid.items.map((item) => ({
+                    productId: item.productId,
+                    variantLabel: item.variantLabelSnapshot,
+                    quantity: item.quantity,
+                    customizations: item.customizations.map((c) => ({
+                      fieldLabel: c.fieldLabelSnapshot,
+                      textValue: c.textValue,
+                      uploadedFileId: c.uploadedFileId,
+                    })),
+                  })),
+                ),
+              );
+        for (const unpaid of existingUnpaidOrders) {
+          if (unpaid.id === matchingUnpaid?.id) continue;
+          await this.abandonUnpaidOrder(tx, unpaid, userId);
+        }
+        if (matchingUnpaid) {
+          const requestedCode = dto.couponCode?.trim().toUpperCase() || null;
+          const existingCode = matchingUnpaid.couponCode;
+          if (requestedCode && existingCode && existingCode !== requestedCode) {
+            throw new ConflictException(
+              'This order is already awaiting payment with a different coupon. Complete that payment first — the payable amount cannot be changed after a coupon is claimed.',
+            );
+          }
+          if (requestedCode && !existingCode) {
+            await this.applyCouponToUnpaidOrder(
+              tx,
+              matchingUnpaid,
+              requestedCode,
+              userId,
+            );
+          }
+          return { orderId: matchingUnpaid.id, created: false };
+        }
+      }
 
       const claim = await this.idempotencyService.claim(tx, {
         key: idempotencyKey,
@@ -198,15 +293,6 @@ export class CheckoutService {
         );
       }
 
-      const cart = await tx.cart.findUnique({
-        where: { id: lockedCart.id },
-        include: {
-          items: {
-            orderBy: { createdAt: 'asc' },
-            include: CHECKOUT_CART_ITEM_INCLUDE,
-          },
-        },
-      });
       if (!cart || cart.items.length === 0) {
         throw new BadRequestException('Your cart is empty');
       }
@@ -439,15 +525,8 @@ export class CheckoutService {
 
       await this.idempotencyService.recordResult(tx, claim.id, createdOrder.id);
 
-      const itemIds = cart.items.map((i) => i.id);
-      // customization rows RESTRICT-reference the item (§15) — delete first.
-      await tx.cartItemCustomization.deleteMany({
-        where: { cartItemId: { in: itemIds } },
-      });
-      await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
-
       return { orderId: createdOrder.id, created: true };
-    });
+    }, { timeout: CHECKOUT_TRANSACTION_TIMEOUT_MS });
 
     return {
       view: await this.loadOrderView(result.orderId, userId),
@@ -623,6 +702,133 @@ export class CheckoutService {
       variantDeltaPaise,
       surchargePaise,
       quantity: item.quantity,
+    });
+  }
+
+  /**
+   * Drops an unpaid order so a changed cart can check out as a new order.
+   * No refund (nothing was captured). Coupon usage is released.
+   */
+  private async abandonUnpaidOrder(
+    tx: Prisma.TransactionClient,
+    order: {
+      id: string;
+      status: OrderStatus;
+      tenantId: string;
+      couponId: string | null;
+    },
+    userId: string,
+  ): Promise<void> {
+    assertTransitionAllowed(order.status, OrderStatus.CANCELLED);
+    const cas = await tx.order.updateMany({
+      where: {
+        id: order.id,
+        status: {
+          in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAYMENT_FAILED],
+        },
+      },
+      data: { status: OrderStatus.CANCELLED },
+    });
+    if (cas.count !== 1) {
+      return;
+    }
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        fromStatus: order.status,
+        toStatus: OrderStatus.CANCELLED,
+        changedByUserId: userId,
+        note: 'Unpaid order replaced because the cart changed',
+        tenantId: order.tenantId,
+      },
+    });
+    await tx.paymentAttempt.updateMany({
+      where: {
+        orderId: order.id,
+        status: PaymentAttemptStatus.INITIATED,
+      },
+      data: { status: PaymentAttemptStatus.ABANDONED },
+    });
+    await this.couponsService.releaseUsageForOrder(tx, {
+      orderId: order.id,
+      couponId: order.couponId,
+    });
+  }
+
+  /**
+   * Attaches a coupon to an unpaid order that was created without one.
+   * Shipping snapshot stays frozen; only money columns + coupon FKs change.
+   * `razorpayOrderId` is cleared so the next initiatePayment creates a
+   * provider order whose amount matches the discounted total — reusing the
+   * pre-coupon Razorpay order would charge the old amount (or fail the
+   * capture amount check).
+   */
+  private async applyCouponToUnpaidOrder(
+    tx: Prisma.TransactionClient,
+    order: {
+      id: string;
+      tenantId: string;
+      userId: string;
+      subtotal: Prisma.Decimal;
+      shippingFee: Prisma.Decimal;
+    },
+    couponCode: string,
+    userId: string,
+  ): Promise<void> {
+    const items = await tx.orderItem.findMany({
+      where: { orderId: order.id },
+      include: { product: { select: { categoryId: true } } },
+    });
+    const subtotalPaise = decimalToPaise(order.subtotal);
+    const shippingFeePaise = decimalToPaise(order.shippingFee);
+    const claim = await this.couponsService.validateAndClaim(tx, {
+      code: couponCode,
+      userId,
+      subtotalPaise,
+      shippingFeePaise,
+      lineItems: items.map((item) => ({
+        categoryId: item.product?.categoryId ?? '',
+        lineTotalPaise: decimalToPaise(item.lineTotal),
+      })),
+      tenantId: order.tenantId,
+      ignoreOrderId: order.id,
+    });
+
+    const taxConfig = await this.taxService.getConfig(order.tenantId, tx);
+    const taxComputation = this.taxService.computeTax(
+      subtotalPaise - claim.discountPaise,
+      taxConfig,
+    );
+    const { taxToAddPaise, orderTaxFields } = this.applyTax(taxComputation);
+    const totalPaise = this.pricingService.computeOrderTotal({
+      subtotalPaise,
+      shippingFeePaise: claim.shippingFeePaise,
+      discountPaise: claim.discountPaise,
+      taxToAddPaise,
+    });
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        discountAmount: paiseToDecimalString(claim.discountPaise),
+        shippingFee: paiseToDecimalString(claim.shippingFeePaise),
+        total: paiseToDecimalString(totalPaise),
+        taxMode: orderTaxFields.taxMode,
+        taxableAmount: orderTaxFields.taxableAmount,
+        taxAmount: orderTaxFields.taxAmount,
+        taxRateSnapshot: orderTaxFields.taxRateSnapshot,
+        couponId: claim.couponId,
+        couponCode: claim.couponCode,
+        razorpayOrderId: null,
+      },
+    });
+
+    await this.couponsService.recordUsage(tx, {
+      couponId: claim.couponId,
+      userId,
+      orderId: order.id,
+      discountAppliedAmountPaise: claim.discountPaise,
+      tenantId: order.tenantId,
     });
   }
 

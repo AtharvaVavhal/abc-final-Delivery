@@ -8,12 +8,17 @@ export function AboutPage() {
     <section className={styles.page}>
       <Seo
         title="About"
-        description="PrintForge is a custom-printing platform for designing and ordering printed products entirely online — from product discovery through file upload, checkout, production and delivery."
+        description="AB Creations is a custom-printing store for designing and ordering printed products entirely online — from product discovery through file upload, checkout, production and delivery."
         canonicalPath={ROUTES.ABOUT}
       />
-      <h1>About PrintForge</h1>
+      <h1>About AB Creations</h1>
+      <img
+        className={styles.studioPhoto}
+        src="/catalog/about.jpg"
+        alt="Packing table with kraft boxes and finished acrylic gifts"
+      />
       <p>
-        PrintForge is a custom‑printing platform that lets customers design and order
+        AB Creations is a custom‑printing store that lets customers design and order
         printed products entirely online. From product discovery through file upload,
         checkout, production and delivery — every step is handled in a single,
         transparent workflow.

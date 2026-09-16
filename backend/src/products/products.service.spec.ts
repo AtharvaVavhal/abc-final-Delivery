@@ -425,5 +425,46 @@ describe('ProductsService.createProduct — audit atomicity (Phase 5 W8)', () =>
     // both back atomically because nothing here catches/swallows the
     // audit failure.
     expect(productDelegate.create).toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ timeout: 20_000, maxWait: 10_000 }),
+    );
+  });
+});
+
+describe('ProductsService.listProducts', () => {
+  it('includes products from active child categories when filtering by a parent', async () => {
+    const productDelegate = {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    };
+    const prisma = {
+      category: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'child-1' }]),
+      },
+      product: productDelegate,
+    };
+    const service = new ProductsService(
+      prisma as never,
+      {} as never,
+      makeAudit() as never,
+      {} as never,
+    );
+
+    await service.listProducts('tenant-a', 1, 20, 'parent-1', undefined);
+
+    expect(prisma.category.findMany).toHaveBeenCalledWith({
+      where: { parentCategoryId: 'parent-1', isActive: true, tenantId: 'tenant-a' },
+      select: { id: true },
+    });
+    expect(productDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-a',
+          isActive: true,
+          categoryId: { in: ['parent-1', 'child-1'] },
+        }),
+      }),
+    );
   });
 });

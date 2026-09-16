@@ -388,6 +388,25 @@ export class OrdersService {
           },
         });
       }
+      if (
+        order.status === OrderStatus.PENDING_PAYMENT ||
+        order.status === OrderStatus.PAYMENT_FAILED
+      ) {
+        await tx.paymentAttempt.updateMany({
+          where: {
+            orderId: order.id,
+            status: PaymentAttemptStatus.INITIATED,
+          },
+          data: { status: PaymentAttemptStatus.ABANDONED },
+        });
+        if (order.couponId) {
+          await tx.couponUsage.deleteMany({ where: { orderId: order.id } });
+          await tx.coupon.updateMany({
+            where: { id: order.couponId, usedCount: { gt: 0 } },
+            data: { usedCount: { decrement: 1 } },
+          });
+        }
+      }
       await this.transitionOrderWithHistory(
         tx,
         order,

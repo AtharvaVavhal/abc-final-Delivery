@@ -75,7 +75,7 @@ const ALLOWLIST: ReadonlyArray<{ path: string; category: string }> = [
   {
     path: 'common/tenant/storefront-tenant.resolver.ts',
     category:
-      "storefront-tenant.resolver.ts (Phase 4 W7 / P4-D2 — the storefront/customer-path counterpart of tenant-context.guard.ts's own host lookup: resolves a tenant FROM a hostname, or the sole existing tenant, for a caller with no TenantMembership to resolve one from — no tenant is known yet)",
+      "storefront-tenant.resolver.ts (Phase 4 W7 / P4-D2 — the storefront/customer-path counterpart of tenant-context.guard.ts's own host lookup: resolves a tenant FROM a hostname, or the sole existing tenant, for a caller with no TenantMembership to resolve one from — no tenant is known yet). Reads tenancy rows via one parameterized SQL statement inside withPlatformRlsBypass, not Prisma delegates, so the detector below does not currently fire on this file; it stays allowlisted because it is still the storefront bypass site.",
   },
   {
     path: 'auth/strategies/jwt.strategy.ts',
@@ -273,7 +273,7 @@ describe('tenant data access — PrismaService allowlist guard (D4, Phase 3)', (
     }
   });
 
-  it('the ten known, currently-existing access sites are exactly jwt.strategy.ts, tenant-context.guard.ts, storefront-tenant.resolver.ts, platform.service.ts, tenant-lifecycle.ts, support-session.service.ts, team.service.ts, tenant-actor-attribution.ts, platform-plans.service.ts, and payment-account-readiness.ts', () => {
+  it('the ten known, currently-existing access sites are exactly jwt.strategy.ts, tenant-context.guard.ts, platform.service.ts, tenant-lifecycle.ts, support-session.service.ts, team.service.ts, tenant-actor-attribution.ts, platform-plans.service.ts, and payment-account-readiness.ts (storefront-tenant.resolver.ts remains allowlisted but currently reads via $queryRaw, not a Prisma tenancy delegate)', () => {
     const detectedTodayFiles = ALLOWLIST.filter((a) => {
       try {
         const code = stripComments(readFileSync(join(SRC_DIR, a.path), 'utf8'));
@@ -289,7 +289,6 @@ describe('tenant data access — PrismaService allowlist guard (D4, Phase 3)', (
       [
         'auth/strategies/jwt.strategy.ts',
         'common/tenant/tenant-context.guard.ts',
-        'common/tenant/storefront-tenant.resolver.ts',
         'platform/platform.service.ts',
         'common/tenant/tenant-lifecycle.ts',
         'support-sessions/support-session.service.ts',

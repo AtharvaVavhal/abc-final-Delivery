@@ -83,7 +83,7 @@ describe('AdminSidebar', () => {
     renderSidebar()
 
     await user.tab()
-    expect(screen.getByRole('link', { name: /printforge/i })).toHaveFocus()
+    expect(screen.getByRole('link', { name: /ab creations/i })).toHaveFocus()
     await user.tab()
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveFocus()
     await user.tab()

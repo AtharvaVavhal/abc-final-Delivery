@@ -5,6 +5,8 @@ import styles from './Button.module.css'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost'
+  shape?: 'default' | 'pill'
+  size?: 'md' | 'lg'
   isLoading?: boolean
 }
 
@@ -16,6 +18,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 export function Button({
   variant = 'primary',
+  shape = 'default',
+  size = 'md',
   isLoading = false,
   disabled,
   className,
@@ -25,7 +29,14 @@ export function Button({
   return (
     <button
       type="button"
-      className={cn(styles.button, styles[variant], isLoading && styles.loading, className)}
+      className={cn(
+        styles.button,
+        styles[variant],
+        shape === 'pill' && styles.pill,
+        size === 'lg' && styles.lg,
+        isLoading && styles.loading,
+        className,
+      )}
       disabled={disabled || isLoading}
       aria-busy={isLoading || undefined}
       {...rest}

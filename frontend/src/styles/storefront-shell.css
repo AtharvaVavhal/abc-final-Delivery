@@ -1,0 +1,167 @@
+/* Critical first-viewport shell painted from index.html before React.
+   React replaces #root on mount; these rules only apply to #storefront-shell. */
+#storefront-shell {
+  display: none;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  color: #27272a;
+  background: #fafaf9;
+}
+
+html[data-storefront-home] #storefront-shell {
+  display: block;
+}
+
+.pf-announce {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 1rem;
+  background: #090d16;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pf-header {
+  border-bottom: 1px solid rgb(9 13 22 / 8%);
+  background: #fff;
+}
+
+.pf-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 3vw, 2rem);
+}
+
+.pf-brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.pf-brand img {
+  display: block;
+  height: 44px;
+  width: clamp(9.25rem, 16vw, 11.75rem);
+  object-fit: cover;
+}
+
+.pf-nav {
+  display: none;
+  align-items: center;
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-nav a {
+  color: #090d16;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .pf-nav {
+    display: flex;
+  }
+}
+
+.pf-hero {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #090d16;
+  color: #fff;
+}
+
+.pf-hero-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.2 / 1;
+  min-height: 18rem;
+  max-height: min(30rem, calc(100dvh - 15rem));
+  overflow: hidden;
+}
+
+.pf-hero-stage picture,
+.pf-hero-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pf-hero-stage img {
+  object-fit: cover;
+}
+
+.pf-hero-copy {
+  position: absolute;
+  z-index: 3;
+  left: 1.25rem;
+  bottom: 1.5rem;
+  max-width: min(40%, 24rem);
+}
+
+@media (min-width: 768px) {
+  .pf-hero-copy {
+    left: 5rem;
+    bottom: 2rem;
+  }
+}
+
+.pf-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  color: #fff;
+}
+
+.pf-hero-copy p {
+  margin: 0.75rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 88%);
+}
+
+.pf-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 1.25rem;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  background: #b8873a;
+  color: #fff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  text-decoration: none;
+}

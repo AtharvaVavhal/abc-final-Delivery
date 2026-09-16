@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { Upload } from 'lucide-react'
 import type { CustomizationField } from '@/types/catalog'
 import { useUploadFile } from '@/hooks/useUploadFile'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { RequiredMark } from '@/components/ui/RequiredMark'
 import styles from './FileUploadField.module.css'
+
+function pickerLabel(type: CustomizationField['type']): string {
+  switch (type) {
+    case 'IMAGE_UPLOAD':
+      return 'Upload photo'
+    case 'LOGO_UPLOAD':
+      return 'Upload logo'
+    case 'DESIGN_FILE_UPLOAD':
+      return 'Upload artwork'
+    default:
+      return 'Upload file'
+  }
+}
 
 interface FieldConstraints {
   allowedFormats?: string[]
@@ -42,6 +56,14 @@ interface SelectedFile {
  */
 function getExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() ?? ''
+}
+
+/** Cloudinary (and this field's own server-side re-check) always reports a
+ * JPEG as `jpg`, never `jpeg` — normalise both sides so a field configured
+ * with either spelling in `allowedFormats` accepts a `.jpg` file, matching
+ * the backend's equivalent normalisation in customization-validation.util.ts. */
+function normalizeImageFormat(format: string): string {
+  return format.toLowerCase() === 'jpg' ? 'jpeg' : format.toLowerCase()
 }
 
 function formatFileSize(bytes: number): string {
@@ -90,8 +112,11 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
 
   function validateLocally(file: File): string | null {
     if (constraints.allowedFormats?.length) {
-      const extension = getExtension(file.name)
-      if (!constraints.allowedFormats.includes(extension)) {
+      const extension = normalizeImageFormat(getExtension(file.name))
+      const allowed = constraints.allowedFormats.some(
+        (f) => normalizeImageFormat(f) === extension,
+      )
+      if (!allowed) {
         return `${field.label} must be one of: ${constraints.allowedFormats.join(', ')}`
       }
     }
@@ -166,12 +191,15 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
     inputRef.current?.click()
   }
 
-  // localError (client-side format/size pre-check) takes priority over
-  // error (RHF/zod, e.g. "required") — once a rejected file clears the
-  // field back to blank, the required error would otherwise mask the
-  // more specific reason the file was rejected in the first place.
+  // localError (client-side format/size pre-check) and a failed upload
+  // both take priority over error (RHF/zod, e.g. "required") — once a
+  // rejected/failed file clears the field back to blank, the required
+  // error would otherwise mask the more specific reason the file never
+  // made it in (found via E2E testing: an upload failure, e.g. HTTP 401
+  // for an anonymous visitor, was silently swapped for "Photo is
+  // required" with no indication anything had even been attempted).
   const displayError =
-    localError ?? error ?? (upload.isError ? getApiErrorMessage(upload.error) : undefined)
+    localError ?? (upload.isError ? getApiErrorMessage(upload.error) : undefined) ?? error
 
   return (
     <div className={styles.field}>
@@ -181,19 +209,36 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
       </label>
       {field.helpText && <p className={styles.helpText}>{field.helpText}</p>}
 
-      {/* Kept mounted (hidden while a file is selected) so the label stays
-          associated and the Change button can re-open the picker. */}
+      {/* Native picker stays in the tree (visually hidden) so the field
+          label and Change action can open it. The visible control is the
+          styled button below. */}
       <input
         ref={inputRef}
         id={field.id}
         type="file"
-        accept={constraints.allowedFormats?.map((format) => `.${format}`).join(',')}
+        accept={constraints.allowedFormats
+          ?.flatMap((format) => (format.toLowerCase() === 'jpeg' ? ['jpeg', 'jpg'] : [format]))
+          .map((format) => `.${format}`)
+          .join(',')}
         onChange={handleFileChange}
         disabled={upload.isPending}
         aria-invalid={Boolean(displayError)}
         aria-required={field.isRequired || undefined}
-        className={selected ? styles.inputHidden : undefined}
+        className="srOnly"
       />
+
+      {!selected && (
+        <button
+          type="button"
+          className={styles.picker}
+          onClick={handleChange}
+          disabled={upload.isPending}
+          aria-invalid={Boolean(displayError) || undefined}
+        >
+          <Upload size={18} strokeWidth={2} aria-hidden="true" />
+          {pickerLabel(field.type)}
+        </button>
+      )}
 
       {selected && (
         <div className={styles.preview}>

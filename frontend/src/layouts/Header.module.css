@@ -1,40 +1,41 @@
 .header {
-  border-bottom: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgb(9 13 22 / 8%);
+  background: #ffffff;
   position: sticky;
   top: 0;
   z-index: var(--z-index-header);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.topRow {
+.inner {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: clamp(1.25rem, 3vw, 2.5rem);
+  min-height: 4.25rem;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 3vw, 2rem);
+}
+
+.brandCluster {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: 0.75rem clamp(1rem, 2.5vw, 2.5rem);
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 44px;
+  justify-self: start;
+  flex-shrink: 0;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--text-lg);
+  min-width: 0;
+  min-height: 44px;
   color: var(--color-text-strong);
   text-decoration: none;
-  letter-spacing: -0.02em;
   border-radius: var(--radius-sm);
-  /* The store name is configurable and can be long. Let it give way to the
-   * fixed-width controls (hamburger, cart) and ellipsis rather than push
-   * the row wider than the viewport. */
-  min-width: 0;
-  white-space: nowrap;
 }
 
 .brand:focus-visible {
@@ -42,76 +43,174 @@
   box-shadow: var(--focus-ring);
 }
 
-.uvLogoFrame {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border: 2px solid #000000;
-  border-radius: 4px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+.brandLogo {
+  display: block;
+  height: 44px;
+  width: clamp(9.25rem, 16vw, 11.75rem);
+  object-fit: cover;
+  object-position: center;
 }
 
-.brandIcon {
-  display: inline-flex;
+.navDesktop {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 3px;
-  background: #000000;
+  min-width: 0;
+  justify-self: stretch;
+  overflow: visible;
+}
+
+.navDesktopRaised {
+  z-index: 2;
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.navList > li {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
-.uvDiamond {
+.navLink {
+  appearance: none;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
-  background: conic-gradient(from 45deg, #e50b0b, #3b82f6, #10b981, #f59e0b, #e50b0b);
-  transform: rotate(45deg);
-  border-radius: 2px;
-}
-
-.uvDiamondDot {
-  width: 4px;
-  height: 4px;
-  background: #ffffff;
-  border-radius: 50%;
-}
-
-.brandText {
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-strong);
   font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: 0.06em;
-  color: #000000;
-  text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-base) ease;
+}
+
+.navLink:hover {
+  color: var(--color-text-muted);
+}
+
+.navLink:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.navLinkActive {
+  color: var(--color-text-strong);
+}
+
+.navLinkActive::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 1px;
+  background: var(--color-text-strong);
+}
+
+.moreItem {
+  position: relative;
+  list-style: none;
+}
+
+.moreItemOpen {
+  z-index: 2;
+}
+
+.moreBtn {
+  font: inherit;
+}
+
+.moreChevron {
+  display: block;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.moreChevronOpen {
+  transform: rotate(180deg);
+}
+
+.moreMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--z-index-dropdown);
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-height: min(70vh, 24rem);
+  overflow-y: auto;
+  padding: 8px 0 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.moreMenuEnd {
+  left: auto;
+  right: 0;
+}
+
+.moreLink {
+  padding: 0.65rem 1rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  text-decoration: none;
   white-space: nowrap;
 }
 
-.trademark {
-  font-size: 0.75rem;
-  font-weight: 700;
-  vertical-align: super;
-  margin-left: 2px;
-  color: #000000;
+.moreLink:hover,
+.moreLink:focus-visible {
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  outline: none;
 }
 
-.searchForm {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  max-width: 720px;
-  margin: 0 var(--space-4);
+.searchPanel {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
 }
 
+.searchPanelInner {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0.75rem clamp(1.25rem, 4vw, 2.5rem) 1rem;
+}
+
+.searchForm,
 .searchFormDrawer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.searchField {
   position: relative;
   display: flex;
   align-items: center;
@@ -120,28 +219,43 @@
 
 .searchInput {
   width: 100%;
-  padding: 0.5rem var(--space-3);
+  padding: 0.65rem var(--space-3);
   padding-left: calc(var(--space-3) + 22px);
+  padding-right: 3.25rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  background: var(--color-surface);
+  background: var(--color-bg);
   color: var(--color-text);
   font-size: var(--text-sm);
   font-family: inherit;
   transition:
     border-color var(--transition-base) ease,
-    background-color var(--transition-base) ease,
     box-shadow var(--transition-base) ease;
 }
 
+.searchFieldHasQuery .searchInput {
+  padding-right: 6rem;
+}
+
+.searchInput::-webkit-search-cancel-button,
+.searchInput::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.searchInput::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .searchInput:hover {
-  background: var(--color-bg);
   border-color: var(--color-border-strong);
 }
 
 .searchInput:focus-visible {
   outline: none;
-  background: var(--color-bg);
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-ring);
 }
@@ -165,6 +279,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-1) var(--space-2);
   border: none;
   background: transparent;
@@ -172,8 +288,33 @@
   cursor: pointer;
 }
 
+.searchClear {
+  position: absolute;
+  right: calc(var(--space-2) + 44px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.searchClear:hover,
 .searchSubmit:hover {
   color: var(--color-text-strong);
+}
+
+.searchClear:focus-visible,
+.searchSubmit:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
 }
 
 .searchError {
@@ -186,335 +327,183 @@
   white-space: nowrap;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-shrink: 0;
-}
-
-.authActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.currencySelector {
-  /* styles from CurrencySelector component */
-}
-
-.accountLink {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-text);
-  text-decoration: none;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.accountLink:hover {
-  background: var(--color-surface);
-  color: var(--color-text-strong);
-}
-
-.accountLink:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-accent-ring);
-}
-
-.accountLabel {
-  white-space: nowrap;
-}
-
-/* Component-specific 560px (see tokens.css) — between `sm` and `md`,
-   shared only with CartLineItem's control reflow. */
-@media (max-width: 560px) {
-  .accountLabel {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  /* Below 560px the top row is just hamburger + brand + cart. Log in /
-   * Sign up / Account / Log out all live in the nav drawer instead, so the
-   * row can never overflow the viewport (UX-16). */
-  .authActions {
-    display: none;
-  }
-}
-
-.cartLink {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  color: var(--color-text);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.cartLink:hover {
-  background: var(--color-surface);
-  color: var(--color-text-strong);
-}
-
-.cartLink:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-accent-ring);
-}
-
-.cartBadge {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-  line-height: 18px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgb(229 11 11 / 40%);
-}
-
-.uvpixelDirectNav {
-  display: flex;
-  align-items: center;
-  gap: clamp(1rem, 2vw, 2.25rem);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex-wrap: nowrap;
-}
-
-.uvDirectLink {
-  color: #1f2937;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  text-decoration: none;
-  padding: 0.65rem 0.2rem;
-  position: relative;
-  transition: color var(--transition-fast) ease;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.uvDirectLink:hover {
-  color: var(--color-primary);
-}
-
-.uvDirectLinkActive {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.uvDirectLinkActive::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: var(--color-primary);
-  border-radius: 2px;
-}
-
-.moreCategoriesItem {
-  position: relative;
-  list-style: none;
-}
-
-.moreBtn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.moreChevron {
-  transition: transform 0.2s ease;
-  color: #6b7280;
-}
-
-.moreChevronOpen {
-  transform: rotate(180deg);
-  color: var(--color-primary);
-}
-
-.moreDropdownMenu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 220px;
-  background: #ffffff;
+.searchSuggest {
+  margin-top: 0.5rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  padding: 6px 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
 }
 
-.dropdownCategoryLink {
-  padding: 8px 16px;
-  color: #374151;
-  font-size: 13.5px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
-  white-space: nowrap;
-  text-align: left;
-}
-
-.dropdownCategoryLink:hover {
-  background: #fef2f2;
-  color: var(--color-primary);
-}
-
-.signUpLink {
-  background: var(--color-text-strong);
-  color: #ffffff;
-  text-decoration: none;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  padding: 0.45rem var(--space-4);
-  border-radius: var(--radius-full);
-  transition: background var(--transition-base), transform var(--transition-fast), box-shadow var(--transition-base);
-  box-shadow: 0 2px 6px rgb(15 23 42 / 12%);
-}
-
-.signUpLink:hover {
-  background: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgb(29 78 216 / 25%);
-}
-
-.navLink {
+.searchSuggestStatus {
+  margin: 0;
+  padding: 0.85rem 1rem;
   color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.searchSuggestList {
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+.searchSuggestItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  color: var(--color-text);
   text-decoration: none;
+  cursor: pointer;
+}
+
+.searchSuggestItem:hover,
+.searchSuggestItemActive {
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+}
+
+.searchSuggestItem:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+
+.searchSuggestThumb,
+.searchSuggestThumbFallback {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+.searchSuggestName {
+  flex: 1;
+  min-width: 0;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  padding: var(--space-2) 0;
-  border-bottom: 2px solid transparent;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.navLink:hover {
-  color: var(--color-text-strong);
-}
-
-.navLinkActive {
-  color: var(--color-text-strong);
-  border-bottom-color: var(--color-accent);
-}
-
-/* Desktop navigation row with MegaMenu */
-.navRowDesktop {
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg);
-  width: 100%;
-}
-
-.navInnerDesktop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 0.35rem clamp(1rem, 2.5vw, 2.5rem);
-}
-
-.navCategoriesGroup {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  flex: 1;
-}
-
-.navDesktopPerks {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+.searchSuggestPrice {
   flex-shrink: 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
-.perkLink {
+.searchSuggestAll {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  height: 44px;
+  flex-shrink: 0;
+  justify-self: end;
+  z-index: 1;
+  background: #ffffff;
+}
+
+.adminLink {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  color: var(--color-text-muted);
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  color: var(--color-text-strong);
   text-decoration: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  padding: 0.3rem var(--space-2);
-  border-radius: var(--radius-full);
-  transition: color var(--transition-fast) ease, background var(--transition-fast) ease;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color var(--transition-base) ease;
 }
 
-.perkLink:hover {
-  color: var(--color-primary);
-  background: var(--color-surface);
+.adminLink:hover,
+.adminLink:focus-visible {
+  color: var(--color-text-muted);
+  outline: none;
 }
 
-.perkItem {
+.adminLink:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.iconButton {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-text-strong);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-base) ease;
 }
 
-.perkIcon {
-  color: var(--color-text-subtle);
+.iconButton:hover,
+.iconButtonActive {
+  color: var(--color-text-muted);
+  background: transparent;
 }
 
-.perkIconAmber {
-  color: var(--color-amber-primary);
+.iconButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
-.perkDivider {
-  display: inline-block;
-  width: 1px;
+.cartBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 14px;
   height: 14px;
-  background: var(--color-border);
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--color-text-strong);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 14px;
+  text-align: center;
+  letter-spacing: 0;
 }
 
-@media (max-width: 1280px) {
-
-  .perkItem:last-child,
-  .perkDivider:last-of-type {
-    display: none;
-  }
+.navSkeletonItem {
+  flex: 1;
+  min-width: 0;
+  list-style: none;
 }
 
 .navSkeleton {
-  height: 40px;
-  background: linear-gradient(90deg,
-      var(--color-surface) 25%,
-      var(--color-border) 50%,
-      var(--color-surface) 75%);
+  height: 24px;
+  width: min(100%, 28rem);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-border) 50%,
+    var(--color-surface) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-md);
@@ -535,9 +524,15 @@
     animation: none;
     background: var(--color-surface);
   }
+
+  .moreChevron,
+  .navLink,
+  .adminLink,
+  .iconButton {
+    transition: none;
+  }
 }
 
-/* Mobile drawer navigation */
 .navRowMobile {
   position: fixed;
   top: 0;
@@ -553,7 +548,6 @@
   z-index: var(--z-index-dropdown);
   overflow-y: auto;
   display: none;
-  /* hidden by default, shown via .open */
 }
 
 .navRowMobile.open {
@@ -586,8 +580,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   color: var(--color-text);
@@ -644,9 +638,6 @@
   outline: none;
 }
 
-/* The shared LogoutButton (a ghost <Button>) restyled to sit in the drawer
- * account list like the NavLinks around it. Scoped through the parent so it
- * reliably wins over the base .button rule regardless of stylesheet order. */
 .mobileDrawerAccount .mobileLogout {
   width: 100%;
   justify-content: flex-start;
@@ -660,23 +651,24 @@
   background: var(--color-surface);
 }
 
-/* Mobile menu button */
 .mobileMenuButton {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border: none;
   background: transparent;
-  color: var(--color-text);
-  border-radius: var(--radius-md);
+  color: var(--color-text-strong);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: color var(--transition-base) ease;
 }
 
 .mobileMenuButton:hover {
-  background: var(--color-surface);
+  color: var(--color-text-muted);
+  background: transparent;
 }
 
 .mobileMenuButton:focus-visible {
@@ -684,11 +676,6 @@
   box-shadow: var(--focus-ring);
 }
 
-/* The drawer overlay is only mounted while the drawer is open (any
- * viewport where the hamburger is reachable), so its positioning is
- * unconditional — it must never fall back to `position: static`. It sits
- * one layer below the drawer panel; both are inside <header> so they share
- * its stacking context and the panel stays on top and interactive. */
 .drawerOverlay {
   position: fixed;
   inset: 0;
@@ -704,25 +691,56 @@
   pointer-events: auto;
 }
 
-/* xl — desktop chrome is shown at >= 1024px, mobile header below it.
-   Written as `max-width: 1023px` (not 1024) so it lines up exactly
-   with the product-list sidebar/drawer swap (FilterSidebar 1023 /
-   MobileFilterDrawer 1024) — see the canonical scale in tokens.css. */
 @media (max-width: 1023px) {
-  .searchForm {
-    display: none;
-    /* hidden on tablet, accessible via mobile drawer */
+  .inner {
+    position: relative;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    min-height: 3.75rem;
+    column-gap: 0;
+    padding: 0 0.75rem;
   }
 
-  /* The horizontal MegaMenu category bar is a desktop affordance; on
-   * tablet/mobile categories are reached through the drawer's accordion
-   * (same breakpoint as the search + hamburger switch). Leaving it visible
-   * rendered a cramped, redundant strip under the top row (UX-16). */
-  .navRowDesktop {
+  .brandCluster {
+    grid-column: 1;
+    width: 44px;
+    overflow: visible;
+  }
+
+  .brand {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+
+  .brandLogo {
+    height: 40px;
+    width: auto;
+    max-width: min(10.5rem, calc(100vw - 7.5rem));
+    object-fit: contain;
+  }
+
+  .navDesktop {
+    display: none;
+  }
+
+  .actions {
+    grid-column: 3;
+    width: auto;
+    justify-content: flex-end;
+    background: transparent;
+  }
+
+  .headerBarAction {
     display: none;
   }
 
   .mobileMenuButton {
     display: inline-flex;
+  }
+
+  .adminLink {
+    display: none;
   }
 }

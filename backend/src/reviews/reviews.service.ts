@@ -178,10 +178,12 @@ export class ReviewsService {
   // ─── GET /products/:id/reviews (public, PUBLISHED only) ─────────────────
 
   async listForProduct(
+    tenantId: string,
     productId: string,
     query: ListProductReviewsQueryDto,
   ): Promise<PaginatedResult<ReviewView>> {
     const where: Prisma.ReviewWhereInput = {
+      tenantId,
       productId,
       status: ReviewStatus.PUBLISHED,
     };

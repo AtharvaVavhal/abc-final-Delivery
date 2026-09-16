@@ -21,7 +21,7 @@
 .card {
   padding: var(--space-6);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--color-bg);
   box-shadow: var(--shadow-sm);
 }
@@ -87,9 +87,9 @@
 
 .linkCard:hover,
 .linkCard:focus-visible {
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-xs);
+  transform: none;
   outline: none;
 }
 

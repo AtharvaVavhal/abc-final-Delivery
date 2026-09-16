@@ -41,6 +41,10 @@ export interface ValidateCouponParams {
    * coupon code is scoped `(storeId/tenant, code)` since W6/W7, not
    * globally unique, so the lookup below must filter by it too. */
   tenantId: string;
+  /** When attaching a coupon to an already-created unpaid order, that
+   * order must not count as a "prior" first-order checkout — it *is* the
+   * order the coupon is being claimed for. */
+  ignoreOrderId?: string;
 }
 
 export interface CouponDiscountResult {
@@ -437,6 +441,23 @@ export class CouponsService {
   }
 
   /**
+   * Drops the usage row and decrements usedCount when an unpaid order is
+   * abandoned before capture — otherwise the shopper cannot apply the same
+   * per-user coupon to the replacement checkout.
+   */
+  async releaseUsageForOrder(
+    tx: PrismaOrTx,
+    params: { orderId: string; couponId: string | null },
+  ): Promise<void> {
+    if (!params.couponId) return;
+    await tx.couponUsage.deleteMany({ where: { orderId: params.orderId } });
+    await tx.coupon.updateMany({
+      where: { id: params.couponId, usedCount: { gt: 0 } },
+      data: { usedCount: { decrement: 1 } },
+    });
+  }
+
+  /**
    * Every check except the total-usage-limit CAS — shared by both
    * previewDiscount (read-only) and validateAndClaim (which additionally
    * performs the CAS after this returns). Each failure has its own
@@ -504,9 +525,16 @@ export class CouponsService {
       // Any status — even a cancelled or payment-failed prior order still
       // means this isn't the user's first checkout *attempt* (§2.6, the
       // conservative reading, avoids re-triggering eligibility by
-      // abandoning and re-starting checkout).
+      // abandoning and re-starting checkout). `ignoreOrderId` carves out
+      // the unpaid order a coupon is being attached to after a dismissed
+      // Razorpay attempt — that row is this checkout, not a prior one.
       const priorOrderCount = await client.order.count({
-        where: { userId: params.userId },
+        where: {
+          userId: params.userId,
+          ...(params.ignoreOrderId
+            ? { id: { not: params.ignoreOrderId } }
+            : {}),
+        },
       });
       if (priorOrderCount > 0) {
         throw new BadRequestException(

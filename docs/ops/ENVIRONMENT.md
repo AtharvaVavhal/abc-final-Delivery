@@ -22,33 +22,48 @@ each is required.
 |---|:---:|:---:|:---:|---|---|---|
 | `NODE_ENV` | ✅ | ✅ | ✅ | Runtime mode. Must be `development`, `test`, or `production`. Gates Tier-2 validation, throttler skip, Sentry environment tag. | `production` | Render service env |
 | `PORT` | ✅ | ✅ | ✅ | HTTP listen port. Integer 1–65535. | `4000` | Render (injected) |
-| `DATABASE_URL` | ✅ | ✅ | ✅ | PostgreSQL connection string. | `postgresql://USER:PASS@HOST:5432/DB?schema=public` | Render PostgreSQL add-on |
+| `DATABASE_URL` | ✅ | ✅ | ✅ | PostgreSQL connection string. On Render use the **Internal Database URL** (same private network as the web service). Do not log or commit this value. | `postgresql://USER:PASS@HOST:5432/DB?schema=public` | Render PostgreSQL add-on |
 | `JWT_ACCESS_SECRET` | ✅ | ✅ | ✅ | HMAC secret for short-lived access tokens. Use a long random string. | 32+ random bytes, base64/hex | Render service env (secret) |
 | `JWT_ACCESS_EXPIRES_IN` | — | — | — | Access-token TTL. Defaults to `15m`. | `15m` | Render service env (optional) |
-| `REFRESH_TOKEN_SECRET` | ✅ | ✅ | ✅ | Secret associated with the opaque DB-backed refresh token. Distinct from the access secret. | 32+ random bytes | Render service env (secret) |
-| `REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Refresh-token / cookie lifetime. Defaults to `30d`. | `30d` | Render service env (optional) |
+| `REFRESH_TOKEN_SECRET` | ✅ | ✅ | ✅ | Secret for the opaque DB-backed refresh token. **This is the name the code reads** — there is no `JWT_REFRESH_SECRET`. Distinct from the access secret. | 32+ random bytes | Render service env (secret) |
+| `REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Shopper refresh-token / cookie lifetime. Defaults to `30d`. | `30d` | Render service env (optional) |
+| `ADMIN_REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Admin / super-admin refresh-token / cookie lifetime. Defaults to `12h`. Customers keep `REFRESH_TOKEN_EXPIRES_IN`. | `12h` | Render service env (optional) |
 | `RAZORPAY_KEY_ID` | ⬜ | ⬜ | ✅ | Razorpay API key id. `rzp_test_*` in dev, `rzp_live_*` in production. Also returned to the browser per checkout. | `rzp_live_XXXXXXXXXXXXXX` | Render service env |
 | `RAZORPAY_KEY_SECRET` | ⬜ | ⬜* | ✅ | Razorpay API key secret. Signs/verifies payment HMAC. | opaque string (secret) | Render service env (secret) |
 | `RAZORPAY_WEBHOOK_SECRET` | ⬜ | ⬜* | ✅ | Verifies the `X-Razorpay-Signature` header on `POST /api/v1/payments/webhook`. | opaque string (secret) | Render service env (secret) **and** Razorpay dashboard webhook config |
 | `RAZORPAY_SAAS_KEY_ID` | ⬜ | ⬜ | ✅ | Razorpay API key id for PrintForge's **own SaaS subscription billing** (Merchant → PrintForge → Razorpay Subscriptions) — a distinct account/key pair from the merchant-commerce `RAZORPAY_KEY_ID` above, never reused between the two. `rzp_test_*` in dev, `rzp_live_*` in production. | `rzp_live_XXXXXXXXXXXXXX` | Render service env |
 | `RAZORPAY_SAAS_KEY_SECRET` | ⬜ | ⬜ | ✅ | Razorpay API key secret for SaaS subscription billing. Signs/verifies SaaS billing API requests. Distinct from `RAZORPAY_KEY_SECRET` (merchant commerce) — never reused. | opaque string (secret) | Render service env (secret) |
 | `RAZORPAY_SAAS_WEBHOOK_SECRET` | ⬜ | ⬜ | ✅ | Verifies the `X-Razorpay-Signature` header on `POST /api/v1/webhooks/billing` (SaaS subscription billing webhooks only). Distinct from `RAZORPAY_WEBHOOK_SECRET` (merchant commerce, `POST /api/v1/payments/webhook`) — never reused. | opaque string (secret) | Render service env (secret) **and** Razorpay dashboard webhook config (SaaS account) |
+| `PAYMENT_CREDENTIALS_MASTER_KEY` | ⬜ | ⬜ | ✅ | AES-256-GCM master key for merchant `PaymentAccount` credentials. Base64, must decode to exactly 32 bytes (`openssl rand -base64 32`). Production refuses to boot if missing or malformed. | base64 32-byte key | Render service env (secret) |
 | `RESEND_API_KEY` | ⬜ | ⬜ | ✅ | Resend API key for transactional email dispatch (outbox poller). | `re_XXXXXXXX` (secret) | Render service env (secret) |
 | `EMAIL_FROM_ADDRESS` | ⬜ | ⬜ | ✅ | `From:` address for all transactional email. Must be on a Resend-verified domain in production. | `no-reply@printforge.in` | Render service env |
 | `CLOUDINARY_CLOUD_NAME` | ⬜ | ⬜ | ✅ | Cloudinary account cloud name (product image storage/delivery). | `printforge` | Render service env |
 | `CLOUDINARY_API_KEY` | ⬜ | ⬜ | ✅ | Cloudinary API key. | numeric string | Render service env |
 | `CLOUDINARY_API_SECRET` | ⬜ | ⬜ | ✅ | Cloudinary API secret (signs upload/delete). | opaque string (secret) | Render service env (secret) |
-| `FRONTEND_URL` | ✅** | ✅** | ✅ | Exact storefront origin. Sole CORS allowed origin (`credentials: true`, never a wildcard). | `https://www.printforge.in` | Render service env |
-| `BACKEND_URL` | ✅** | ✅** | ✅ | Public API origin. Used for absolute links and the Razorpay webhook URL. | `https://api.printforge.in` | Render service env |
+| `FRONTEND_URL` | ✅** | ✅** | ✅ | Exact storefront origin (no trailing slash). Primary CORS origin (`credentials: true`, never a wildcard). Local Vite origins (`http://localhost:5173`, `:4173`, and `127.0.0.1`) are also allowed so local UI can call a Render API. Compared with `BACKEND_URL` for the refresh cookie: same-site custom domains (`www.example.com` + `api.example.com`) keep `SameSite=Strict`; a `*.vercel.app` storefront calling a `*.onrender.com` API uses `SameSite=None; Secure` so reload can restore the session. Custom domains remain preferred (Safari may still block third-party cookies). | `https://www.printforge.in` | Render service env |
+| `BACKEND_URL` | ✅** | ✅** | ✅ | Public API origin. Used for absolute links, refresh-cookie SameSite vs `FRONTEND_URL`, and the Razorpay webhook URL `{BACKEND_URL}/api/v1/payments/webhook`. | `https://api.printforge.in` | Render service env |
+| `POSTAL_LOOKUP_BASE_URL` | — | — | ⬜ | PIN-code lookup provider. Defaults to `https://api.pincodeapi.in/api/v1`. | URL | Render service env (optional) |
 | `SENTRY_DSN` | — | — | ⬜ recommended | Error tracking. `Sentry.init` is a **no-op when unset** — intentionally *not* enforced so error reporting can never block boot. | `https://xxx@oyyy.ingest.sentry.io/zzz` | Render service env |
 
 Legend: ✅ required · ⬜ optional (has a safe empty default) · — not applicable / has a hard-coded default
 \* CI's generated `.env.test` **does** set `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` to dummy values because `payments-race.e2e-spec.ts` exercises the real local HMAC path (no network call).
 \** `FRONTEND_URL` / `BACKEND_URL` have `localhost` defaults in `configuration.ts` for dev convenience; they are Tier-2 (production-enforced) so a prod deploy cannot silently fall back to `localhost` CORS.
 
+### Render service settings
+
+Set **Root Directory** to `backend`. Render injects `PORT`; set `NODE_ENV=production`.
+
+| Step | Command |
+|---|---|
+| Build | `npm ci --include=dev && npx prisma generate && npm run build` |
+| Start | `npx prisma migrate deploy && npm run start:prod` |
+| Health check | `GET /api/v1/health` (process up). Optional readiness: `GET /api/v1/health/deep` (Postgres reachable). |
+
+`--include=dev` remains the documented Render command. `@nestjs/cli`, `typescript`, and `prisma` are production dependencies so a default `npm ci` (when Render sets `NODE_ENV=production` and omits devDependencies) can still `nest build` and `migrate deploy`. Never use `prisma migrate reset`, `prisma db push`, or `prisma migrate dev` against production. Do not run `prisma:seed` or `prisma:seed:tenant-bootstrap` on Render — bootstrap refuses `NODE_ENV=production`, and the live catalog already exists.
+
 ### Not environment-configurable
 
-- Throttler limits (`20 req / 60 s`) are static in `app.module.ts`.
+- Throttler limits are static in `app.module.ts` / `common/throttling/` (default 60/60s, with stricter auth and more generous public-read overrides).
 - Cron cadence is fixed in each `@Cron` decorator.
 - Cookie name/path (`pf_refresh_token`, `/api/v1/auth/refresh`) are constants.
 

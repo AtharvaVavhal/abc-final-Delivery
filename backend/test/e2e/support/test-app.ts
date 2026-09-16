@@ -49,7 +49,7 @@ export interface TestApp {
  * NODE_ENV === 'test'` (env.setup.ts sets that), not a guard override here
  * — `.overrideGuard(ThrottlerGuard)` does NOT intercept a guard registered
  * globally via `{ provide: APP_GUARD, useClass: ThrottlerGuard }`
- * (confirmed empirically: it silently no-ops and the real 20-req/60s IP
+ * (confirmed empirically: it silently no-ops and the real default IP
  * limit still fires once a test file's request count crosses it, which the
  * #7 admin-RBAC block — 7 tests × 2 registrations each in one file — did).
  */

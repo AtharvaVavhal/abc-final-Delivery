@@ -22,11 +22,32 @@ export interface ShowcaseCategory {
   title: string
 }
 
+export interface StoreContact {
+  email: string
+  phone: string
+  address: string
+}
+
 export interface HomepageSettings {
   hero_slides?: HeroSlide[]
   banners?: Banner[]
   showcase_categories?: ShowcaseCategory[]
+  brand_story?: string
+  featured_media?: string[]
 }
+
+export interface StorefrontPublicSettings {
+  storeName: string | null
+  storeLogo: string | null
+  whatsappNumber: string | null
+  announcement_text: string
+  contact: StoreContact
+  homepage: HomepageSettings
+}
+
+/** Chrome + homepage keys in one public `GET /settings?keys=` round-trip. */
+export const STOREFRONT_PUBLIC_SETTING_KEYS =
+  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 /**
  * `GET /settings?keys=…` is the one bulk public-settings read. Its wire
@@ -44,32 +65,62 @@ export interface HomepageSettings {
  * for that field — the homepage then falls back to its neutral layout
  * rather than throwing.
  */
-export async function fetchHomepageSettings(): Promise<HomepageSettings> {
-  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
-    params: { keys: 'hero_slides,banners,showcase_categories' },
-  })
-  const raw = res.data.data?.data ?? {}
-
-  const parseList = <T>(value: string | undefined): T[] | undefined => {
-    if (!value) return undefined
-    try {
-      const parsed: unknown = JSON.parse(value)
-      return Array.isArray(parsed) ? (parsed as T[]) : undefined
-    } catch {
-      return undefined
-    }
+function parseList<T>(value: string | undefined): T[] | undefined {
+  if (!value) return undefined
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : undefined
+  } catch {
+    return undefined
   }
+}
+
+function parseHomepageSettings(raw: Record<string, string>): HomepageSettings {
+  const featured = parseList<string | { imageUrl?: string }>(raw.featured_media)
+  const featuredUrls = featured
+    ?.map((item) => (typeof item === 'string' ? item : item.imageUrl ?? ''))
+    .filter(Boolean)
 
   return {
     hero_slides: parseList<HeroSlide>(raw.hero_slides),
     banners: parseList<Banner>(raw.banners),
     showcase_categories: parseList<ShowcaseCategory>(raw.showcase_categories),
+    brand_story: raw.brand_story?.trim() || undefined,
+    featured_media: featuredUrls,
   }
+}
+
+async function fetchPublicSettingsMap(): Promise<Record<string, string>> {
+  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
+    params: { keys: STOREFRONT_PUBLIC_SETTING_KEYS },
+  })
+  return res.data.data?.data ?? {}
+}
+
+export async function fetchStorefrontPublicSettings(): Promise<StorefrontPublicSettings> {
+  const raw = await fetchPublicSettingsMap()
+  return {
+    storeName: raw.storeName ?? null,
+    storeLogo: raw.storeLogo ?? null,
+    whatsappNumber: raw.whatsappNumber ?? null,
+    announcement_text: raw.announcement_text?.trim() ?? '',
+    contact: {
+      email: raw.storeContactEmail?.trim() ?? '',
+      phone: raw.storeContactPhone?.trim() ?? '',
+      address: raw.storeAddress?.trim() ?? '',
+    },
+    homepage: parseHomepageSettings(raw),
+  }
+}
+
+export async function fetchHomepageSettings(): Promise<HomepageSettings> {
+  const { homepage } = await fetchStorefrontPublicSettings()
+  return homepage
 }
 
 /** The customer-facing store name shown in the storefront chrome. Read from
  * the public `GET /settings/:key` surface (same one the announcement bar
- * uses). The backend already substitutes the "PrintForge" default when no
+ * uses). The backend already substitutes the "AB Creations" default when no
  * value has been saved; `null` here means the endpoint was unreachable, and
  * the caller falls back on its own. `storeAdminName` is intentionally NOT
  * fetched — it is never public. */
@@ -78,6 +129,36 @@ export async function fetchStoreName(): Promise<string | null> {
     '/settings/storeName',
   )
   return res.data.data?.value ?? null
+}
+
+/** Navbar logo URL. `null` means the endpoint was unreachable; `''` means
+ * use the bundled fallback. */
+export async function fetchStoreLogo(): Promise<string | null> {
+  const res = await apiClient.get<ApiSuccessResponse<{ value: string | null }>>(
+    '/settings/storeLogo',
+  )
+  return res.data.data?.value ?? null
+}
+
+/** Public click-to-chat number (`91` + 10 digits). `null` means the
+ * endpoint was unreachable; `''` means the store has not configured one. */
+export async function fetchWhatsappNumber(): Promise<string | null> {
+  const res = await apiClient.get<ApiSuccessResponse<{ value: string | null }>>(
+    '/settings/whatsappNumber',
+  )
+  return res.data.data?.value ?? null
+}
+
+export async function fetchStoreContact(): Promise<StoreContact> {
+  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
+    params: { keys: 'storeContactEmail,storeContactPhone,storeAddress' },
+  })
+  const raw = res.data.data?.data ?? {}
+  return {
+    email: raw.storeContactEmail?.trim() ?? '',
+    phone: raw.storeContactPhone?.trim() ?? '',
+    address: raw.storeAddress?.trim() ?? '',
+  }
 }
 
 // ─── Admin: configurable app settings ──────────────────────────────────

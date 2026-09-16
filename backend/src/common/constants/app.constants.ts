@@ -30,4 +30,8 @@ export const UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = [
   'image/png',
   'image/jpeg',
   'application/pdf',
+  // Short product/category loops for the storefront. Same Cloudinary
+  // pipeline as images (`resource_type: auto`); never a second media store.
+  'video/mp4',
+  'video/webm',
 ];

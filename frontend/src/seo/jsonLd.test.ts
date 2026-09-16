@@ -33,13 +33,13 @@ describe('productJsonLd', () => {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: 'Ceramic Mug',
-      url: 'https://www.printforge.in/products/ceramic-mug',
+      url: 'http://localhost:5173/products/ceramic-mug',
       offers: {
         '@type': 'Offer',
         price: '150.00',
         priceCurrency: 'INR',
         availability: 'https://schema.org/InStock',
-        url: 'https://www.printforge.in/products/ceramic-mug',
+        url: 'http://localhost:5173/products/ceramic-mug',
       },
     })
     // Nothing fabricated.
@@ -132,8 +132,8 @@ describe('breadcrumbJsonLd', () => {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.printforge.in/' },
-        { '@type': 'ListItem', position: 2, name: 'All products', item: 'https://www.printforge.in/products' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'http://localhost:5173/' },
+        { '@type': 'ListItem', position: 2, name: 'All products', item: 'http://localhost:5173/products' },
         { '@type': 'ListItem', position: 3, name: 'Ceramic Mug' },
       ],
     })
@@ -150,8 +150,8 @@ describe('websiteJsonLd', () => {
     expect(ld).toEqual({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'PrintForge',
-      url: 'https://www.printforge.in/',
+      name: 'AB Creations',
+      url: 'http://localhost:5173/',
     })
   })
 })

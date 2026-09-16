@@ -1,93 +1,102 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { X } from 'lucide-react';
-import { apiClient } from '@/services/api/client';
-import styles from './AnnouncementBar.module.css';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useStorefrontPublicSettings } from '@/hooks/useStorefrontPublicSettings'
+import styles from './AnnouncementBar.module.css'
 
-const DISMISSED_KEY = 'announcement-dismissed';
+/** Split admin-configured copy on `|` so each message gets a divider.
+ * A single line with no pipes stays one segment. */
+export function parseAnnouncementSegments(text: string): string[] {
+  return text
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
 
-const DEFAULT_SEGMENTS: ReactNode[] = [
-  <>🎁 Free Message Bottle at ₹1,799+</>,
-  <>🚚 Free Shipping at ₹1,000+</>,
-  <>
-    🎉 Extra 12% OFF – Code <strong className={styles.code}>UVPixel12</strong>
-  </>,
-];
-
-function MarqueeGroup({ segments, duplicate }: { segments: ReactNode[]; duplicate?: boolean }) {
-  return (
-    <div className={styles.group} aria-hidden={duplicate || undefined} data-duplicate={duplicate || undefined}>
-      {segments.map((segment, i) => (
-        <span className={styles.segment} key={i}>
+function MarqueeGroup({
+  segments,
+  copies,
+  duplicate,
+}: {
+  segments: string[]
+  copies: number
+  duplicate?: boolean
+}) {
+  const items: ReactNode[] = []
+  for (let copy = 0; copy < copies; copy += 1) {
+    segments.forEach((segment, i) => {
+      items.push(
+        <span
+          className={styles.segment}
+          key={`${copy}-${i}`}
+          data-fill={copy > 0 ? 'true' : undefined}
+        >
           {segment}
-          <span className={styles.divider} aria-hidden="true">|</span>
-        </span>
-      ))}
+          <span className={styles.divider} aria-hidden="true" />
+        </span>,
+      )
+    })
+  }
+
+  return (
+    <div
+      className={styles.group}
+      aria-hidden={duplicate || undefined}
+      data-duplicate={duplicate ? 'true' : undefined}
+    >
+      {items}
     </div>
-  );
+  )
 }
 
 export function AnnouncementBar() {
-  /* ---------------------------------------------------------------
-   * 1️⃣  Read dismissal flag once, during the very first render.
-   * --------------------------------------------------------------- */
-  const [initiallyDismissed] = useState(
-    () => sessionStorage.getItem(DISMISSED_KEY) !== null,
-  );
+  const { data, isPending } = useStorefrontPublicSettings()
+  const text = data?.announcement_text ?? ''
+  const [copies, setCopies] = useState(2)
 
-  /* ---------------------------------------------------------------
-   * 2️⃣  Initialise both visible and loading from that flag.
-   * --------------------------------------------------------------- */
-  const [visible, setVisible] = useState(!initiallyDismissed);
-  const [text, setText] = useState('');
-  const [loading, setLoading] = useState(!initiallyDismissed);
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const measureRef = useRef<HTMLDivElement>(null)
 
-  /* ---------------------------------------------------------------
-   * 3️⃣  If already dismissed – skip the fetch entirely, no setState.
-   * --------------------------------------------------------------- */
-  useEffect(() => {
-    if (initiallyDismissed) return;   // ← no setState at all
+  const segments = text ? parseAnnouncementSegments(text) : []
 
-    let cancelled = false;
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const measure = measureRef.current
+    if (!viewport || !measure || segments.length === 0) return
 
-    apiClient
-      .get<{ success: boolean; data: { value: string } }>('/settings/announcement_text')
-      .then((res) => {
-        if (cancelled) return;
-        const value = res.data.data?.value;
-        if (value) {
-          setText(value);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const update = () => {
+      const unitWidth = measure.scrollWidth
+      const viewWidth = viewport.clientWidth
+      if (unitWidth <= 0 || viewWidth <= 0) return
+      setCopies(Math.max(1, Math.ceil(viewWidth / unitWidth)))
+    }
 
-    return () => { cancelled = true; };
-  }, [initiallyDismissed]);
+    update()
+    if (typeof ResizeObserver === 'undefined') return
 
-  if (loading || !visible) return null;
+    const observer = new ResizeObserver(update)
+    observer.observe(viewport)
+    observer.observe(measure)
+    return () => observer.disconnect()
+  }, [segments])
 
-  const segments: ReactNode[] = text ? [text] : DEFAULT_SEGMENTS;
+  if (isPending || segments.length === 0) return null
 
   return (
-    <div className={styles.bar} role="status" aria-live="polite">
-      <div className={styles.viewport}>
+    <div className={styles.bar} role="region" aria-label="Store announcements">
+      <p className="srOnly">{segments.join('. ')}</p>
+      <div className={styles.viewport} ref={viewportRef} aria-hidden="true">
+        <div ref={measureRef} className={styles.measure}>
+          {segments.map((segment, i) => (
+            <span className={styles.segment} key={i}>
+              {segment}
+              <span className={styles.divider} />
+            </span>
+          ))}
+        </div>
         <div className={styles.track}>
-          <MarqueeGroup segments={segments} />
-          <MarqueeGroup segments={segments} duplicate />
+          <MarqueeGroup segments={segments} copies={copies} />
+          <MarqueeGroup segments={segments} copies={copies} duplicate />
         </div>
       </div>
-      <button
-        className={styles.close}
-        onClick={() => {
-          sessionStorage.setItem(DISMISSED_KEY, 'true');
-          setVisible(false);
-        }}
-        aria-label="Dismiss announcement"
-      >
-        <X size={16} aria-hidden="true" />
-      </button>
     </div>
-  );
+  )
 }

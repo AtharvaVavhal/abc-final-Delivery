@@ -8,6 +8,7 @@ import { PrismaService } from '../common/database/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult } from '../common/types/api-response.interface';
+import { clearStorefrontRoutingCache } from '../common/tenant/storefront-routing-cache';
 import { ListPlatformAuditQueryDto } from './dto/list-platform-audit-query.dto';
 import { ListPlatformTenantsQueryDto } from './dto/list-platform-tenants-query.dto';
 import { PlatformAuditLogEntryView } from './dto/platform-audit-view.interface';
@@ -173,7 +174,7 @@ export class PlatformService {
     justification: string,
     ip: string,
   ): Promise<PlatformTenantDetailView> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.findUnique({ where: { id: tenantId } });
       if (!tenant) {
         throw new NotFoundException('Tenant not found');
@@ -214,6 +215,11 @@ export class PlatformService {
       });
       return this.toDetailView(updated);
     });
+    // Routing cache stores tenantId/storeId keyed by hostname, never an
+    // authorization result — but a suspend/resume must not wait for TTL
+    // before the next storefront request re-reads Tenant.status.
+    clearStorefrontRoutingCache();
+    return result;
   }
 
   // ─── GET /platform/audit ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from './client'
 import {
   fetchHomepageSettings,
+  fetchStoreLogo,
   fetchStoreName,
   type Banner,
   type HeroSlide,
@@ -60,13 +61,15 @@ describe('fetchHomepageSettings — real wire contract', () => {
     mock.restore()
   })
 
-  it('requests the three homepage keys from GET /settings', async () => {
+  it('requests chrome and homepage keys from GET /settings', async () => {
     mock.onGet('/settings').reply(200, settingsResponse({}))
 
     await fetchHomepageSettings()
 
     const call = mock.history.get.find((r) => r.url === '/settings')
-    expect(call?.params).toEqual({ keys: 'hero_slides,banners,showcase_categories' })
+    expect(call?.params).toEqual({
+      keys: 'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media',
+    })
   })
 
   // A — valid hero_slides
@@ -189,5 +192,25 @@ describe('fetchStoreName — single-key contract (unchanged, regression guard)',
     mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: null } })
 
     expect(await fetchStoreName()).toBeNull()
+  })
+})
+
+describe('fetchStoreLogo — single-key contract', () => {
+  let mock: MockAdapter
+
+  beforeEach(() => {
+    mock = new MockAdapter(apiClient)
+  })
+
+  afterEach(() => {
+    mock.restore()
+  })
+
+  it('reads the value from the single-key envelope shape', async () => {
+    mock
+      .onGet('/settings/storeLogo')
+      .reply(200, { success: true, data: { value: 'https://cdn.example/logo.png' } })
+
+    expect(await fetchStoreLogo()).toBe('https://cdn.example/logo.png')
   })
 })

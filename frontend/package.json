@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "snapshot:storefront": "node scripts/snapshot-storefront-shell.mjs",
+    "optimize:hero": "node scripts/optimize-hero-images.mjs",
+    "build": "node scripts/optimize-hero-images.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.6",
@@ -39,6 +42,7 @@
     "globals": "^17.11.0",
     "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
+    "sharp": "^0.35.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.68.0",
     "vite": "^8.2.2",

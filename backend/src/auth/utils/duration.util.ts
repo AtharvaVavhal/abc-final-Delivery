@@ -6,8 +6,9 @@ const UNIT_MS: Record<string, number> = {
 };
 
 /**
- * Parses a duration string like "15m" / "30d" (the shape of
- * REFRESH_TOKEN_EXPIRES_IN, JWT_ACCESS_EXPIRES_IN) into milliseconds.
+ * Parses a duration string like "15m" / "12h" / "30d" (the shape of
+ * REFRESH_TOKEN_EXPIRES_IN, ADMIN_REFRESH_TOKEN_EXPIRES_IN,
+ * JWT_ACCESS_EXPIRES_IN) into milliseconds.
  * Deliberately minimal — no external "ms"-style dependency — since this is
  * the only place a non-JWT-signed duration (refresh token DB expiry, cookie
  * maxAge) needs converting from the env-sourced string.

@@ -11,6 +11,15 @@
   margin-bottom: var(--space-4);
 }
 
+.studioPhoto {
+  display: block;
+  width: 100%;
+  max-height: 22rem;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
+}
+
 .page p {
   font-size: var(--text-base);
   line-height: 1.7;

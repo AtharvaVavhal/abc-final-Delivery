@@ -5,7 +5,8 @@ import { X, ShoppingBag } from 'lucide-react'
 import styles from './PromotionalVideoModal.module.css'
 
 export interface PromotionalVideoData {
-  videoUrl: string
+  videoUrl?: string
+  posterUrl?: string
   title?: string
   ctaText?: string
   ctaUrl?: string
@@ -17,7 +18,7 @@ export interface PromotionalVideoModalProps {
   data: PromotionalVideoData | null
 }
 
-const DEFAULT_CTA_TEXT = 'आत्ताच खरेदी करा'
+const DEFAULT_CTA_TEXT = 'Shop this category'
 
 export function PromotionalVideoModal({
   isOpen,
@@ -123,17 +124,26 @@ export function PromotionalVideoModal({
             <X size={20} aria-hidden="true" />
           </button>
 
-          <video
-            ref={videoRef}
-            src={data.videoUrl}
-            playsInline
-            controls
-            autoPlay
-            muted
-            loop
-            className={styles.video}
-            aria-label={data.title ? `${data.title} promotional video` : 'Promotional video'}
-          />
+          {data.videoUrl ? (
+            <video
+              ref={videoRef}
+              src={data.videoUrl}
+              poster={data.posterUrl || undefined}
+              playsInline
+              controls
+              autoPlay
+              muted
+              loop
+              className={styles.video}
+              aria-label={data.title ? `${data.title} category video` : 'Category video'}
+            />
+          ) : (
+            <img
+              src={data.posterUrl}
+              alt={data.title ? `${data.title} preview` : 'Category preview'}
+              className={styles.video}
+            />
+          )}
         </div>
 
         <button

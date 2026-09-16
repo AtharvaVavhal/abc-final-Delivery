@@ -1,0 +1,61 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding: 0.25rem 0.15rem 0.75rem;
+  max-width: 100%;
+}
+
+.nav {
+  position: absolute;
+  top: 42%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: #111827;
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.nav:hover,
+.nav:focus-visible {
+  background: var(--color-text-strong);
+  color: #ffffff;
+  border-color: var(--color-text-strong);
+  outline: none;
+}
+
+.navLeft {
+  left: 0.15rem;
+}
+
+.navRight {
+  right: 0.15rem;
+}
+
+@media (max-width: 768px) {
+  .nav {
+    display: none;
+  }
+}

@@ -1,54 +1,86 @@
 import { useProducts } from '@/hooks/useProducts'
+import { storefrontProductListParams } from '@/constants/query'
 import type { ListProductsParams } from '@/types/catalog'
 import { ProductCard } from '@/features/catalog/ProductCard'
 import { ProductCardSkeleton } from '@/features/catalog/ProductCardSkeleton'
+import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
 import { SectionHeading } from './SectionHeading'
+import { cn } from '@/utils/cn'
 import styles from './ProductRail.module.css'
 
-interface ProductRailProps {
+export interface ProductCollectionProps {
   id: string
   title: string
-  /** Server-side query — sort / minRating / categoryId etc. The rail shows
-   * exactly what the API returns for these params; it never re-ranks or
-   * fabricates a "featured" order client-side. */
+  subtitle?: string
   params: ListProductsParams
-  /** Where "View all" points — a listing-page URL carrying the same intent. */
   viewAllHref: string
+  viewAllLabel?: string
+  layout?: 'rail' | 'grid'
 }
 
 const SKELETON_COUNT = 5
 
 /**
- * A single horizontally-scrolling product discovery row on the homepage.
- * Backed entirely by GET /products. If the query errors or returns nothing
- * the whole section is omitted — a storefront rail should never render an
- * error or an empty shelf.
+ * Reusable product collection. Backed entirely by GET /products.
+ * Empty or error responses hide the section.
  */
-export function ProductRail({ id, title, params, viewAllHref }: ProductRailProps) {
-  const { data, isPending, isError } = useProducts({ limit: 12, ...params })
+export function ProductCollection({
+  id,
+  title,
+  subtitle,
+  params,
+  viewAllHref,
+  viewAllLabel,
+  layout = 'rail',
+}: ProductCollectionProps) {
+  const displayLimit = layout === 'grid' ? 8 : 12
+  const { data, isPending, isError } = useProducts(
+    storefrontProductListParams(params, displayLimit),
+  )
 
   if (isError) return null
 
-  const items = data?.items ?? []
+  const items = (data?.items ?? []).slice(0, displayLimit)
   if (!isPending && items.length === 0) return null
 
-  return (
-    <section className={styles.section} aria-labelledby={id}>
-      <SectionHeading id={id} title={title} viewAllHref={viewAllHref} />
+  const cards = isPending
+    ? Array.from({ length: SKELETON_COUNT }, (_, i) => (
+        <div key={i} className={styles.item} aria-hidden="true">
+          <ProductCardSkeleton />
+        </div>
+      ))
+    : items.map((product) => (
+        <div key={product.id} className={styles.item}>
+          <ProductCard product={product} />
+        </div>
+      ))
 
-      <ul className={styles.rail}>
-        {isPending
-          ? Array.from({ length: SKELETON_COUNT }, (_, i) => (
-              <li key={i} className={styles.item} aria-hidden="true">
-                <ProductCardSkeleton />
-              </li>
-            ))
-          : items.map((product) => (
-              <li key={product.id} className={styles.item}>
-                <ProductCard product={product} />
-              </li>
-            ))}
-      </ul>
+  return (
+    <section className={cn(styles.section, layout === 'grid' && styles.featured)} aria-labelledby={id}>
+      <SectionHeading
+        id={id}
+        title={title}
+        subtitle={subtitle}
+        viewAllHref={viewAllHref}
+        viewAllLabel={viewAllLabel}
+      />
+
+      {layout === 'grid' ? (
+        <div className={styles.grid}>{cards}</div>
+      ) : (
+        <HorizontalScroller ariaLabel={title} className={styles.scroller} trackClassName={styles.railTrack}>
+          {cards}
+        </HorizontalScroller>
+      )}
     </section>
   )
+}
+
+/** Alias used by the existing homepage rails. */
+export function ProductRail(props: ProductCollectionProps) {
+  return <ProductCollection {...props} />
+}
+
+export function ProductCarousel(props: ProductCollectionProps) {
+  return <ProductCollection {...props} layout="rail" />
 }

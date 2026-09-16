@@ -9,7 +9,7 @@ export function PrivacyPage() {
     <section className={styles.page}>
       <Seo
         title="Privacy Policy"
-        description="How PrintForge collects, uses, shares, retains and protects your personal data, and the rights you have over it."
+        description="How AB Creations collects, uses, shares, retains and protects your personal data, and the rights you have over it."
         canonicalPath={ROUTES.PRIVACY}
         ogType="article"
       />

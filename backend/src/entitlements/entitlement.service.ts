@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { SubscriptionStatus, TenantEntitlementOverride } from '@prisma/client';
+import {
+  Prisma,
+  SubscriptionStatus,
+  TenantEntitlementOverride,
+} from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
-import { getTenantScopedClient } from '../common/tenant/tenant-prisma';
+import { scopedSubscriptionFindUnique } from '../common/tenant/tenant-prisma';
 import {
   FEATURE_KEYS,
   isFeatureKey,
@@ -54,15 +58,15 @@ const FULL_PLAN_STATUSES: ReadonlySet<SubscriptionStatus> = new Set([
  *
  * **Tenant isolation.** `resolve()` takes a single `tenantId` and every
  * downstream read is scoped to exactly that value:
- *   - `Subscription` is read through `getTenantScopedClient` (D4's PRIMARY
- *     tenant-isolation mechanism, already used by `app-setting.service.ts`/
- *     `primary-store.ts`) rather than a raw `this.prisma.subscription...`
- *     call — the SAME reuse-not-reinvent convention `tenant-prisma.ts`'s
- *     own header comment establishes; `Subscription` is already one of its
- *     five scoped models. This also means `EntitlementService` never
- *     appears in `tenant-data-access-guard.spec.ts`'s allowlist — the
- *     scoped client already routes around that guard's raw-delegate
- *     detection by construction, no new exemption needed.
+   *   - `Subscription` is read through `scopedSubscriptionFindUnique`
+ *     (`tenant-prisma.ts`) rather than a raw `this.prisma.subscription...`
+ *     call — the SAME reuse-not-reinvent convention that file's header
+ *     establishes; `Subscription` is already one of its five scoped
+ *     models. Standalone callers use `getTenantScopedClient`; callers
+ *     already inside `$transaction` (W5 `assertLimit`) reuse that `tx`
+ *     with SET LOCAL so FORCE RLS is satisfied without a nested
+ *     interactive transaction. `EntitlementService` therefore never
+ *     appears in `tenant-data-access-guard.spec.ts`'s allowlist.
  *   - `TenantEntitlementOverride` is read via an explicit
  *     `where: { tenantId }` using the CALLER-SUPPLIED `tenantId` — the
  *     same explicit-filter convention `orders.service.ts` (and every other
@@ -105,8 +109,11 @@ export class EntitlementService {
    * ACR; W2 deliberately does not, per its own authorization §11
    * ("correctness > caching").
    */
-  async resolve(tenantId: string): Promise<EntitlementResolution> {
-    const planId = await this.resolveEffectivePlanId(tenantId);
+  async resolve(
+    tenantId: string,
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<EntitlementResolution> {
+    const planId = await this.resolveEffectivePlanId(tenantId, client);
 
     const [features, limits] = await Promise.all([
       this.resolvePlanFeatures(planId),
@@ -148,12 +155,9 @@ export class EntitlementService {
    */
   private async resolveEffectivePlanId(
     tenantId: string,
+    client: PrismaService | Prisma.TransactionClient,
   ): Promise<string | null> {
-    const scoped = getTenantScopedClient(this.prisma, tenantId);
-    const subscription = await scoped.subscription.findUnique({
-      where: { tenantId },
-      select: { planId: true, status: true },
-    });
+    const subscription = await scopedSubscriptionFindUnique(client, tenantId);
 
     if (subscription && FULL_PLAN_STATUSES.has(subscription.status)) {
       return subscription.planId;

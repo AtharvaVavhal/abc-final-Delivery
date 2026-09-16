@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { Banner } from '@/services/api/settings'
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import styles from './BannerGrid.module.css'
 
 interface BannerGridProps {
@@ -34,7 +35,13 @@ function BannerContent({ banner }: { banner: Banner }) {
   return (
     <div className={styles.content}>
       {banner.imageUrl && (
-        <img src={banner.imageUrl} alt={banner.title || banner.text || ''} className={styles.image} loading="lazy" />
+        <img
+          src={optimizedCloudinaryUrl(banner.imageUrl, 900)}
+          alt={banner.title || banner.text || ''}
+          className={styles.image}
+          loading="lazy"
+          decoding="async"
+        />
       )}
       <div className={styles.overlay}>
         {banner.title && <h2 className={styles.title}>{banner.title}</h2>}

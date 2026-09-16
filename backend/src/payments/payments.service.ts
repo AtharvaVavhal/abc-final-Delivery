@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
 import { decimalToPaise } from '../cart/pricing/money.util';
+import { cartItemIdsCoveredByPaidOrder } from '../checkout/unpaid-cart-match';
 import { isTransitionAllowed } from '../orders/state-machine/order-state-machine';
 import { PaymentAccountResolutionError } from './payment-accounts/payment-account-resolution.errors';
 import {
@@ -1315,11 +1316,9 @@ export class PaymentsService {
    *
    * Uses the existing state machine: PENDING_PAYMENT -> PAYMENT_FAILED is a
    * legal transition (the customer can still retry it later, exactly as
-   * after a real payment failure). Not CANCELLED — the frozen §14 state
-   * machine has no PENDING_PAYMENT -> CANCELLED edge, and inventing one is
-   * a destructive policy change out of scope here. No financial/order rows
-   * are deleted. FOR UPDATE-locked + CAS, so it's idempotent and
-   * multi-instance safe.
+   * after a real payment failure). Customer/checkout may separately cancel
+   * an unpaid order (PENDING_PAYMENT/PAYMENT_FAILED -> CANCELLED) when the
+   * cart has changed; reconciliation does not use that edge.
    */
   async failStalePendingOrder(order: Order): Promise<boolean> {
     try {
@@ -1414,7 +1413,64 @@ export class PaymentsService {
         tenantId: order.tenantId,
       },
     });
+    if (to === OrderStatus.PAID) {
+      await this.clearCartForPaidOrder(tx, order);
+    }
     return { ...order, status: to };
+  }
+
+  private async clearCartForPaidOrder(
+    tx: Prisma.TransactionClient | PrismaService,
+    order: Order,
+  ): Promise<void> {
+    const cart = await tx.cart.findFirst({
+      where: { userId: order.userId, tenantId: order.tenantId },
+      select: { id: true },
+    });
+    if (!cart) return;
+    const items = await tx.cartItem.findMany({
+      where: { cartId: cart.id },
+      include: {
+        variant: { select: { label: true } },
+        customizations: { include: { customizationField: true } },
+      },
+    });
+    if (items.length === 0) return;
+    const orderItems = await tx.orderItem.findMany({
+      where: { orderId: order.id },
+      include: { customizations: true },
+    });
+    // Only the merchandise this capture actually paid for. A product added
+    // after the unpaid checkout must survive — deleting every cart line
+    // here is how a reused old order wiped the new bag.
+    const itemIds = cartItemIdsCoveredByPaidOrder(
+      items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        variantLabel: item.variant?.label ?? null,
+        quantity: item.quantity,
+        customizations: item.customizations.map((c) => ({
+          fieldLabel: c.customizationField.label,
+          textValue: c.textValue,
+          uploadedFileId: c.uploadedFileId,
+        })),
+      })),
+      orderItems.map((item) => ({
+        productId: item.productId,
+        variantLabel: item.variantLabelSnapshot,
+        quantity: item.quantity,
+        customizations: item.customizations.map((c) => ({
+          fieldLabel: c.fieldLabelSnapshot,
+          textValue: c.textValue,
+          uploadedFileId: c.uploadedFileId,
+        })),
+      })),
+    );
+    if (itemIds.length === 0) return;
+    await tx.cartItemCustomization.deleteMany({
+      where: { cartItemId: { in: itemIds } },
+    });
+    await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
   }
 
   /**

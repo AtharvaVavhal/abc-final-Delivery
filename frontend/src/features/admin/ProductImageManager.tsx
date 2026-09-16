@@ -9,6 +9,7 @@ import { AdminBadge } from '@/components/admin/AdminBadge'
 import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
 import { getApiErrorMessage } from '@/utils/apiError'
 import type { ProductImage } from '@/types/catalog'
+import { isVideoAsset } from '@/features/media/mediaAsset'
 import styles from './ProductImageManager.module.css'
 
 interface ProductImageManagerProps {
@@ -69,7 +70,7 @@ export function ProductImageManager({ productId, images, onImagesChange }: Produ
     <section aria-labelledby={headingId} className={styles.section}>
       <div className={styles.header}>
         <h2 id={headingId} className={styles.heading}>
-          Images
+          Images &amp; videos
         </h2>
         <Button
           type="button"
@@ -77,12 +78,12 @@ export function ProductImageManager({ productId, images, onImagesChange }: Produ
           isLoading={isUploading}
           onClick={() => fileInputRef.current?.click()}
         >
-          Upload image
+          Upload media
         </Button>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg"
+          accept="image/png,image/jpeg,video/mp4,video/webm"
           className={styles.hiddenInput}
           onChange={(event) => {
             const file = event.target.files?.[0]
@@ -96,17 +97,28 @@ export function ProductImageManager({ productId, images, onImagesChange }: Produ
       {images.length === 0 ? (
         <AdminEmptyState
           title="No images yet"
-          description="Upload a PNG or JPEG. The first image becomes the primary one."
+          description="Upload a PNG, JPEG, MP4, or WebM. The first file becomes the primary asset. Short loops work best for Watch & Buy."
         />
       ) : (
         <ul className={styles.grid}>
           {images.map((image) => (
             <li key={image.id} className={styles.tile}>
-              <img
-                src={image.url}
-                alt={image.isPrimary ? 'Primary product image' : 'Product image'}
-                className={styles.thumbnail}
-              />
+              {isVideoAsset(image) ? (
+                <video
+                  src={image.url}
+                  className={styles.thumbnail}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-label={image.isPrimary ? 'Primary product video' : 'Product video'}
+                />
+              ) : (
+                <img
+                  src={image.url}
+                  alt={image.isPrimary ? 'Primary product image' : 'Product image'}
+                  className={styles.thumbnail}
+                />
+              )}
               {image.isPrimary && (
                 <span className={styles.primaryFlag}>
                   <AdminBadge variant="success">Primary</AdminBadge>

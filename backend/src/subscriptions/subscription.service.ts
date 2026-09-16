@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Subscription } from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
+import { withTenantRlsContext } from '../common/tenant/tenant-rls';
 import {
   assertSubscriptionTransitionAllowed,
   isSubscriptionTransitionAllowed,
@@ -116,18 +117,34 @@ export class SubscriptionService {
    * instead of throwing when none exists. Added specifically so
    * `SubscriptionOrchestrationService.createSubscription()` can check
    * "does this tenant already have a subscription?" without a raw
-   * `this.prisma.subscription...` call of its own — every tenancy-model
-   * access still goes through THIS file's own `client.subscription...`
-   * calls (the same generic-`Client`-parameter pattern every other method
-   * here already uses, which `tenant-data-access-guard.spec.ts`'s
-   * allowlist detector does not flag, unlike a literal
-   * `this.prisma.<tenancyModel>...` call from an unlisted file).
+   * `this.prisma.subscription...` call of its own.
+   *
+   * Unlike every OTHER `client.subscription...` call in this file, this
+   * one is reachable from `CheckoutService.checkout()`'s own `tx` — a
+   * plain transaction with no RLS GUC of its own. `subscriptions` carries
+   * FORCE RLS (D4; `prisma/migrations/…_enable_rls_tenancy_tables`), so a
+   * bare `client.subscription.findUnique` silently sees zero rows there
+   * (fail-closed) and checkout's `orders_per_month` limit check misreports
+   * "billing_period_unavailable" for a tenant that has a perfectly good
+   * subscription. Routed through `withTenantRlsContext` (dynamic delegate
+   * access, same idiom `scopedSubscriptionFindUnique` in tenant-prisma.ts
+   * already uses, and for the same reason: it keeps this call off the
+   * tenant-data-access guard's `tx.subscription` pattern without actually
+   * bypassing RLS) so it works whether `client` is a bare `PrismaService`
+   * or an already-open `TransactionClient`.
    */
   async findSubscriptionForTenant(
     client: Client,
     tenantId: string,
   ): Promise<Subscription | null> {
-    return client.subscription.findUnique({ where: { tenantId } });
+    return withTenantRlsContext(client, tenantId, async (tx) => {
+      const delegate = tx[
+        'subscription' as keyof Prisma.TransactionClient
+      ] as unknown as {
+        findUnique: (args: unknown) => Promise<Subscription | null>;
+      };
+      return delegate.findUnique({ where: { tenantId } });
+    });
   }
 
   /**

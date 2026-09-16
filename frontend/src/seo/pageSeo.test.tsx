@@ -81,9 +81,9 @@ describe('HomePage SEO', () => {
 
     renderWithProviders(<HomePage />)
 
-    await waitFor(() => expect(document.title).toBe('PrintForge'))
+    await waitFor(() => expect(document.title).toBe('AB Creations'))
     expect(robots()).toBe('index, follow')
-    expect(canonical()).toBe('https://www.printforge.in/')
+    expect(canonical()).toBe('http://localhost:5173/')
     expect(jsonLd().some((b) => b['@type'] === 'WebSite')).toBe(true)
   })
 })
@@ -97,16 +97,16 @@ describe('ProductListPage SEO', () => {
 
   it('bare /products is indexable and canonicalises to itself', async () => {
     renderPLP('/products')
-    await waitFor(() => expect(document.title).toBe('All products | PrintForge'))
+    await waitFor(() => expect(document.title).toBe('All products | AB Creations'))
     expect(robots()).toBe('index, follow')
-    expect(canonical()).toBe('https://www.printforge.in/products')
+    expect(canonical()).toBe('http://localhost:5173/products')
   })
 
   it('a category view uses the category name + a category canonical + Breadcrumb JSON-LD', async () => {
     renderPLP('/products?categoryId=cat-1')
-    await waitFor(() => expect(document.title).toBe('Mugs | PrintForge'))
+    await waitFor(() => expect(document.title).toBe('Mugs | AB Creations'))
     expect(robots()).toBe('index, follow')
-    expect(canonical()).toBe('https://www.printforge.in/products?categoryId=cat-1')
+    expect(canonical()).toBe('http://localhost:5173/products?categoryId=cat-1')
     await waitFor(() =>
       expect(jsonLd().some((b) => b['@type'] === 'BreadcrumbList')).toBe(true),
     )
@@ -133,8 +133,8 @@ describe('ProductDetailPage SEO', () => {
       { initialEntries: ['/products/ceramic-mug'] },
     )
 
-    await waitFor(() => expect(document.title).toBe('Ceramic Mug | PrintForge'))
-    expect(canonical()).toBe('https://www.printforge.in/products/ceramic-mug')
+    await waitFor(() => expect(document.title).toBe('Ceramic Mug | AB Creations'))
+    expect(canonical()).toBe('http://localhost:5173/products/ceramic-mug')
     expect(ogContent('og:type')).toBe('product')
     expect(ogContent('og:image')).toBe('https://cdn/mug.png')
 
@@ -142,7 +142,7 @@ describe('ProductDetailPage SEO', () => {
     const productLd = blocks.find((b) => b['@type'] === 'Product')
     expect(productLd).toMatchObject({
       name: 'Ceramic Mug',
-      url: 'https://www.printforge.in/products/ceramic-mug',
+      url: 'http://localhost:5173/products/ceramic-mug',
       offers: { price: '150.00', priceCurrency: 'INR', availability: 'https://schema.org/InStock' },
       aggregateRating: { ratingValue: '4.50', reviewCount: 4 },
     })
@@ -163,7 +163,7 @@ describe('ProductDetailPage SEO', () => {
       { initialEntries: ['/products/ghost'] },
     )
 
-    await waitFor(() => expect(document.title).toBe('Product not found | PrintForge'))
+    await waitFor(() => expect(document.title).toBe('Product not found | AB Creations'))
     expect(robots()).toBe('noindex, nofollow')
     expect(jsonLd()).toHaveLength(0)
   })
@@ -178,28 +178,28 @@ describe('Private + static + 404 SEO', () => {
         user: { id: 'u1', email: 'x@y.z', role: 'CUSTOMER', createdAt: '2026-01-01T00:00:00.000Z' },
       }),
     })
-    await waitFor(() => expect(document.title).toBe('Your cart | PrintForge'))
+    await waitFor(() => expect(document.title).toBe('Your cart | AB Creations'))
     expect(robots()).toBe('noindex, nofollow')
     expect(canonical()).toBeNull()
   })
 
   it('the About page is indexable with its own canonical', () => {
     renderWithProviders(<AboutPage />)
-    expect(document.title).toBe('About | PrintForge')
+    expect(document.title).toBe('About | AB Creations')
     expect(robots()).toBe('index, follow')
-    expect(canonical()).toBe('https://www.printforge.in/about')
+    expect(canonical()).toBe('http://localhost:5173/about')
   })
 
   it('the 404 page is noindex and not presented as valid content', () => {
     renderWithProviders(<NotFoundPage />)
-    expect(document.title).toBe('Page not found | PrintForge')
+    expect(document.title).toBe('Page not found | AB Creations')
     expect(robots()).toBe('noindex, nofollow')
     expect(canonical()).toBeNull()
   })
 
   it('authentication pages are noindex (via AuthFormShell)', () => {
     renderWithProviders(<LoginPage />, { authValue: createMockAuthContext() })
-    expect(document.title).toBe('Log in | PrintForge')
+    expect(document.title).toBe('Log in | AB Creations')
     expect(robots()).toBe('noindex, nofollow')
     expect(canonical()).toBeNull()
   })

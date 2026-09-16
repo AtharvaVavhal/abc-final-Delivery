@@ -20,7 +20,7 @@ const GENERIC_ERROR: ParsedApiError = {
 
 const RATE_LIMITED_ERROR: ParsedApiError = {
   code: 'RATE_LIMITED',
-  message: 'Too many attempts — please wait a moment and try again.',
+  message: 'Please wait a moment and try again.',
   details: [],
 }
 
@@ -33,12 +33,12 @@ export function parseApiError(error: unknown): ParsedApiError {
   // See client.ts's response interceptor for why this is axios.isAxiosError()
   // rather than `error instanceof AxiosError`.
   if (axios.isAxiosError(error)) {
+    if (error.response?.status === 429) {
+      return RATE_LIMITED_ERROR
+    }
     const body = error.response?.data as ApiErrorResponse | undefined
     if (body?.success === false && body.error) {
       return { code: body.error.code, message: body.error.message, details: body.error.details }
-    }
-    if (error.response?.status === 429) {
-      return RATE_LIMITED_ERROR
     }
   }
   return GENERIC_ERROR

@@ -1,18 +1,30 @@
 :root {
   /* ============================================================
-   * PrintForge storefront design tokens — light theme.
-   * "Modern e-commerce + premium SaaS": restrained blue primary,
-   * slate neutrals, white surfaces on a soft canvas, subtle borders
-   * and elevation. No dark mode in this pass.
+   * AB Creations storefront tokens — light theme.
+   *
+   * Roles (keep this hierarchy; do not add decorative colours):
+   *   1. --color-primary     brand red — rare: primary CTA, selected
+   *   2. --color-text-strong / --color-obsidian  ink / chrome
+   *   3. --color-canvas      page background
+   *   4. --color-text-muted  supporting copy
+   *   5. --color-border      hairlines
+   *   6. --color-accent-warm campaign gold — hero CTA, editorial marks
+   *
+   * No dark mode in this pass.
    * ============================================================ */
 
-  /* ---- Brand / primary (UVPixel Vibrant Red: signature energetic,
-   *      custom-printing brand character) ---------------------------- */
+  /* ---- Brand / primary (UVPixel Vibrant Red). Use sparingly. ------ */
   --color-primary: #e50b0b;
   --color-primary-hover: #c90808;
   --color-primary-active: #a30606;
   --color-primary-foreground: #ffffff;
   --color-primary-ring: rgb(229 11 11 / 22%);
+  /* Tints for selected chips — not for headings, icons, or cards. */
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 8%, #ffffff);
+  --color-primary-border: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  --color-primary-glow: transparent;
+  --gradient-primary: var(--color-primary);
+  --gradient-primary-hover: var(--color-primary-hover);
 
   /* Historical alias. `--color-accent*` has always meant "the primary
    * interactive colour" across the storefront and the (frozen) admin —
@@ -22,9 +34,13 @@
   --color-accent-contrast: var(--color-primary-foreground);
   --color-accent-ring: var(--color-primary-ring);
 
-  /* ---- Secondary accent — reserved for rare emphasis ---------------- */
-  --color-highlight: #6366f1;
-  --color-highlight-hover: #4f46e5;
+  /* ---- Warm gold accent (hero / campaign, distinct from brand red) -- */
+  --color-accent-warm: #b8873a;
+  --color-accent-warm-hover: #a67a34;
+
+  /* ---- Reserved emphasis: same gold, never indigo/SaaS purple ------- */
+  --color-highlight: var(--color-accent-warm);
+  --color-highlight-hover: var(--color-accent-warm-hover);
   --color-highlight-foreground: #ffffff;
 
   /* ---- Luxe Obsidian & Midnight Structure (Header, Footer, Chrome) - */
@@ -146,13 +162,13 @@
   --text-3xl: 2.5rem;
   /* 40px */
 
-  /* Multi-layered soft ambient shadows with studio depth */
+  /* Restrained depth — hairline + a little shadow, not floating cards */
   --shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
-  --shadow-sm: 0 1px 3px rgb(15 23 42 / 5%), 0 1px 2px rgb(15 23 42 / 3%);
-  --shadow-md: 0 4px 16px -2px rgb(15 23 42 / 8%), 0 2px 6px -1px rgb(15 23 42 / 4%);
-  --shadow-lg: 0 16px 36px -4px rgb(15 23 42 / 10%), 0 6px 14px -2px rgb(15 23 42 / 4%);
-  --shadow-glow: 0 0 24px rgb(245 158 11 / 18%);
-  --shadow-glow-blue: 0 0 24px rgb(29 78 216 / 15%);
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 5%);
+  --shadow-md: 0 2px 8px rgb(15 23 42 / 6%);
+  --shadow-lg: 0 8px 20px rgb(15 23 42 / 8%);
+  --shadow-glow: none;
+  --shadow-glow-blue: none;
 
   /* One keyboard-focus ring for every interactive control — pair with
    * `outline: none` and only ever under :focus-visible (never :focus), so

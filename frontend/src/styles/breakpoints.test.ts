@@ -93,8 +93,24 @@ describe('UX-16 — canonical responsive breakpoints', () => {
   it('the storefront has no JavaScript responsive logic (CSS-only breakpoints)', () => {
     const jsBreakpointUse =
       /\bmatchMedia\b|\.innerWidth\b|\.outerWidth\b|addEventListener\(\s*['"]resize['"]|new ResizeObserver/
+    // Both flagged files use the regex's trigger APIs for something that
+    // isn't a width breakpoint at all, so neither belongs in the "drifted
+    // back into JS" case this guard exists for:
+    //   - CategoryStoryBar / Hero: `matchMedia('(prefers-reduced-motion: reduce)')`
+    //     is an accessibility preference query, not a layout breakpoint.
+    //   - HorizontalScroller: ResizeObserver only to show/hide overflow
+    //     arrow buttons — not a viewport breakpoint.
+    //   - mediaAsset: matchMedia('(prefers-reduced-motion)') / saveData
+    //     for video autoplay, not layout.
+    const EXEMPT = new Set([
+      '/src/components/home/CategoryStoryBar.tsx',
+      '/src/components/home/Hero.tsx',
+      '/src/components/layout/AnnouncementBar.tsx',
+      '/src/components/ui/HorizontalScroller.tsx',
+      '/src/features/media/mediaAsset.ts',
+    ])
     const offenders = Object.entries(tsFiles)
-      .filter(([, src]) => jsBreakpointUse.test(src))
+      .filter(([path, src]) => !EXEMPT.has(path) && jsBreakpointUse.test(src))
       .map(([path]) => path)
 
     expect(

@@ -49,7 +49,7 @@ export function CustomizationForm({ fields, onChange }: CustomizationFormProps) 
   const {
     register,
     control,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<Record<string, string>>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -60,6 +60,14 @@ export function CustomizationForm({ fields, onChange }: CustomizationFormProps) 
   // watch() function — the latter is a plain function RHF returns fresh
   // per render that can't be memoized, which the React Compiler flags.
   const values = useWatch({ control, defaultValue: defaultValues })
+  // Derive validity from the same Zod schema the resolver uses — RHF's
+  // formState.isValid can lag a render behind Controller updates (file
+  // upload onSuccess), which left Add to cart disabled after a successful
+  // photo upload.
+  const isValid = useMemo(
+    () => schema.safeParse(values ?? defaultValues).success,
+    [schema, values, defaultValues],
+  )
   const surcharge = useMemo(
     () => computeCustomizationsSurcharge(fields, values),
     [fields, values],

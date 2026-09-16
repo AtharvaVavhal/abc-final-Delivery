@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/constants/routes'
 import { Seo } from '@/seo/Seo'
+import { FullPageLoader } from '@/components/ui/FullPageLoader'
 
 /**
  * Client-side UX guard only — same disclaimer as ProtectedRoute, every
@@ -20,7 +21,7 @@ export function AdminRoute() {
   const location = useLocation()
 
   if (status === 'loading') {
-    return null
+    return <FullPageLoader label="Loading admin" />
   }
 
   if (status === 'unauthenticated') {

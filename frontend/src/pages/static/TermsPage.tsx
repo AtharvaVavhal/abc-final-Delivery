@@ -9,7 +9,7 @@ export function TermsPage() {
     <section className={styles.page}>
       <Seo
         title="Terms of Service"
-        description="The terms governing use of the PrintForge website and services — orders and payment, customization and intellectual property, production and delivery, cancellations and refunds."
+        description="The terms governing use of the AB Creations website and services — orders and payment, customization and intellectual property, production and delivery, cancellations and refunds."
         canonicalPath={ROUTES.TERMS}
         ogType="article"
       />
@@ -22,7 +22,7 @@ export function TermsPage() {
       <article>
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing or using the PrintForge website and services, you agree to
+          By accessing or using the AB Creations website and services, you agree to
           be bound by these Terms of Service and all applicable laws and
           regulations. If you do not agree, please do not use our services.
         </p>
@@ -44,7 +44,7 @@ export function TermsPage() {
         <h2>4. Customization and Intellectual Property</h2>
         <p>
           You retain ownership of the artwork you upload. By submitting artwork,
-          you grant PrintForge a non‑exclusive license to reproduce it solely for
+          you grant AB Creations a non‑exclusive license to reproduce it solely for
           fulfilling your order. You warrant that you have the rights to use the
           uploaded content.
         </p>
@@ -65,7 +65,7 @@ export function TermsPage() {
 
         <h2>7. Limitation of Liability</h2>
         <p>
-          PrintForge is not liable for indirect, incidental, or consequential
+          AB Creations is not liable for indirect, incidental, or consequential
           damages arising from the use or inability to use the service, to the
           maximum extent permitted by law.
         </p>

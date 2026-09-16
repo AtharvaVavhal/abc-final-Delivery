@@ -47,7 +47,10 @@ describe('ProductCard', () => {
     renderWithProviders(<ProductCard product={product} />)
 
     const img = screen.getByRole('img', { name: 'Ceramic Mug' })
-    expect(img).toHaveAttribute('src', 'https://res.cloudinary.com/demo/image/upload/abc.png')
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_480/abc.png',
+    )
   })
 
   it('renders the placeholder when the product has no images', () => {
@@ -73,6 +76,11 @@ describe('ProductCard', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Ceramic Mug' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument()
+  })
+
+  it('omits the rating line when the product has no reviews', () => {
+    renderWithProviders(<ProductCard product={buildProduct({ reviewCount: 0 })} />)
+    expect(screen.queryByText('No reviews yet')).not.toBeInTheDocument()
   })
 
   it('falls back to the placeholder when the image fails to load', () => {

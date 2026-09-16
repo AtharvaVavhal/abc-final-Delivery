@@ -13,12 +13,13 @@ import {
   LOGIN_DELAY_CURVE_MS,
   PASSWORD_RESET_TOKEN_TTL_MS,
   REFRESH_TOKEN_COOKIE_NAME,
-  REFRESH_TOKEN_COOKIE_PATH,
 } from '../common/constants/app.constants';
 import { AppConfig } from '../common/config/configuration';
 import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { refreshCookieBaseOptions } from '../common/http/refresh-cookie-options';
+import { refreshTtlMsForUser } from './refresh-ttl';
 import { parseDurationMs } from './utils/duration.util';
 import {
   generateOpaqueToken,
@@ -57,8 +58,12 @@ export interface AuthTokenResult {
 @Injectable()
 export class AuthService {
   private readonly refreshTokenSecret: string;
-  private readonly refreshTokenTtlMs: number;
+  private readonly customerRefreshTokenTtlMs: number;
+  private readonly adminRefreshTokenTtlMs: number;
   private readonly frontendUrl: string;
+  private readonly refreshCookieBase: ReturnType<
+    typeof refreshCookieBaseOptions
+  >;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -69,8 +74,17 @@ export class AuthService {
   ) {
     const authConfig = configService.get('auth', { infer: true });
     this.refreshTokenSecret = authConfig.refreshTokenSecret;
-    this.refreshTokenTtlMs = parseDurationMs(authConfig.refreshTokenExpiresIn);
+    this.customerRefreshTokenTtlMs = parseDurationMs(
+      authConfig.refreshTokenExpiresIn,
+    );
+    this.adminRefreshTokenTtlMs = parseDurationMs(
+      authConfig.adminRefreshTokenExpiresIn,
+    );
     this.frontendUrl = configService.get('frontendUrl', { infer: true });
+    this.refreshCookieBase = refreshCookieBaseOptions(
+      this.frontendUrl,
+      configService.get('backendUrl', { infer: true }),
+    );
   }
 
   // ─── Register (§13.A) ───────────────────────────────────────────────
@@ -87,7 +101,11 @@ export class AuthService {
       rawRefreshToken,
       this.refreshTokenSecret,
     );
-    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    // Register always creates a CUSTOMER — never an admin session.
+    const refreshTokenExpiresAt = this.refreshExpiryFor({
+      role: 'CUSTOMER',
+      platformRole: null,
+    });
 
     let user: User;
     try {
@@ -168,7 +186,7 @@ export class AuthService {
       rawRefreshToken,
       this.refreshTokenSecret,
     );
-    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    const refreshTokenExpiresAt = this.refreshExpiryFor(user);
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -241,7 +259,7 @@ export class AuthService {
 
     const newRawToken = generateOpaqueToken();
     const newTokenHash = hashRefreshToken(newRawToken, this.refreshTokenSecret);
-    const newExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    const newExpiresAt = this.refreshExpiryFor(user);
 
     await this.prisma.$transaction(async (tx) => {
       const created = await tx.refreshToken.create({
@@ -373,6 +391,19 @@ export class AuthService {
 
   // ─── Helpers ─────────────────────────────────────────────────────────
 
+  private refreshExpiryFor(user: {
+    role: string;
+    platformRole: string | null;
+  }): Date {
+    return new Date(
+      Date.now() +
+        refreshTtlMsForUser(user, {
+          customerMs: this.customerRefreshTokenTtlMs,
+          adminMs: this.adminRefreshTokenTtlMs,
+        }),
+    );
+  }
+
   private signAccessToken(user: User): string {
     // Thin token (decision P2-D4 / Master Plan §8): only `sub` + `tokenVersion`.
     // email / role / platformRole / memberships are resolved fresh from the DB
@@ -401,21 +432,13 @@ export class AuthService {
     expiresAt: Date,
   ): void {
     res.cookie(REFRESH_TOKEN_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: REFRESH_TOKEN_COOKIE_PATH,
+      ...this.refreshCookieBase,
       expires: expiresAt,
     });
   }
 
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: REFRESH_TOKEN_COOKIE_PATH,
-    });
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.refreshCookieBase);
   }
 
   private sleep(ms: number): Promise<void> {

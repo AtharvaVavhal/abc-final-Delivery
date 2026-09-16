@@ -5,6 +5,7 @@ import styles from './SectionHeading.module.css'
 interface SectionHeadingProps {
   id: string
   title: string
+  subtitle?: string
   /** Optional "see the full list" affordance — omitted for sections that
    * are already the whole set (e.g. the trust strip). */
   viewAllHref?: string
@@ -17,14 +18,18 @@ interface SectionHeadingProps {
 export function SectionHeading({
   id,
   title,
+  subtitle,
   viewAllHref,
   viewAllLabel = 'View all',
 }: SectionHeadingProps) {
   return (
     <div className={styles.row}>
-      <h2 id={id} className={styles.title}>
-        {title}
-      </h2>
+      <div>
+        <h2 id={id} className={styles.title}>
+          {title}
+        </h2>
+        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+      </div>
       {viewAllHref && (
         <Link to={viewAllHref} className={styles.viewAll}>
           {viewAllLabel}

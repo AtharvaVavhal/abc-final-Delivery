@@ -75,19 +75,10 @@ export class BillingPeriodUnresolvedError extends Error {
  * **Transaction composition** — `tx` is the CALLER's own transaction
  * client (matching `UsageService`'s own `PrismaService |
  * Prisma.TransactionClient` convention exactly); this class never opens
- * `$transaction` itself. `EntitlementService.resolve()` is deliberately
- * called OUTSIDE/BEFORE using `tx` (it has no transaction-client parameter
- * — an unmodified W2 contract) — this reads the CURRENT limit value, not
- * necessarily inside the same atomic boundary as the reservation itself.
- * This does not weaken the CORE invariant the W5 authorization actually
- * states (reservation + resource creation must be atomic — see
- * `UsageService.reserve`'s own atomicity, unchanged) — it only means a
- * limit CHANGED by a SUPER_ADMIN in the same instant as a reservation
- * could, in a vanishingly narrow window, be read one moment before it
- * changes. Flagged explicitly in the W5 report as a minor, low-severity,
- * pre-existing-contract consequence, not a new risk this class
- * introduces — extending `EntitlementService.resolve()` to accept a `tx`
- * would be an unrequested W2 contract change, not a W5 concern.
+ * `$transaction` itself. `EntitlementService.resolve(tenantId, tx)` is
+ * passed that same client so the Subscription FORCE RLS GUC is set on
+ * the caller's connection. Opening a nested `prisma.$transaction` from
+ * inside `assertLimit` aborts the outer resource-creation transaction.
  */
 @Injectable()
 export class LimitEnforcementService {
@@ -125,7 +116,7 @@ export class LimitEnforcementService {
     amount: number,
     period?: string,
   ): Promise<void> {
-    const resolution = await this.entitlementService.resolve(tenantId);
+    const resolution = await this.entitlementService.resolve(tenantId, tx);
     const limit = resolution.limits[limitKey];
 
     let resolvedPeriod: string;

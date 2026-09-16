@@ -89,16 +89,22 @@ export class AppSettingService {
   }
 
   /** Resolves the tenant's primary Store internally — every current
-   * caller of this method (checkout, tax, the public storefront read)
-   * only ever has a tenantId on hand, never a storeId (`Cart.storeId` is
-   * never populated by any code path today). Fails closed
-   * (`resolvePrimaryStoreId` throws) rather than silently falling back to
-   * a different store or a platform-wide default. */
+   * caller of this method (checkout, tax) only ever has a tenantId on
+   * hand, never a storeId (`Cart.storeId` is never populated by any code
+   * path today). Fails closed (`resolvePrimaryStoreId` throws) rather
+   * than silently falling back to a different store or a platform-wide
+   * default. The public storefront controller uses `getStoreValue` /
+   * `getManyStoreValues` with a storeId already resolved in the same
+   * tenant-lookup transaction. */
   async getStoreValueForTenant(
     tenantId: string,
     key: string,
   ): Promise<string | null> {
     const storeId = await resolvePrimaryStoreId(this.prisma, tenantId);
+    return this.getStoreValue(storeId, key);
+  }
+
+  async getStoreValue(storeId: string, key: string): Promise<string | null> {
     const setting = await this.prisma.storeSetting.findUnique({
       where: { storeId_key: { storeId, key } },
       select: { value: true },
@@ -114,6 +120,16 @@ export class AppSettingService {
       return {};
     }
     const storeId = await resolvePrimaryStoreId(this.prisma, tenantId);
+    return this.getManyStoreValues(storeId, keys);
+  }
+
+  async getManyStoreValues(
+    storeId: string,
+    keys: readonly string[],
+  ): Promise<Record<string, string>> {
+    if (keys.length === 0) {
+      return {};
+    }
     const rows = await this.prisma.storeSetting.findMany({
       where: { storeId, key: { in: [...keys] } },
       select: { key: true, value: true },

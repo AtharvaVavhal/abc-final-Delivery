@@ -258,3 +258,19 @@ describe('UploadsService — storage_mb enforcement (P6-D4)', () => {
     expect(uploadedFileDelegate.create).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('UploadsService.resolveUrl — local storefront files', () => {
+  it('maps local/ public ids to a public path without calling Cloudinary', () => {
+    const cloudinary = { signedUrl: jest.fn() };
+    const service = new UploadsService(
+      {} as never,
+      cloudinary as never,
+      {} as never,
+    );
+
+    expect(service.resolveUrl('local/catalog/PAC01.jpg', 'image', 'upload')).toBe(
+      '/catalog/PAC01.jpg',
+    );
+    expect(cloudinary.signedUrl).not.toHaveBeenCalled();
+  });
+});

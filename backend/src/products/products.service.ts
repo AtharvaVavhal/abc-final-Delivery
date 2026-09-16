@@ -11,7 +11,11 @@ import {
   ProductImage,
   ProductVariant,
 } from '@prisma/client';
-import { PrismaService } from '../common/database/prisma.service';
+import {
+  PrismaService,
+  PRISMA_TX_MAX_WAIT_MS,
+  PRISMA_TX_TIMEOUT_MS,
+} from '../common/database/prisma.service';
 import { PaginatedResult } from '../common/types/api-response.interface';
 import { assertObjectInTenant } from '../common/tenant/object-auth';
 import { AuditService } from '../common/audit/audit.service';
@@ -60,9 +64,9 @@ export class ProductsService {
 
   // ─── Categories ──────────────────────────────────────────────────────
 
-  async listCategories(): Promise<Category[]> {
+  async listCategories(tenantId: string): Promise<Category[]> {
     return this.prisma.category.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { name: 'asc' },
     });
   }
@@ -256,9 +260,9 @@ export class ProductsService {
 
   // ─── Category Tree ──────────────────────────────────────────────────────
 
-  async getCategoryTree(): Promise<CategoryTreeNode[]> {
+  async getCategoryTree(tenantId: string): Promise<CategoryTreeNode[]> {
     const categories = await this.prisma.category.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, slug: true, parentCategoryId: true },
     });
@@ -307,6 +311,7 @@ export class ProductsService {
   // ─── Products (public reads) ─────────────────────────────────────────
 
   async listProducts(
+    tenantId: string,
     page: number,
     limit: number,
     categoryId: string | undefined,
@@ -316,9 +321,14 @@ export class ProductsService {
     minRating?: number,
     sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating_desc',
   ): Promise<PaginatedResult<ProductWithRelations>> {
+    const categoryFilter = categoryId
+      ? await this.publicCategoryIds(tenantId, categoryId)
+      : undefined
+
     const where: Prisma.ProductWhereInput = {
+      tenantId,
       isActive: true,
-      ...(categoryId ? { categoryId } : {}),
+      ...(categoryFilter ? { categoryId: { in: categoryFilter } } : {}),
       ...(search
         ? { name: { contains: search, mode: 'insensitive' as const } }
         : {}),
@@ -371,9 +381,21 @@ export class ProductsService {
     };
   }
 
-  async getProductBySlug(slug: string): Promise<ProductWithRelations> {
+  /**
+   * Public listing: a parent category includes products filed on it or on
+   * any active direct child (one nesting level, matching Category).
+   */
+  private async publicCategoryIds(tenantId: string, categoryId: string): Promise<string[]> {
+    const children = await this.prisma.category.findMany({
+      where: { parentCategoryId: categoryId, isActive: true, tenantId },
+      select: { id: true },
+    })
+    return [categoryId, ...children.map((child) => child.id)]
+  }
+
+  async getProductBySlug(tenantId: string, slug: string): Promise<ProductWithRelations> {
     const product = await this.prisma.product.findFirst({
-      where: { slug, isActive: true },
+      where: { slug, isActive: true, tenantId },
       include: PRODUCT_DETAIL_INCLUDE,
     });
     if (!product) {
@@ -391,69 +413,72 @@ export class ProductsService {
     actor: AuthenticatedUser,
     dto: CreateProductDto,
   ): Promise<ProductWithRelations> {
-    return this.prisma.$transaction(async (tx) => {
-      const category = await tx.category.findUnique({
-        where: { id: dto.categoryId },
-      });
-      if (!category) {
-        throw new NotFoundException('Category not found');
-      }
-      assertObjectInTenant(category, tenantContext.tenantId);
-
-      // Phase 6 W5 — same transaction as the actual create below (the
-      // core W5 invariant: reservation + resource creation atomic
-      // together). `products` counts ALL Product rows regardless of
-      // `isActive` and is never decremented (deletion isn't supported —
-      // deactivation only), so this is the only usage touchpoint this
-      // resource ever needs.
-      await this.limitEnforcementService.assertLimit(
-        tx,
-        tenantContext.tenantId,
-        'products',
-        1,
-      );
-
-      let created: Product;
-      try {
-        created = await tx.product.create({
-          data: {
-            categoryId: dto.categoryId,
-            name: dto.name,
-            slug: dto.slug,
-            basePrice: dto.basePrice,
-            minQuantity: dto.minQuantity,
-            maxQuantity: dto.maxQuantity,
-            specifications: dto.specifications as
-              Prisma.InputJsonValue | undefined,
-            tenantId: tenantContext.tenantId,
-          },
+    return this.prisma.$transaction(
+      async (tx) => {
+        const category = await tx.category.findUnique({
+          where: { id: dto.categoryId },
         });
-      } catch (err) {
-        this.mapUniqueConstraintError(
-          err,
-          'A product with this slug already exists',
+        if (!category) {
+          throw new NotFoundException('Category not found');
+        }
+        assertObjectInTenant(category, tenantContext.tenantId);
+
+        // Phase 6 W5 — same transaction as the actual create below (the
+        // core W5 invariant: reservation + resource creation atomic
+        // together). `products` counts ALL Product rows regardless of
+        // `isActive` and is never decremented (deletion isn't supported —
+        // deactivation only), so this is the only usage touchpoint this
+        // resource ever needs.
+        await this.limitEnforcementService.assertLimit(
+          tx,
+          tenantContext.tenantId,
+          'products',
+          1,
         );
-      }
-      const attribution = await resolveTenantAuditActor(
-        tx,
-        tenantContext,
-        actor,
-      );
-      await this.auditService.logTenantAction(tx, {
-        tenantId: tenantContext.tenantId,
-        ...attribution,
-        action: 'product.create',
-        targetType: 'Product',
-        targetId: created.id,
-        metadata: { name: dto.name, slug: dto.slug },
-      });
-      return {
-        ...created,
-        variants: [],
-        images: [] as ProductImageWithUrl[],
-        customizationFields: [],
-      };
-    });
+
+        let created: Product;
+        try {
+          created = await tx.product.create({
+            data: {
+              categoryId: dto.categoryId,
+              name: dto.name,
+              slug: dto.slug,
+              basePrice: dto.basePrice,
+              minQuantity: dto.minQuantity,
+              maxQuantity: dto.maxQuantity,
+              specifications: dto.specifications as
+                Prisma.InputJsonValue | undefined,
+              tenantId: tenantContext.tenantId,
+            },
+          });
+        } catch (err) {
+          this.mapUniqueConstraintError(
+            err,
+            'A product with this slug already exists',
+          );
+        }
+        const attribution = await resolveTenantAuditActor(
+          tx,
+          tenantContext,
+          actor,
+        );
+        await this.auditService.logTenantAction(tx, {
+          tenantId: tenantContext.tenantId,
+          ...attribution,
+          action: 'product.create',
+          targetType: 'Product',
+          targetId: created.id,
+          metadata: { name: dto.name, slug: dto.slug },
+        });
+        return {
+          ...created,
+          variants: [],
+          images: [] as ProductImageWithUrl[],
+          customizationFields: [],
+        };
+      },
+      { maxWait: PRISMA_TX_MAX_WAIT_MS, timeout: PRISMA_TX_TIMEOUT_MS },
+    );
   }
 
   async updateProduct(

@@ -13,6 +13,7 @@ import { Breadcrumbs, type Crumb } from '@/components/ui/Breadcrumbs'
 import { ProductGallery } from '@/features/catalog/ProductGallery'
 import { findCategoryPath } from '@/features/catalog/categoryTree'
 import { Seo } from '@/seo/Seo'
+import { SITE_NAME } from '@/seo/siteConfig.constants'
 import { productJsonLd, breadcrumbJsonLd, describeProduct } from '@/seo/jsonLd'
 import { VariantSelector } from '@/features/cart/VariantSelector'
 import { AddToCartControls } from '@/features/cart/AddToCartControls'
@@ -109,7 +110,7 @@ export function ProductDetailPage() {
         title={product.name}
         description={
           describeProduct(product) ??
-          `Order ${product.name} from PrintForge — custom-printed, made to order.`
+          `Order ${product.name} from ${SITE_NAME} — custom-printed, made to order.`
         }
         canonicalPath={canonicalPath}
         ogType="product"

@@ -67,6 +67,12 @@ describe('SubscriptionService', () => {
       },
       subscriptionEvent: { create: eventCreate },
       plan: { findUnique: planFindUnique },
+      // Mocked as an already-open TransactionClient (no `$transaction`) —
+      // `findSubscriptionForTenant`'s `withTenantRlsContext` call detects
+      // that via `typeof client.$transaction !== 'function'` and issues
+      // `SET LOCAL` directly on this same object, exactly as it would on a
+      // real `Prisma.TransactionClient`.
+      $executeRaw: jest.fn().mockResolvedValue(0),
     };
     return {
       client,

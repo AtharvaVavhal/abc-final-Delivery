@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
-import { Prisma, TenantStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { isPrismaService, withTenantRlsContext } from './tenant-rls';
 
 /**
  * Phase 5 W4 (SaaS Master Plan §11) — the single, authoritative "is this
@@ -17,9 +18,11 @@ import { PrismaService } from '../database/prisma.service';
  * call sites for this function:
  *   - `TenantLifecycleGuard` (merchant/admin path, runs after
  *     `TenantContextGuard` has resolved `request.tenantContext`)
- *   - `StorefrontTenantResolver.resolveTenantId` (storefront cart/uploads
- *     — a shopper never gets a `TenantContext`, so the guard above never
- *     sees them; this is the actual resolution point for that path)
+ *   - `StorefrontTenantResolver` (storefront cart/uploads/settings —
+ *     a shopper never gets a `TenantContext`, so the guard above never
+ *     sees them; the resolver loads `Tenant.status` in the same bypass
+ *     transaction as host/store lookup, then calls
+ *     `throwIfTenantSuspended` so the ACTIVE/SUSPENDED rule stays here)
  *   - `CheckoutService` (order creation + preview — reads an
  *     already-loaded cart's own `tenantId` directly, bypassing the
  *     resolver entirely, per that resolver's own header comment)
@@ -29,16 +32,35 @@ import { PrismaService } from '../database/prisma.service';
  * session's ratified decision), so this function cannot accidentally
  * start enforcing a lifecycle stage W4 was never asked to implement.
  */
+export function throwIfTenantSuspended(
+  status: string | null | undefined,
+  message: string,
+): void {
+  if (status === 'SUSPENDED') {
+    throw new ForbiddenException(message);
+  }
+}
+
 export async function assertTenantActive(
   prisma: PrismaService | Prisma.TransactionClient,
   tenantId: string,
   message: string,
 ): Promise<void> {
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { status: true },
-  });
-  if (tenant?.status === TenantStatus.SUSPENDED) {
-    throw new ForbiddenException(message);
-  }
+  // PrismaService queries need the RLS tenant GUC; a TransactionClient is
+  // already inside a caller-owned transaction (bypass or tenant context).
+  // Detect the real client via `$extends` — Prisma 6 TransactionClient also
+  // has `$transaction`, and nesting that aborts the outer write.
+  const tenant = isPrismaService(prisma)
+    ? await withTenantRlsContext(prisma, tenantId, (tx) =>
+        tx.tenant.findUnique({
+          where: { id: tenantId },
+          select: { status: true },
+        }),
+      )
+    : await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { status: true },
+      });
+
+  throwIfTenantSuspended(tenant?.status, message);
 }

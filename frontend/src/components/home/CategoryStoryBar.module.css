@@ -7,33 +7,38 @@
 }
 
 .inner {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
+  display: none;
+}
+
+.scroller {
   padding: 0 clamp(1rem, 3vw, 3.5rem);
-  display: flex;
-  align-items: center;
+}
+
+.scroller button {
+  top: calc(0.65rem + clamp(54px, 4.25vw, 64px));
+  transform: translateY(-50%);
+}
+
+.scroller button:hover,
+.scroller button:focus-visible {
+  transform: translateY(-50%) scale(1.04);
 }
 
 .scrollTrack {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(1.2rem, 3.5vw, 3.2rem);
-  overflow-x: auto;
-  scroll-behavior: smooth;
   scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* IE/Edge */
-  padding: 0.5rem 0.5rem 0.6rem;
-  width: 100%;
+  padding: 0.65rem 0.5rem 0.85rem;
 }
 
 .scrollTrack::-webkit-scrollbar {
   display: none;
-  /* Chrome/Safari */
+}
+
+.storyItemActive .circleWrapper {
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-warm);
 }
 
 .storyItem {
@@ -41,42 +46,29 @@
   flex-direction: column;
   align-items: center;
   text-decoration: none;
-  flex: 1 1 0px;
-  min-width: 112px;
-  max-width: 160px;
+  flex: 0 0 auto;
+  width: 128px;
   cursor: pointer;
   outline: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
 }
 
 .circleWrapper {
   width: clamp(108px, 8.5vw, 128px);
   height: clamp(108px, 8.5vw, 128px);
   border-radius: 50%;
-  padding: 3.5px;
-  background: linear-gradient(135deg, #e11d48 0%, #f59e0b 50%, #e11d48 100%);
-  background-size: 200% 200%;
-  animation: storyRing 6s ease infinite;
+  padding: 3px;
+  background: var(--color-accent-warm);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.3s ease;
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
   position: relative;
-}
-
-@keyframes storyRing {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
 .circleInner {
@@ -94,8 +86,7 @@
 
 .storyItem:hover .circleWrapper,
 .storyItem:focus-visible .circleWrapper {
-  transform: translateY(-4px) scale(1.06);
-  box-shadow: 0 10px 24px rgba(225, 29, 72, 0.35);
+  transform: translateY(-1px);
 }
 
 .circleImage {
@@ -103,31 +94,29 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center 28%;
   display: block;
 }
 
-.playBadge {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+.imageFallback {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(4px);
-  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #ffffff;
-  opacity: 0.85;
-  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  background: #f4f4f5;
+  color: #3f3f46;
+  font-size: 2rem;
+  font-weight: 600;
 }
 
-.storyItem:hover .playBadge {
-  opacity: 1;
-  background: var(--color-primary);
-  transform: scale(1.1);
+.circleInner video {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 28%;
 }
 
 .title {
@@ -147,41 +136,14 @@
 
 .storyItem:hover .title,
 .storyItem:focus-visible .title {
-  color: var(--color-primary);
+  color: var(--color-text-strong);
 }
 
-.scrollBtn {
-  position: absolute;
-  top: 45%;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #111827;
-  cursor: pointer;
-  z-index: 2;
-  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
-}
 
-.scrollBtn:hover {
-  background: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
-  transform: translateY(-50%) scale(1.08);
-}
-
-.scrollBtnLeft {
-  left: 0.5rem;
-}
-
-.scrollBtnRight {
-  right: 0.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .circleWrapper {
+    transition: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -192,8 +154,7 @@
   }
 
   .storyItem {
-    min-width: 92px;
-    max-width: 105px;
+    width: 96px;
   }
 
   .scrollTrack {
@@ -205,9 +166,5 @@
   .title {
     font-size: 0.775rem;
     margin-top: 0.5rem;
-  }
-
-  .scrollBtn {
-    display: none;
   }
 }

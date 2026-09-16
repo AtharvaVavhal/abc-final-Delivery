@@ -24,7 +24,12 @@ const RETRYABLE_STATUSES = new Set<OrderStatus>(['PENDING_PAYMENT', 'PAYMENT_FAI
 
 /** Mirrors the backend order state machine (order-state-machine.ts): only
  * PAID and CONFIRMED can transition to CANCELLED. */
-const CANCELLABLE_STATUSES = new Set<OrderStatus>(['PAID', 'CONFIRMED'])
+const CANCELLABLE_STATUSES = new Set<OrderStatus>([
+  'PENDING_PAYMENT',
+  'PAYMENT_FAILED',
+  'PAID',
+  'CONFIRMED',
+])
 
 /** Mirrors the backend INVOICEABLE_STATUSES gate — an invoice exists only
  * once payment has succeeded (Phase 13.4). */

@@ -36,8 +36,9 @@ import { apiClient } from './client'
  * `GET /products` and `GET /products/:slug` unconditionally filter
  * `isActive: true` server-side — there is no admin bypass, and no
  * `GET /products/:id` at all. `fetchProducts` below is therefore the only
- * list source available to the admin products page too, and it will never
- * surface a deactivated product. See AdminProductsPage's own doc comment.
+ * public list source available to the storefront. Admin lists use
+ * `GET /products/admin`. Query params match ListProductsQueryDto
+ * (page/limit/categoryId/search/minPrice/maxPrice/minRating/sort).
  */
 
 export async function fetchCategories(): Promise<Category[]> {
@@ -61,9 +62,8 @@ export interface ProductListResult {
   meta: PaginationMeta
 }
 
-/** GET /products accepts page/limit/categoryId/search (ListProductsQueryDto)
- * — no sort param exists server-side yet. `params` is forwarded as-is, so
- * `search` flows through once present on ListProductsParams. */
+/** GET /products accepts page/limit/categoryId/search/minPrice/maxPrice/minRating/sort
+ * (ListProductsQueryDto). `params` is forwarded as-is. */
 export async function fetchProducts(
   params: ListProductsParams = {},
 ): Promise<ProductListResult> {

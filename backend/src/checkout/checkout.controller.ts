@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ThrottleCheckout } from '../common/throttling/throttle.decorators';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { IDEMPOTENCY_KEY_HEADER } from '../common/constants/app.constants';
 import { PaymentsService } from '../payments/payments.service';
@@ -31,6 +32,7 @@ import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
  * cart with an optional couponCode, no Idempotency-Key (nothing is
  * created), never authoritative (PHASE-10-PROPOSAL.md §2.2).
  */
+@ThrottleCheckout()
 @Controller('checkout')
 export class CheckoutController {
   constructor(

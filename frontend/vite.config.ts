@@ -5,11 +5,12 @@ import { loadEnv, type Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { DEFAULT_SITE_URL } from './src/seo/siteConfig.constants.ts'
 import { buildRobotsTxt, buildSitemapXml } from './src/seo/seoFiles.ts'
+import { storefrontShellHtmlPlugin } from './vite.storefront-shell-plugin.ts'
 
 /**
  * Emits robots.txt and a static sitemap.xml into the build output. The
  * site origin comes from VITE_SITE_URL (see .env.example) and otherwise
- * falls back to the architecture-frozen production origin. Build-time only
+ * falls back to DEFAULT_SITE_URL (local Vite origin). Build-time only
  * — the dev server doesn't need either file.
  */
 function seoFiles(siteUrl: string): Plugin {
@@ -37,7 +38,7 @@ export default defineConfig(({ mode }) => {
   const siteUrl = (env.VITE_SITE_URL?.trim() || DEFAULT_SITE_URL).replace(/\/+$/, '')
 
   return {
-    plugins: [react(), seoFiles(siteUrl)],
+    plugins: [react(), seoFiles(siteUrl), storefrontShellHtmlPlugin(process.cwd())],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),
@@ -52,10 +53,20 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: {
+      proxy: {
+        '/api': {
+          target: env.VITE_PROXY_TARGET || 'http://localhost:4000',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       css: true,
+      exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     },
   }
 })

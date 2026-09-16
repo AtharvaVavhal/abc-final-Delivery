@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { cancelOrder } from '@/services/api/orders'
 import { orderQueryKey } from './useOrder'
+import { UNPAID_CHECKOUT_ORDER_QUERY_KEY } from './useOrders'
 
 /** Invalidates both the order detail (orderQueryKey) and the My Orders
  * list (['orders', 'list', ...]) — both keys share the ['orders'] prefix,
@@ -11,7 +12,9 @@ export function useCancelOrder(orderId: string) {
     mutationFn: (reason?: string) => cancelOrder(orderId, reason),
     onSuccess: (updated) => {
       queryClient.setQueryData(orderQueryKey(orderId), updated)
+      queryClient.setQueryData(UNPAID_CHECKOUT_ORDER_QUERY_KEY, null)
       void queryClient.invalidateQueries({ queryKey: ['orders'] })
+      void queryClient.invalidateQueries({ queryKey: UNPAID_CHECKOUT_ORDER_QUERY_KEY })
     },
   })
 }

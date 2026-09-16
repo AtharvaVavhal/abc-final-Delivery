@@ -89,7 +89,10 @@ describe('HeroCarousel — keyboard scope (UX freeze P1)', () => {
 
     const next = screen.getByRole('button', { name: 'Next slide' })
     next.focus()
+    expect(next).not.toBeDisabled()
     expect(activeHeadline()).toBe('A')
+
+    expect(next).not.toBeDisabled()
 
     fireEvent.keyDown(next, { key: 'ArrowRight' })
     expect(activeHeadline()).toBe('B')
