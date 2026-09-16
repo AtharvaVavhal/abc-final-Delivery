@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useCheckoutPreview } from '@/hooks/useCheckoutPreview'
 import { useCreateOrder } from '@/hooks/useCreateOrder'
 import { useRetryPayment } from '@/hooks/useRetryPayment'
+import { useUnpaidCheckoutOrder } from '@/hooks/useOrders'
 import { useRazorpayCheckout } from '@/features/checkout/useRazorpayCheckout'
 import { ShippingForm } from '@/features/checkout/ShippingForm'
 import { CheckoutSteps } from '@/features/checkout/CheckoutSteps'
@@ -25,7 +26,36 @@ import type { ShippingFormValues } from '@/schemas/checkout.schema'
 import type { CheckoutOrderView } from '@/types/checkout'
 import type { CheckoutPreviewView } from '@/types/coupons'
 import type { UserProfileView } from '@/types/auth'
+import type { OrderDetailView } from '@/types/orders'
 import styles from './CheckoutPage.module.css'
+
+function toCheckoutOrderView(order: OrderDetailView): CheckoutOrderView {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    subtotal: order.subtotal,
+    shippingFee: order.shippingFee,
+    total: order.total,
+    discountAmount: order.discountAmount,
+    taxableAmount: order.taxableAmount,
+    taxAmount: order.taxAmount,
+    taxMode: order.taxMode,
+    taxRatePercent: order.taxRatePercent,
+    couponCode: order.couponCode,
+    currency: order.currency,
+    shippingRecipientName: order.shippingRecipientName,
+    shippingPhone: order.shippingPhone,
+    shippingAddressLine1: order.shippingAddressLine1,
+    shippingAddressLine2: order.shippingAddressLine2,
+    shippingCity: order.shippingCity,
+    shippingState: order.shippingState,
+    shippingPostalCode: order.shippingPostalCode,
+    shippingCountry: order.shippingCountry,
+    items: order.items,
+    createdAt: order.createdAt,
+  }
+}
 
 /** True once the profile carries enough of an address to be worth
  * seeding the form with (UX-07). */
@@ -58,8 +88,9 @@ function savedAddressDefaults(
  *
  * UX-06: a server-authoritative price breakdown (subtotal + shipping + tax
  * + total, via the existing read-only POST /checkout/validate) is shown in
- * the summary column *before* payment initiation — the same numbers the
- * order and Razorpay amount are derived from.
+ * the summary column *before* payment initiation. If an unpaid order
+ * already exists, that order's stored total (including any claimed coupon)
+ * is what Razorpay charges — the cart preview is not used in that case.
  * UX-07: the shipping form is seeded from the customer's saved profile
  * address.
  */
@@ -82,12 +113,17 @@ export function CheckoutPage() {
   const isCreatingRef = useRef(false)
 
   const { data: cart, isPending: isCartPending, isError: isCartError, error: cartError } = useCart()
+  const unpaidQuery = useUnpaidCheckoutOrder()
   // Profile drives Razorpay email/phone prefill AND the shipping-form
   // address prefill. A failure here is non-fatal — the form just starts
   // blank.
   const profileQuery = useCurrentUser()
   const previewQuery = useCheckoutPreview({
-    enabled: Boolean(cart) && (cart?.items.length ?? 0) > 0 && couponPreview === null,
+    enabled:
+      Boolean(cart) &&
+      (cart?.items.length ?? 0) > 0 &&
+      couponPreview === null &&
+      !unpaidQuery.data?.couponCode,
   })
   const createOrder = useCreateOrder()
   const retryPayment = useRetryPayment()
@@ -159,9 +195,13 @@ export function CheckoutPage() {
     }
   }
 
+  const restoredUnpaid =
+    !order && unpaidQuery.data?.couponCode ? toCheckoutOrderView(unpaidQuery.data) : null
+  const payableOrder = order ?? restoredUnpaid
+
   function handleRetry() {
-    if (order) {
-      void startPayment(order)
+    if (payableOrder) {
+      void startPayment(payableOrder)
     }
   }
 
@@ -173,7 +213,7 @@ export function CheckoutPage() {
     </>
   )
 
-  if (isCartPending || profileQuery.isLoading) {
+  if (isCartPending || profileQuery.isLoading || unpaidQuery.isPending) {
     return withSeo(
       <Page>
         <h1>Checkout</h1>
@@ -183,26 +223,26 @@ export function CheckoutPage() {
     )
   }
 
-  if (isCartError) {
-    return withSeo(
-      <Page>
-        <ErrorState title="Checkout" message={getApiErrorMessage(cartError)} />
-      </Page>,
-    )
-  }
-
-  if (order) {
+  if (payableOrder) {
     return withSeo(
       <Page>
         <h1>Checkout</h1>
         <CheckoutSteps current="payment" />
         <OrderPendingPayment
-          order={order}
+          order={payableOrder}
           error={paymentError}
           onRetry={handleRetry}
           isProcessing={retryPayment.isPending || isOpening || isVerifying}
           isScriptLoading={isLoadingScript}
         />
+      </Page>,
+    )
+  }
+
+  if (isCartError) {
+    return withSeo(
+      <Page>
+        <ErrorState title="Checkout" message={getApiErrorMessage(cartError)} />
       </Page>,
     )
   }
@@ -228,9 +268,9 @@ export function CheckoutPage() {
     )
   }
 
-  // The coupon preview (when a coupon is applied) and the base preview
-  // agree by construction — both are POST /checkout/validate against the
-  // same cart — so this is always the total the order will be created with.
+  // Coupon preview drives the breakdown until Pay now. If an unpaid order
+  // already exists without a coupon, submitting with a code attaches it
+  // to that order so Razorpay charges the discounted total.
   const effectivePreview = couponPreview ?? previewQuery.data ?? null
   const savedAddress = savedAddressDefaults(profileQuery.data)
 

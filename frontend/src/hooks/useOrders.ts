@@ -1,6 +1,31 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { fetchOrders } from '@/services/api/orders'
-import type { ListOrdersParams } from '@/types/orders'
+import { fetchOrder, fetchOrders } from '@/services/api/orders'
+import type { ListOrdersParams, OrderDetailView } from '@/types/orders'
+
+export const UNPAID_CHECKOUT_ORDER_QUERY_KEY = ['checkout', 'unpaid-order'] as const
+
+/**
+ * The unpaid order checkout must resume — including any coupon already
+ * claimed on it — rather than showing a cart-only preview that disagrees
+ * with the Razorpay amount.
+ */
+export function useUnpaidCheckoutOrder() {
+  return useQuery({
+    queryKey: UNPAID_CHECKOUT_ORDER_QUERY_KEY,
+    queryFn: async (): Promise<OrderDetailView | null> => {
+      const pending = await fetchOrders({ status: 'PENDING_PAYMENT', limit: 1 })
+      if (pending.items[0]) {
+        return fetchOrder(pending.items[0].id)
+      }
+      const failed = await fetchOrders({ status: 'PAYMENT_FAILED', limit: 1 })
+      if (failed.items[0]) {
+        return fetchOrder(failed.items[0].id)
+      }
+      return null
+    },
+    retry: false,
+  })
+}
 
 export function useOrders(params: ListOrdersParams = {}) {
   return useQuery({

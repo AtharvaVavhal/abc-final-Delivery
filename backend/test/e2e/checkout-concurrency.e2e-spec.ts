@@ -223,4 +223,91 @@ describe('Checkout order-creation races (§27 #3, #13, #14)', () => {
     })
     expect(cartItems).toHaveLength(1)
   })
+
+  it('applies a coupon onto an existing unpaid order so the payable total matches the discount', async () => {
+    const admin = await registerAdmin(app, prisma)
+    await makeTenantCheckoutReady(prisma, admin.tenantId)
+    const coupon = await createCoupon(prisma, admin.id, {
+      percentageOff: 10,
+      usageLimitPerUser: 1,
+    })
+    const user = await registerUser(app)
+    const { productId } = await createProduct(prisma, { basePrice: '100.00' })
+    await addCartItem(app, user, { productId, quantity: 1 })
+
+    const first = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `coupon-after-unpaid-${randomUUID()}`)
+      .send(shippingFields())
+      .expect(201)
+
+    expect(first.body.data.couponCode).toBeNull()
+    expect(first.body.data.discountAmount).toBe('0.00')
+
+    await prisma.order.update({
+      where: { id: first.body.data.id },
+      data: { razorpayOrderId: 'order_pre_coupon' },
+    })
+
+    const second = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `coupon-after-unpaid-2-${randomUUID()}`)
+      .send({ ...shippingFields(), couponCode: coupon.code })
+      .expect(200)
+
+    expect(second.body.data.id).toBe(first.body.data.id)
+    expect(second.body.data.couponCode).toBe(coupon.code)
+    expect(second.body.data.discountAmount).not.toBe('0.00')
+    expect(Number(second.body.data.total)).toBeLessThan(Number(first.body.data.total))
+
+    const persisted = await prisma.order.findUniqueOrThrow({
+      where: { id: first.body.data.id },
+    })
+    expect(persisted.razorpayOrderId).toBeNull()
+    expect(persisted.couponCode).toBe(coupon.code)
+
+    const usages = await prisma.couponUsage.findMany({
+      where: { orderId: first.body.data.id },
+    })
+    expect(usages).toHaveLength(1)
+
+    const orders = await prisma.order.findMany({ where: { userId: user.id } })
+    expect(orders).toHaveLength(1)
+  })
+
+  it('rejects swapping a coupon already claimed on an unpaid order', async () => {
+    const admin = await registerAdmin(app, prisma)
+    await makeTenantCheckoutReady(prisma, admin.tenantId)
+    const firstCoupon = await createCoupon(prisma, admin.id, { percentageOff: 10 })
+    const secondCoupon = await createCoupon(prisma, admin.id, { percentageOff: 20 })
+    const user = await registerUser(app)
+    const { productId } = await createProduct(prisma, { basePrice: '100.00' })
+    await addCartItem(app, user, { productId, quantity: 1 })
+
+    const created = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `coupon-swap-first-${randomUUID()}`)
+      .send({ ...shippingFields(), couponCode: firstCoupon.code })
+      .expect(201)
+
+    expect(created.body.data.couponCode).toBe(firstCoupon.code)
+
+    const swapped = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `coupon-swap-second-${randomUUID()}`)
+      .send({ ...shippingFields(), couponCode: secondCoupon.code })
+      .expect(409)
+
+    expect(swapped.body.error.message).toMatch(/different coupon/i)
+    expect(created.body.data.id).toBeDefined()
+
+    const persisted = await prisma.order.findUniqueOrThrow({
+      where: { id: created.body.data.id },
+    })
+    expect(persisted.couponCode).toBe(firstCoupon.code)
+  })
 });

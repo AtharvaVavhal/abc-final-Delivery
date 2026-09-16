@@ -174,6 +174,11 @@ describe('CheckoutPage', () => {
     mock = new MockAdapter(apiClient)
     checkoutMock = mock
     mock.onGet('/cart').reply(200, { success: true, data: buildCart() })
+    mock.onGet('/orders').reply(200, {
+      success: true,
+      data: [],
+      meta: { page: 1, limit: 1, total: 0, totalPages: 0 },
+    })
     // /users/me is registered by renderCheckout() (per test, so the
     // address-prefill test can vary it); each test registers its own
     // /checkout/validate handler(s) — the shipping form renders whether
@@ -202,6 +207,11 @@ describe('CheckoutPage', () => {
       error: { code: 'INTERNAL_SERVER_ERROR', message: 'Something broke', details: [] },
     })
     mock.onGet('/users/me').reply(200, { success: true, data: PROFILE_NO_ADDRESS })
+    mock.onGet('/orders').reply(200, {
+      success: true,
+      data: [],
+      meta: { page: 1, limit: 1, total: 0, totalPages: 0 },
+    })
 
     renderCheckout()
 
@@ -497,7 +507,10 @@ describe('CheckoutPage', () => {
       success: true,
       data: { ...ORDER_VIEW, total: '319.00', discountAmount: '30.00', couponCode: 'SAVE10' },
     })
-    mock.onPost('/checkout/orders/order-1/retry-payment').reply(200, { success: true, data: PAYMENT_VIEW })
+    mock.onPost('/checkout/orders/order-1/retry-payment').reply(200, {
+      success: true,
+      data: { ...PAYMENT_VIEW, amountPaise: '31900' },
+    })
 
     renderCheckout()
     await screen.findByLabelText('Recipient name')
@@ -513,8 +526,74 @@ describe('CheckoutPage', () => {
     const orderCall = mock.history.post.find((r) => r.url === '/checkout/orders')!
     expect(JSON.parse(orderCall.data as string)).toMatchObject({ couponCode: 'SAVE10' })
 
+    await waitFor(() => expect(razorpayInstances).toHaveLength(1))
+    expect(razorpayInstances[0].options.amount).toBe(31900)
+
     // Order confirmation shows the discount — a real coupon was applied.
     expect(await screen.findByText('SAVE10')).toBeInTheDocument()
     expect(screen.getByText('−₹30.00')).toBeInTheDocument()
+  })
+
+  it('resumes an unpaid order that already has a coupon so Razorpay is not opened against the undiscounted cart total', async () => {
+    const unpaid = {
+      ...ORDER_VIEW,
+      total: '319.00',
+      discountAmount: '30.00',
+      couponCode: 'SAVE10',
+      taxableAmount: '270.00',
+      taxAmount: '0.00',
+      taxMode: 'INCLUSIVE',
+      taxRatePercent: null,
+      itemCount: 1,
+      needsManualRefund: false,
+    }
+    mock.onGet('/orders').reply((config) => {
+      const status = (config.params as { status?: string } | undefined)?.status
+      if (status === 'PENDING_PAYMENT') {
+        return [
+          200,
+          {
+            success: true,
+            data: [
+              {
+                id: unpaid.id,
+                orderNumber: unpaid.orderNumber,
+                status: unpaid.status,
+                total: unpaid.total,
+                currency: unpaid.currency,
+                itemCount: 1,
+                needsManualRefund: false,
+                createdAt: unpaid.createdAt,
+              },
+            ],
+            meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+          },
+        ]
+      }
+      return [
+        200,
+        { success: true, data: [], meta: { page: 1, limit: 1, total: 0, totalPages: 0 } },
+      ]
+    })
+    mock.onGet('/orders/order-1').reply(200, { success: true, data: unpaid })
+    mock.onPost('/checkout/orders/order-1/retry-payment').reply(200, {
+      success: true,
+      data: { ...PAYMENT_VIEW, amountPaise: '31900' },
+    })
+
+    renderCheckout()
+
+    expect(await screen.findByText(/awaiting payment/i)).toBeInTheDocument()
+    expect(screen.getByText('SAVE10')).toBeInTheDocument()
+    expect(screen.getByText('−₹30.00')).toBeInTheDocument()
+    expect(screen.getByText('₹319.00')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Coupon code')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Recipient name')).not.toBeInTheDocument()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Pay now' }))
+    await waitFor(() => expect(razorpayInstances).toHaveLength(1))
+    expect(razorpayInstances[0].options.amount).toBe(31900)
+    expect(mock.history.post.filter((r) => r.url === '/checkout/orders')).toHaveLength(0)
   })
 })

@@ -198,6 +198,26 @@ export class CheckoutService {
         orderBy: { createdAt: 'desc' },
       });
       if (existingUnpaid) {
+        const requestedCode = dto.couponCode?.trim().toUpperCase() || null;
+        const existingCode = existingUnpaid.couponCode;
+        if (requestedCode && existingCode && existingCode !== requestedCode) {
+          throw new ConflictException(
+            'This order is already awaiting payment with a different coupon. Complete that payment first — the payable amount cannot be changed after a coupon is claimed.',
+          );
+        }
+        if (requestedCode && !existingCode) {
+          // Coupon was typed after the unpaid order existed (Razorpay
+          // dismissed, cart still full). Apply it onto that order and drop
+          // any prior Razorpay order id so initiatePayment creates a new
+          // provider order at the discounted total — otherwise Checkout.js
+          // still charges the pre-coupon amount.
+          await this.applyCouponToUnpaidOrder(
+            tx,
+            existingUnpaid,
+            requestedCode,
+            userId,
+          );
+        }
         return { orderId: existingUnpaid.id, created: false };
       }
 
@@ -642,6 +662,83 @@ export class CheckoutService {
       variantDeltaPaise,
       surchargePaise,
       quantity: item.quantity,
+    });
+  }
+
+  /**
+   * Attaches a coupon to an unpaid order that was created without one.
+   * Shipping snapshot stays frozen; only money columns + coupon FKs change.
+   * `razorpayOrderId` is cleared so the next initiatePayment creates a
+   * provider order whose amount matches the discounted total — reusing the
+   * pre-coupon Razorpay order would charge the old amount (or fail the
+   * capture amount check).
+   */
+  private async applyCouponToUnpaidOrder(
+    tx: Prisma.TransactionClient,
+    order: {
+      id: string;
+      tenantId: string;
+      userId: string;
+      subtotal: Prisma.Decimal;
+      shippingFee: Prisma.Decimal;
+    },
+    couponCode: string,
+    userId: string,
+  ): Promise<void> {
+    const items = await tx.orderItem.findMany({
+      where: { orderId: order.id },
+      include: { product: { select: { categoryId: true } } },
+    });
+    const subtotalPaise = decimalToPaise(order.subtotal);
+    const shippingFeePaise = decimalToPaise(order.shippingFee);
+    const claim = await this.couponsService.validateAndClaim(tx, {
+      code: couponCode,
+      userId,
+      subtotalPaise,
+      shippingFeePaise,
+      lineItems: items.map((item) => ({
+        categoryId: item.product?.categoryId ?? '',
+        lineTotalPaise: decimalToPaise(item.lineTotal),
+      })),
+      tenantId: order.tenantId,
+      ignoreOrderId: order.id,
+    });
+
+    const taxConfig = await this.taxService.getConfig(order.tenantId, tx);
+    const taxComputation = this.taxService.computeTax(
+      subtotalPaise - claim.discountPaise,
+      taxConfig,
+    );
+    const { taxToAddPaise, orderTaxFields } = this.applyTax(taxComputation);
+    const totalPaise = this.pricingService.computeOrderTotal({
+      subtotalPaise,
+      shippingFeePaise: claim.shippingFeePaise,
+      discountPaise: claim.discountPaise,
+      taxToAddPaise,
+    });
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        discountAmount: paiseToDecimalString(claim.discountPaise),
+        shippingFee: paiseToDecimalString(claim.shippingFeePaise),
+        total: paiseToDecimalString(totalPaise),
+        taxMode: orderTaxFields.taxMode,
+        taxableAmount: orderTaxFields.taxableAmount,
+        taxAmount: orderTaxFields.taxAmount,
+        taxRateSnapshot: orderTaxFields.taxRateSnapshot,
+        couponId: claim.couponId,
+        couponCode: claim.couponCode,
+        razorpayOrderId: null,
+      },
+    });
+
+    await this.couponsService.recordUsage(tx, {
+      couponId: claim.couponId,
+      userId,
+      orderId: order.id,
+      discountAppliedAmountPaise: claim.discountPaise,
+      tenantId: order.tenantId,
     });
   }
 
