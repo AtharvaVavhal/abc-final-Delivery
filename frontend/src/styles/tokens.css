@@ -205,10 +205,10 @@
  *
  * The storefront layout changes at exactly these widths:
  *
- *   sm    = 480px   Smallest phones. Multi-column forms and grids
- *                   (ShippingForm, ProfileForm, ProductGrid,
- *                   HomeHero/HeroCarousel type scale) go to one
- *                   column / the tightest step below this.
+ *   sm    = 480px   Smallest phones. Multi-column forms
+ *                   (ShippingForm, ProfileForm) go to one column.
+ *                   Product grids stay two columns, matching the
+ *                   storefront collection layout.
  *
  *   md    = 640px   Phones. --container-padding tightens (below),
  *                   and the home sections / footer / toolbars

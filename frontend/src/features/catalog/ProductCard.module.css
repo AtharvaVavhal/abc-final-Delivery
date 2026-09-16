@@ -106,9 +106,18 @@
   color: var(--color-text-strong);
   line-height: 1.35;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.nameArrow {
+  display: inline;
+  width: 14px;
+  height: 14px;
+  margin-left: 0.2em;
+  vertical-align: -0.15em;
+  color: var(--color-text-strong);
 }
 
 .price {
@@ -161,6 +170,48 @@
 .swatchPill.more {
   color: var(--color-text-muted);
   background: var(--color-bg);
+}
+
+@media (max-width: 640px) {
+  .card {
+    gap: var(--space-2);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .card:hover,
+  .card:has(:focus-visible) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .imageWrapper {
+    border-radius: var(--radius-md);
+  }
+
+  .body {
+    gap: 0.2rem;
+    padding: 0.4rem 0.1rem 0.35rem;
+  }
+
+  .name {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
+  }
+
+  .price {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .swatches,
+  .customBadge,
+  .quickViewBtn {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

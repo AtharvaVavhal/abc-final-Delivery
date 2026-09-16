@@ -71,4 +71,15 @@ describe('Hero autoplay', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Second')
   })
+
+  it('keeps slide controls inside the image stage so copy is not covered', () => {
+    renderWithProviders(
+      <Hero slides={[slide('First', 'a'), slide('Second', 'b')]} />,
+    )
+    const hero = screen.getByLabelText('Promotional hero')
+    const stage = hero.querySelector('[class*="stage"]')
+    expect(stage).toContainElement(screen.getByRole('button', { name: 'Previous slide' }))
+    expect(stage).toContainElement(screen.getByRole('button', { name: 'Next slide' }))
+    expect(stage).toContainElement(screen.getByRole('tablist', { name: 'Hero slides' }))
+  })
 })

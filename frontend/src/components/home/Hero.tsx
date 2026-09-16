@@ -214,6 +214,55 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
           )
         })}
         <div className={styles.scrim} aria-hidden="true" />
+
+        {slideCount > 1 && (
+          <>
+            <button
+              type="button"
+              className={cn(styles.navBtn, styles.prev)}
+              onClick={prev}
+              aria-label="Previous slide"
+            >
+              <ChevronLeft size={22} aria-hidden="true" strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              className={cn(styles.navBtn, styles.next)}
+              onClick={next}
+              aria-label="Next slide"
+            >
+              <ChevronRight size={22} aria-hidden="true" strokeWidth={1.75} />
+            </button>
+
+            <div className={styles.dots} role="tablist" aria-label="Hero slides">
+              {resolved.map((slide, index) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={index === currentIndex}
+                  aria-label={`Slide ${index + 1}: ${slide.headline}`}
+                  className={cn(styles.dot, index === currentIndex && styles.dotActive)}
+                  onClick={() => goTo(index)}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className={styles.playPause}
+              onClick={() => setIsPlaying((playing) => !playing)}
+              aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
+              aria-pressed={isPlaying}
+            >
+              {isPlaying ? (
+                <Pause size={18} aria-hidden="true" />
+              ) : (
+                <Play size={18} aria-hidden="true" />
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       <div className={styles.copy}>
@@ -233,55 +282,6 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
           ) : null}
         </div>
       </div>
-
-      {slideCount > 1 && (
-        <>
-          <button
-            type="button"
-            className={cn(styles.navBtn, styles.prev)}
-            onClick={prev}
-            aria-label="Previous slide"
-          >
-            <ChevronLeft size={22} aria-hidden="true" strokeWidth={1.75} />
-          </button>
-          <button
-            type="button"
-            className={cn(styles.navBtn, styles.next)}
-            onClick={next}
-            aria-label="Next slide"
-          >
-            <ChevronRight size={22} aria-hidden="true" strokeWidth={1.75} />
-          </button>
-
-          <div className={styles.dots} role="tablist" aria-label="Hero slides">
-            {resolved.map((slide, index) => (
-              <button
-                key={slide.id}
-                type="button"
-                role="tab"
-                aria-selected={index === currentIndex}
-                aria-label={`Slide ${index + 1}: ${slide.headline}`}
-                className={cn(styles.dot, index === currentIndex && styles.dotActive)}
-                onClick={() => goTo(index)}
-              />
-            ))}
-          </div>
-
-          <button
-            type="button"
-            className={styles.playPause}
-            onClick={() => setIsPlaying((playing) => !playing)}
-            aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
-            aria-pressed={isPlaying}
-          >
-            {isPlaying ? (
-              <Pause size={18} aria-hidden="true" />
-            ) : (
-              <Play size={18} aria-hidden="true" />
-            )}
-          </button>
-        </>
-      )}
     </section>
   )
 }

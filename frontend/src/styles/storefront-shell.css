@@ -128,6 +128,31 @@ html[data-storefront-home] #storefront-shell {
   max-width: min(40%, 24rem);
 }
 
+@media (max-width: 767px) {
+  .pf-hero {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pf-hero-stage {
+    aspect-ratio: 4 / 5;
+    min-height: 18rem;
+    max-height: min(28rem, 52dvh);
+  }
+
+  .pf-hero-stage img {
+    object-position: center 30%;
+  }
+
+  .pf-hero-copy {
+    position: static;
+    max-width: none;
+    width: 100%;
+    padding: 1rem 1rem 1.25rem;
+    background: #090d16;
+  }
+}
+
 @media (min-width: 768px) {
   .pf-hero-copy {
     left: 5rem;

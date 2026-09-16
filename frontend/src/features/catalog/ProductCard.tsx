@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Eye } from 'lucide-react'
+import { ArrowRight, Eye } from 'lucide-react'
 import type { Product } from '@/types/catalog'
 import { formatPrice } from '@/utils/formatPrice'
 import { productDetailPath } from '@/constants/routes'
@@ -59,7 +59,10 @@ export function ProductCard({
 
       <div className={styles.body}>
         <Link to={productDetailPath(product.slug)} className={styles.nameLink}>
-          <NameHeading className={styles.name}>{product.name}</NameHeading>
+          <NameHeading className={styles.name}>
+            {product.name}
+            <ArrowRight size={14} strokeWidth={2} className={styles.nameArrow} aria-hidden="true" />
+          </NameHeading>
         </Link>
         {product.reviewCount > 0 && (
           <StarRating avgRating={product.avgRating} reviewCount={product.reviewCount} compact />

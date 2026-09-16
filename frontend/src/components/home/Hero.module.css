@@ -7,6 +7,7 @@
 
 .stage {
   position: relative;
+  isolation: isolate;
   width: 100%;
   aspect-ratio: 2.2 / 1;
   min-height: 18rem;
@@ -321,8 +322,13 @@
   }
 
   .stage {
-    min-height: 14rem;
-    max-height: min(22rem, calc(100dvh - 12rem));
+    aspect-ratio: 4 / 5;
+    min-height: 18rem;
+    max-height: min(28rem, 52dvh);
+  }
+
+  .image {
+    object-position: center 30%;
   }
 
   .scrim {
@@ -333,24 +339,38 @@
     position: static;
     max-width: none;
     width: 100%;
-    padding: var(--space-5) var(--container-padding) var(--space-6);
+    padding: var(--space-4) var(--container-padding) var(--space-5);
     background: var(--color-text-strong);
   }
 
   .headline {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
+    line-height: 1.15;
+  }
+
+  .subtext {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .actions {
+    margin-top: var(--space-4);
+  }
+
+  .cta {
+    padding: 0.75rem 1.5rem;
+    font-size: var(--text-sm);
   }
 
   .navBtn {
-    top: 50%;
+    display: none;
   }
 
-  .prev {
-    left: var(--space-2);
-  }
-
-  .next {
-    right: var(--space-2);
+  .playPause {
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 40px;
+    height: 40px;
   }
 
   .dots {
