@@ -88,8 +88,8 @@ describe('refreshCookieBaseOptions', () => {
   it('keeps SameSite=Strict; Secure on a shared custom domain', () => {
     expect(
       refreshCookieBaseOptions(
-        'https://www.printforge.in',
-        'https://api.printforge.in',
+        'https://www.abcmanufactures.com',
+        'https://api.abcmanufactures.com',
       ),
     ).toEqual({
       httpOnly: true,

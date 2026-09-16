@@ -43,11 +43,17 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix(API_PREFIX);
 
-  app.use(helmet());
+  // CORP defaults to same-origin and would block the storefront on
+  // www.abcmanufactures.com from reading api.abcmanufactures.com.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
 
   // Credentialed allowlist — never a wildcard (§23). FRONTEND_URL plus
-  // local Vite origins so localhost:5173 can call a Render API.
+  // the production storefront hosts and local Vite origins.
   app.enableCors({
     origin: corsAllowedOrigins(
       configService.get('frontendUrl', { infer: true }),

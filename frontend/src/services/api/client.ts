@@ -30,8 +30,8 @@ const REFRESH_PATH = '/auth/refresh'
  * The one axios instance every API call in this app goes through
  * (BLUEPRINT-v1.2.md §18). `withCredentials: true` is required for the
  * HttpOnly refresh cookie to be sent/received on cross-subdomain requests
- * (www.printforge.in <-> api.printforge.in — same registrable domain, so
- * SameSite=Strict still applies, see auth.service.ts's cookie config).
+ * (www.abcmanufactures.com <-> api.abcmanufactures.com — same registrable
+ * domain, so SameSite=Strict still applies, see auth.service.ts's cookie config).
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

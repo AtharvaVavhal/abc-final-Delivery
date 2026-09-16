@@ -14,7 +14,26 @@ export const LOCAL_VITE_CORS_ORIGINS = [
   'http://127.0.0.1:4173',
 ] as const;
 
+/**
+ * Production storefront hosts. The API (`https://api.abcmanufactures.com`)
+ * is the CORS *server*, not a browser Origin — do not list it here.
+ * Apex is included because some clients send that Origin before the 308
+ * to www completes (bookmarks, first hit).
+ */
+export const PRODUCTION_STOREFRONT_ORIGINS = [
+  'https://www.abcmanufactures.com',
+  'https://abcmanufactures.com',
+] as const;
+
 export function corsAllowedOrigins(frontendUrl: string): string[] {
   const primary = normalizePublicOrigin(frontendUrl);
-  return [...new Set([primary, ...LOCAL_VITE_CORS_ORIGINS].filter(Boolean))];
+  return [
+    ...new Set(
+      [
+        primary,
+        ...PRODUCTION_STOREFRONT_ORIGINS,
+        ...LOCAL_VITE_CORS_ORIGINS,
+      ].filter(Boolean),
+    ),
+  ];
 }
