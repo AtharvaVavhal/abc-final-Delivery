@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const state = useSyncExternalStore(subscribeAuthState, getAuthState, getAuthState)
 
   useEffect(() => {
+    if (getAuthState().status === 'authenticated') return
     void refreshSession()
   }, [])
 

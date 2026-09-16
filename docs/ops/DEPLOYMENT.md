@@ -82,9 +82,10 @@ in production — it can generate/rename migrations).
 6. Wait for Render health check to pass.
 
 `DATABASE_URL` must be the Render PostgreSQL **Internal Database URL**.
-`FRONTEND_URL` must be the real Vercel/custom-domain origin (no trailing slash)
-and same-site with `BACKEND_URL` so the httpOnly `SameSite=Strict` refresh
-cookie is sent. Razorpay webhook: `{BACKEND_URL}/api/v1/payments/webhook`.
+`FRONTEND_URL` must be the real Vercel/custom-domain origin (no trailing slash).
+It is compared with `BACKEND_URL` to set the refresh cookie SameSite (`Strict`
+when they share a site; `None; Secure` when they do not, e.g. Vercel ↔ Render).
+Razorpay webhook: `{BACKEND_URL}/api/v1/payments/webhook`.
 
 ## 6. Frontend deployment (Vercel)
 

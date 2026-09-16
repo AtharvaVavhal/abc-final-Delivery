@@ -13,14 +13,14 @@ import {
   LOGIN_DELAY_CURVE_MS,
   PASSWORD_RESET_TOKEN_TTL_MS,
   REFRESH_TOKEN_COOKIE_NAME,
-  REFRESH_TOKEN_COOKIE_PATH,
 } from '../common/constants/app.constants';
 import { AppConfig } from '../common/config/configuration';
 import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { parseDurationMs } from './utils/duration.util';
+import { refreshCookieBaseOptions } from '../common/http/refresh-cookie-options';
 import { refreshTtlMsForUser } from './refresh-ttl';
+import { parseDurationMs } from './utils/duration.util';
 import {
   generateOpaqueToken,
   hashRefreshToken,
@@ -61,6 +61,9 @@ export class AuthService {
   private readonly customerRefreshTokenTtlMs: number;
   private readonly adminRefreshTokenTtlMs: number;
   private readonly frontendUrl: string;
+  private readonly refreshCookieBase: ReturnType<
+    typeof refreshCookieBaseOptions
+  >;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -78,6 +81,10 @@ export class AuthService {
       authConfig.adminRefreshTokenExpiresIn,
     );
     this.frontendUrl = configService.get('frontendUrl', { infer: true });
+    this.refreshCookieBase = refreshCookieBaseOptions(
+      this.frontendUrl,
+      configService.get('backendUrl', { infer: true }),
+    );
   }
 
   // ─── Register (§13.A) ───────────────────────────────────────────────
@@ -425,21 +432,13 @@ export class AuthService {
     expiresAt: Date,
   ): void {
     res.cookie(REFRESH_TOKEN_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: REFRESH_TOKEN_COOKIE_PATH,
+      ...this.refreshCookieBase,
       expires: expiresAt,
     });
   }
 
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: REFRESH_TOKEN_COOKIE_PATH,
-    });
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.refreshCookieBase);
   }
 
   private sleep(ms: number): Promise<void> {
