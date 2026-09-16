@@ -30,8 +30,9 @@ export function OrderPendingPayment({ order, error, onRetry, isProcessing, isScr
         <p className={styles.eyebrow}>Order placed · awaiting payment</p>
         <h2 className={styles.heading}>Order {order.orderNumber}</h2>
         <p className={styles.subheading}>
-          Your order is saved. If you close this window it will be waiting for you under
-          “My orders” — you can pay anytime.
+          Payment is not done yet, so this order is still waiting. Your cart
+          still has these items if you leave and come back. You can also pay
+          anytime from “My orders”.
         </p>
       </div>
 

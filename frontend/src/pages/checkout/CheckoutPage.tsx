@@ -99,7 +99,9 @@ export function CheckoutPage() {
     // disagrees with this call (§13.G).
     onVerified: (result) => void navigate(orderDetailPath(result.orderId), { replace: true }),
     onDismissed: () =>
-      setPaymentError('Payment was not completed. Your order is still here — you can retry anytime.'),
+      setPaymentError(
+        'Payment was not completed. Your items are still in the cart — you can retry anytime.',
+      ),
     onError: (msg) => {
       if (msg.includes('Failed to load') || msg.includes('Razorpay Checkout script')) {
         setScriptLoadError(msg)
