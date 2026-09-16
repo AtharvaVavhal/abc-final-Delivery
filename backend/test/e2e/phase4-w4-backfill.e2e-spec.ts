@@ -165,6 +165,9 @@ describe('Phase 4 W4/W5 — backfill tooling', () => {
       typeof extra.tenantId === 'string'
         ? extra.tenantId
         : await latestTenantId();
+    const primaryStore = await prisma.store.findFirst({
+      where: { tenantId, isPrimary: true },
+    });
     const order = await rawInsert(prisma, 'orders', {
       orderNumber: `ORD-${randomUUID()}`,
       userId,
@@ -179,6 +182,7 @@ describe('Phase 4 W4/W5 — backfill tooling', () => {
       shippingPostalCode: '000000',
       shippingCountry: 'IN',
       tenantId,
+      storeId: primaryStore?.id ?? null,
       ...extra,
     });
     return order.id;
@@ -882,7 +886,7 @@ describe('Phase 4 W4/W5 — backfill tooling', () => {
       // (W7 NOT NULL); storeId/customerId backfill rolled back.
       const order = await rawSelectById(prisma, 'orders', orderId);
       expect(order.tenantId).toBe(tenantId);
-      expect(order.storeId).toBeNull();
+      expect(order.storeId).toBe(storeId);
       const counters = await prisma.tenantCounter.findMany({
         where: { tenantId },
       });
@@ -898,15 +902,25 @@ describe('Phase 4 W4/W5 — backfill tooling', () => {
       const otherTenant = await prisma.tenant.create({
         data: { slug: `t2-${randomUUID()}` },
       });
-      const { productId } = await makeCategoryAndProduct();
-      await prisma.product.update({
-        where: { id: productId },
-        data: { tenantId, storeId },
+      const category = await rawInsert(prisma, 'categories', {
+        name: 'Cat',
+        slug: `cat-${randomUUID()}`,
+        tenantId,
+        storeId,
+      });
+      const product = await rawInsert(prisma, 'products', {
+        categoryId: category.id,
+        name: 'Prod',
+        slug: `prod-${randomUUID()}`,
+        basePrice: 100,
+        minQuantity: 1,
+        tenantId,
+        storeId,
       });
       // Deliberately mismatched: image points at a DIFFERENT tenant than its parent product.
       await prisma.productImage.create({
         data: {
-          productId,
+          productId: product.id,
           cloudinaryPublicId: `pub-${randomUUID()}`,
           tenantId: otherTenant.id,
         },

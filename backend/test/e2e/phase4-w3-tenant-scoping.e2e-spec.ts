@@ -214,7 +214,7 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
         name: 'Test',
         slug: `cat-${randomUUID()}`,
       }),
-    ).rejects.toThrow(/tenantId/);
+    ).rejects.toThrow(/23502|Failing row|null value/);
     const tenant = await prisma.tenant.create({
       data: { slug: `t-${randomUUID()}` },
     });

@@ -49,37 +49,30 @@ describe('Phase 3 — RLS defense-in-depth (migration correctness, isolated)', (
   async function applyMigrationSql(
     tx: Prisma.TransactionClient,
   ): Promise<void> {
+    // `prisma migrate deploy` already applied this migration in CI. A
+    // CREATE POLICY inside the probe transaction then raises 42710 and
+    // aborts the whole Postgres transaction (25P02) even if JS catches it.
+    // Skip re-apply when the policy is already present; the probes still
+    // exercise the live RLS policy.
+    const alreadyApplied = await tx.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'tenants'
+          AND policyname = 'tenant_isolation'
+      ) AS "exists"
+    `;
+    if (alreadyApplied[0]?.exists) {
+      return;
+    }
     const withoutComments = migrationSql.replace(/--[^\n]*/g, '');
     const statements = withoutComments
       .split(';')
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
     for (const stmt of statements) {
-      try {
-        await tx.$executeRawUnsafe(stmt);
-      } catch (err) {
-        // CI (and any fully-migrated database) already applied this
-        // migration via `prisma migrate deploy`. Re-running CREATE POLICY
-        // then raises Postgres 42710 (duplicate_object). ENABLE/FORCE RLS
-        // are idempotent; only CREATE POLICY is not. Swallow that so the
-        // rolled-back probes still exercise the already-installed policy.
-        // Prisma surfaces the Postgres code either as `err.code` or inside
-        // a P2010 "Raw query failed. Code: `42710`" wrapper.
-        const prismaCode =
-          err instanceof Prisma.PrismaClientKnownRequestError
-            ? err.code
-            : '';
-        const message = err instanceof Error ? err.message : String(err);
-        if (
-          prismaCode === '42710' ||
-          prismaCode === 'P2010' ||
-          /already exists/i.test(message) ||
-          /42710/.test(message)
-        ) {
-          continue;
-        }
-        throw err;
-      }
+      await tx.$executeRawUnsafe(stmt);
     }
   }
 
