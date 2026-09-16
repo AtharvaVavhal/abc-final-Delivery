@@ -56,6 +56,18 @@
   gap: var(--space-3);
 }
 
+.cancelConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cancelCopy {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
 .cartLink {
   margin: 0;
   font-size: var(--text-sm);

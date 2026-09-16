@@ -78,6 +78,7 @@ describe('OrdersPage', () => {
     expect(screen.getByText('3 items')).toBeInTheDocument()
     expect(screen.getByText('₹450.00')).toBeInTheDocument()
     expect(screen.getByText('15 Jan 2026')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel order' })).not.toBeInTheDocument()
   })
 
   it('links each row to the order detail page', async () => {
@@ -87,6 +88,25 @@ describe('OrdersPage', () => {
 
     const link = await screen.findByRole('link', { name: /PF-000001/ })
     expect(link).toHaveAttribute('href', '/orders/order-1')
+  })
+
+  it('lets the customer cancel an unpaid order from the list', async () => {
+    const user = userEvent.setup()
+    mock.onGet('/orders').reply(200, ordersResponse([buildOrder({ status: 'PENDING_PAYMENT' })]))
+    mock.onPost('/orders/order-1/cancel').reply(200, {
+      success: true,
+      data: buildOrder({ status: 'CANCELLED' }),
+    })
+
+    renderWithProviders(<OrdersPage />)
+
+    expect(await screen.findByRole('button', { name: 'Cancel order' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancel order' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel order' }))
+
+    await waitFor(() =>
+      expect(mock.history.post.some((r) => r.url === '/orders/order-1/cancel')).toBe(true),
+    )
   })
 
   it('renders the empty-orders state (distinct from an error) when there are zero orders', async () => {

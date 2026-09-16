@@ -784,7 +784,8 @@ describe('CheckoutPage', () => {
     })
 
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Cancel order and check out cart' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel order' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel order' }))
 
     expect(await screen.findByLabelText('Recipient name')).toBeInTheDocument()
     expect(screen.queryByText(/awaiting payment/i)).not.toBeInTheDocument()

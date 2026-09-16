@@ -249,6 +249,77 @@ describe('Header', () => {
     ).toHaveAttribute('href', '/register')
   })
 
+  it('keeps a category dropdown open while the pointer travels from the trigger into the menu', async () => {
+    mock.onGet('/categories/tree').reply(200, {
+      success: true,
+      data: [
+        {
+          id: 'parent-1',
+          name: 'Acrylic Gifts',
+          slug: 'acrylic-gifts',
+          parentCategoryId: null,
+          children: [
+            {
+              id: 'child-1',
+              name: 'Acrylic Photos',
+              slug: 'acrylic-photos',
+              parentCategoryId: 'parent-1',
+              children: [],
+            },
+          ],
+        },
+      ],
+    })
+    renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
+
+    const trigger = await screen.findByRole('button', { name: /Acrylic Gifts/ })
+    const item = trigger.closest('li')
+    expect(item).not.toBeNull()
+
+    fireEvent.mouseEnter(item!)
+    expect(await screen.findByRole('menuitem', { name: 'Acrylic Photos' })).toBeInTheDocument()
+
+    fireEvent.mouseLeave(item!)
+    expect(screen.getByRole('menuitem', { name: 'Acrylic Photos' })).toBeInTheDocument()
+
+    fireEvent.mouseEnter(item!)
+    expect(screen.getByRole('menuitem', { name: 'Acrylic Photos' })).toBeInTheDocument()
+  })
+
+  it('closes the category dropdown after the pointer has left and the grace period ends', async () => {
+    mock.onGet('/categories/tree').reply(200, {
+      success: true,
+      data: [
+        {
+          id: 'parent-1',
+          name: 'Acrylic Gifts',
+          slug: 'acrylic-gifts',
+          parentCategoryId: null,
+          children: [
+            {
+              id: 'child-1',
+              name: 'Acrylic Photos',
+              slug: 'acrylic-photos',
+              parentCategoryId: 'parent-1',
+              children: [],
+            },
+          ],
+        },
+      ],
+    })
+    renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
+
+    const trigger = await screen.findByRole('button', { name: /Acrylic Gifts/ })
+    const item = trigger.closest('li')!
+    fireEvent.mouseEnter(item)
+    expect(await screen.findByRole('menuitem', { name: 'Acrylic Photos' })).toBeInTheDocument()
+
+    fireEvent.mouseLeave(item)
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: 'Acrylic Photos' })).not.toBeInTheDocument()
+    })
+  })
+
   it('logs out from the drawer and collapses it afterwards (UX-16)', async () => {
     const logout = vi.fn().mockResolvedValue(undefined)
     renderWithProviders(<Header />, {

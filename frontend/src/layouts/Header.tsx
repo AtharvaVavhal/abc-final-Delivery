@@ -18,6 +18,8 @@ import styles from './Header.module.css'
 
 /** Keep long group names from colliding with brand and cart icons. */
 const VISIBLE_CATEGORY_LIMIT = 3
+/** Pointer can cross the trigger → panel gap without the menu unmounting. */
+const MENU_CLOSE_MS = 180
 
 function brandLabel(storeName: string): string {
   return storeName.trim().toLowerCase() === 'printforge' ? STORE_NAME_FALLBACK : storeName
@@ -50,6 +52,28 @@ export function Header() {
   const moreRef = useRef<HTMLLIElement>(null)
   const searchWrapRef = useRef<HTMLDivElement>(null)
   const searchPanelRef = useRef<HTMLDivElement>(null)
+  const menuCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const cancelMenuClose = () => {
+    if (menuCloseTimer.current) {
+      clearTimeout(menuCloseTimer.current)
+      menuCloseTimer.current = undefined
+    }
+  }
+
+  const openCategoryMenu = (id: string) => {
+    cancelMenuClose()
+    setMoreOpen(false)
+    setOpenGroupId(id)
+  }
+
+  const scheduleCloseCategoryMenu = (id: string) => {
+    cancelMenuClose()
+    menuCloseTimer.current = setTimeout(() => {
+      setOpenGroupId((current) => (current === id ? null : current))
+      menuCloseTimer.current = undefined
+    }, MENU_CLOSE_MS)
+  }
 
   const searchParams = new URLSearchParams(location.search)
   const currentCategoryParam = (searchParams.get('category') || searchParams.get('categoryId') || '')
@@ -94,10 +118,13 @@ export function Header() {
   }, [])
 
   useEffect(() => {
+    cancelMenuClose()
     setMoreOpen(false)
     setOpenGroupId(null)
     setSearchOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => () => cancelMenuClose(), [])
 
   return (
     <header className={styles.header}>
@@ -126,7 +153,10 @@ export function Header() {
           </NavLink>
         </div>
 
-        <nav className={styles.navDesktop} aria-label="Product categories">
+        <nav
+          className={cn(styles.navDesktop, (openGroupId || moreOpen) && styles.navDesktopRaised)}
+          aria-label="Product categories"
+        >
           <ul className={styles.navList}>
             <li>
               <NavLink
@@ -162,17 +192,15 @@ export function Header() {
                   return (
                     <li
                       key={category.id}
-                      className={styles.moreItem}
-                      onMouseEnter={() => {
-                        setOpenGroupId(category.id)
-                        setMoreOpen(false)
-                      }}
-                      onMouseLeave={() => setOpenGroupId((current) => (current === category.id ? null : current))}
+                      className={cn(styles.moreItem, menuOpen && styles.moreItemOpen)}
+                      onMouseEnter={() => openCategoryMenu(category.id)}
+                      onMouseLeave={() => scheduleCloseCategoryMenu(category.id)}
                     >
                       <button
                         type="button"
                         className={cn(styles.navLink, styles.moreBtn, isActive && styles.navLinkActive)}
                         onClick={() => {
+                          cancelMenuClose()
                           setOpenGroupId((current) => (current === category.id ? null : category.id))
                           setMoreOpen(false)
                         }}
@@ -207,7 +235,7 @@ export function Header() {
                   )
                 })}
                 {overflowCategories.length > 0 && (
-                  <li className={styles.moreItem} ref={moreRef}>
+                  <li className={cn(styles.moreItem, moreOpen && styles.moreItemOpen)} ref={moreRef}>
                     <button
                       type="button"
                       className={cn(styles.navLink, styles.moreBtn, moreOpen && styles.navLinkActive)}

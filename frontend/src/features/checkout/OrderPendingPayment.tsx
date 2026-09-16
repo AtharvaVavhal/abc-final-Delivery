@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CheckoutOrderView } from '@/types/checkout'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
@@ -35,6 +36,7 @@ export function OrderPendingPayment({
   isCancelling,
   isScriptLoading,
 }: OrderPendingPaymentProps) {
+  const [isConfirmingCancel, setIsConfirmingCancel] = useState(false)
   const isDisabled = isProcessing || isScriptLoading || isCancelling
 
   return (
@@ -44,8 +46,8 @@ export function OrderPendingPayment({
         <h2 className={styles.heading}>Order {order.orderNumber}</h2>
         <p className={styles.subheading}>
           Payment is not done yet, so this order is still waiting. Pay below
-          for these items, or cancel it to check out whatever is in your cart
-          now.
+          for these items, or cancel the order to check out whatever is in
+          your cart now.
         </p>
       </div>
 
@@ -82,15 +84,37 @@ export function OrderPendingPayment({
       >
         {isScriptLoading ? 'Loading payment…' : error ? 'Retry payment' : 'Pay now'}
       </Button>
-      <Button
-        variant="secondary"
-        onClick={onCancel}
-        isLoading={Boolean(isCancelling)}
-        className={styles.payButton}
-        disabled={isDisabled}
-      >
-        Cancel order and check out cart
-      </Button>
+      {isConfirmingCancel ? (
+        <div className={styles.cancelConfirm}>
+          <p className={styles.cancelCopy}>Cancel this unpaid order?</p>
+          <Button
+            variant="secondary"
+            onClick={onCancel}
+            isLoading={Boolean(isCancelling)}
+            className={styles.payButton}
+            disabled={isDisabled && !isCancelling}
+          >
+            Yes, cancel order
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setIsConfirmingCancel(false)}
+            className={styles.payButton}
+            disabled={Boolean(isCancelling)}
+          >
+            Never mind
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="secondary"
+          onClick={() => setIsConfirmingCancel(true)}
+          className={styles.payButton}
+          disabled={isDisabled}
+        >
+          Cancel order
+        </Button>
+      )}
       <p className={styles.cartLink}>
         <Link to={ROUTES.CART}>Change items in cart</Link>
       </p>
