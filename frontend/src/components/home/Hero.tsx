@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FocusEvent, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -13,7 +12,6 @@ import {
   localHeroBasename,
   optimizedHeroUrl,
 } from '@/features/media/heroLcpImage'
-import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
 import styles from './Hero.module.css'
 
 export interface HeroSlide {
@@ -44,7 +42,7 @@ function HeroSlideImage({
   style?: { animationDuration?: string }
   lcp: boolean
 }) {
-  const loading = lcp ? 'eager' : 'lazy'
+  const loading = 'eager' as const
   const fetchPriority = lcp ? 'high' : 'low'
   const img = (
     <img
@@ -126,13 +124,12 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
   const resolved = slides && slides.length > 0 ? slides : []
   const slideCount = resolved.length
   const reducedMotion = usePrefersReducedMotion()
-  const allowSecondary = useDeferUntilIdle()
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
-  const [interactionPaused, setInteractionPaused] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
   const currentIndexRef = useRef(currentIndex)
+  const isPlayingRef = useRef(isPlaying)
 
   const current = resolved[currentIndex] ?? resolved[0]
 
@@ -149,20 +146,25 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
     currentIndexRef.current = currentIndex
   }, [currentIndex])
 
-  // Reads the index via ref instead of depending on currentIndex, so the
-  // interval is only torn down/recreated on a pause-state change (not on
-  // every slide advance).
   useEffect(() => {
-    if (reducedMotion || !isPlaying || interactionPaused || slideCount <= 1) {
+    isPlayingRef.current = isPlaying
+  }, [isPlaying])
+
+  // Reduced-motion only skips the Ken Burns zoom — slide rotation still runs.
+  // macOS "Reduce motion" was turning autoplay off entirely.
+  useEffect(() => {
+    if (slideCount <= 1) {
       return
     }
     const timer = window.setInterval(() => {
+      if (!isPlayingRef.current) return
+      if (typeof document !== 'undefined' && document.hidden) return
       goTo(currentIndexRef.current + 1)
     }, AUTOPLAY_MS)
     return () => {
       window.clearInterval(timer)
     }
-  }, [reducedMotion, isPlaying, interactionPaused, slideCount, goTo])
+  }, [slideCount, goTo])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -179,13 +181,6 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [next, prev])
 
-  const pauseInteraction = () => setInteractionPaused(true)
-  const resumeInteraction = (event: FocusEvent | MouseEvent) => {
-    const nextTarget = 'relatedTarget' in event ? event.relatedTarget : null
-    if (nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return
-    setInteractionPaused(false)
-  }
-
   if (!current) return null
 
   return (
@@ -194,35 +189,27 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
       className={styles.hero}
       aria-roledescription="carousel"
       aria-label="Promotional hero"
-      onMouseEnter={pauseInteraction}
-      onMouseLeave={resumeInteraction}
-      onFocus={pauseInteraction}
-      onBlur={resumeInteraction}
     >
       <div className={styles.stage}>
         {resolved.map((slide, index) => {
           const isActive = index === currentIndex
-          const isNext = index === (currentIndex + 1) % slideCount
-          const shouldLoad = index === 0 || isActive || (allowSecondary && isNext)
           return (
             <div
               key={slide.id}
               className={cn(styles.slide, isActive && styles.slideActive)}
               aria-hidden={!isActive}
             >
-              {shouldLoad ? (
-                <HeroSlideImage
-                  url={slide.image}
-                  alt={isActive ? slide.alt : ''}
-                  className={cn(styles.image, isActive && !reducedMotion && styles.kenBurns)}
-                  style={
-                    isActive && !reducedMotion
-                      ? { animationDuration: `${AUTOPLAY_MS}ms` }
-                      : undefined
-                  }
-                  lcp={index === 0 && currentIndex === 0}
-                />
-              ) : null}
+              <HeroSlideImage
+                url={slide.image}
+                alt={isActive ? slide.alt : ''}
+                className={cn(styles.image, isActive && !reducedMotion && styles.kenBurns)}
+                style={
+                  isActive && !reducedMotion
+                    ? { animationDuration: `${AUTOPLAY_MS}ms` }
+                    : undefined
+                }
+                lcp={index === 0}
+              />
             </div>
           )
         })}
@@ -280,21 +267,19 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
             ))}
           </div>
 
-          {!reducedMotion && (
-            <button
-              type="button"
-              className={styles.playPause}
-              onClick={() => setIsPlaying((playing) => !playing)}
-              aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
-              aria-pressed={isPlaying}
-            >
-              {isPlaying ? (
-                <Pause size={18} aria-hidden="true" />
-              ) : (
-                <Play size={18} aria-hidden="true" />
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.playPause}
+            onClick={() => setIsPlaying((playing) => !playing)}
+            aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
+            aria-pressed={isPlaying}
+          >
+            {isPlaying ? (
+              <Pause size={18} aria-hidden="true" />
+            ) : (
+              <Play size={18} aria-hidden="true" />
+            )}
+          </button>
         </>
       )}
     </section>
