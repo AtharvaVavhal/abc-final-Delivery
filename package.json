@@ -1,0 +1,12 @@
+{
+  "name": "abc-creations",
+  "private": true,
+  "description": "Deploy shim so Railway/Nixpacks can build the Nest API from the monorepo root. The Vercel frontend uses frontend/ as its Root Directory and ignores this file.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm ci --prefix backend && npm run prisma:generate --prefix backend && npm run build --prefix backend",
+    "start": "npm run prisma:migrate:deploy --prefix backend && npm run start:prod --prefix backend"
+  }
+}

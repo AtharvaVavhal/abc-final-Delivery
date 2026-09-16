@@ -10,21 +10,16 @@ import { rawInsert, rawSelectById, resetDatabase } from './support/db';
  *
  * Pure schema-constraint tests — a bare PrismaClient against the isolated
  * printforge_test database, mirroring the style of
- * identity-foundation.e2e-spec.ts. Proves W3's own scope and nothing more:
- * every new column is nullable with no default, every column accepts NULL
- * on insert (no backfill happened), and no composite FK/unique was added to
- * any of the 21 pre-existing commerce tables (that is W6, not started).
+ * identity-foundation.e2e-spec.ts. W3 added the ownership columns; W7
+ * (P4-D2) later SET tenantId NOT NULL on the 20 commerce tables (outbox
+ * stays nullable). This suite now asserts the post-W7 schema, not the
+ * historical nullable-W3 snapshot.
  *
- * The expected tenantId/storeId requirement per table is PARSED DIRECTLY from
- * docs/saas/PHASE-4-START-GATE-AND-IMPLEMENTATION-SPEC.md §3 at test-run time
- * (parseSpecOwnershipTable below) rather than hand-copied into a literal here.
- * This is a direct fix for the P4 W3 independent audit's P1/P2 findings: the
- * original version of this file hardcoded a column list that happened to
- * mirror the (at-the-time incomplete) schema, so it could not — and did not —
- * catch that `CouponUsage.storeId` was missing despite the spec's §3.5 table
- * marking it "✓" (direct-column-required). Deriving the expectation from the
- * spec's own text means a future schema/spec drift fails this suite instead
- * of silently passing.
+ * The expected tenantId/storeId/customerId requirement per table is PARSED
+ * DIRECTLY from docs/saas/PHASE-4-IMPLEMENTATION-REPORT.md §4 at test-run
+ * time (parseSpecOwnershipTable below) rather than hand-copied into a
+ * literal here. The original start-gate spec file is no longer in the
+ * tree; the implementation report's §4 table is the surviving source.
  */
 describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
   const prisma = new PrismaClient();
@@ -37,7 +32,7 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
 
   const SPEC_PATH = join(
     __dirname,
-    '../../../docs/saas/PHASE-4-START-GATE-AND-IMPLEMENTATION-SPEC.md',
+    '../../../docs/saas/PHASE-4-IMPLEMENTATION-REPORT.md',
   );
 
   /**
@@ -63,7 +58,7 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
    * required" signal: the same row's own "Target FKs" cell explicitly says
    * `add \`uploadedByCustomerId?→Customer\` (customer path)`, and P4-D1
    * names `UploadedFile.uploadedByCustomerId?` in its approved column list.
-   * Documented override, not a silent broadening of `isRequiredMarker`.
+   * Documented override, not a silent broadening of the CID matcher.
    */
   const CID_REQUIRED_OVERRIDE = new Set(['UploadedFile']);
 
@@ -73,30 +68,20 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
     cid: boolean;
   }
 
-  function isRequiredMarker(cell: string | undefined): boolean {
-    return !!cell && cell.trim().startsWith('✓');
-  }
-
-  /** Parses every `| \`Model\` (\`table\`) | ... |` row in spec §3 into its TID/SID/CID markers. */
+  /** Parses every `| \`Model\` (\`table\`) | \`tenantId\`, ... |` row in report §4. */
   function parseSpecOwnershipTable(): Map<string, SpecOwnership> {
     const spec = readFileSync(SPEC_PATH, 'utf8');
     const result = new Map<string, SpecOwnership>();
-    const rowRe = /^\|\s*`(\w+)`\s*\(`\w+`\)\s*\|(.+)\|\s*$/gm;
+    const rowRe = /^\|\s*`(\w+)`\s*\(`\w+`\)\s*\|\s*([^|]+)\|/gm;
     let m: RegExpExecArray | null;
     while ((m = rowRe.exec(spec)) !== null) {
-      const [, modelName, rest] = m;
-      const cells = rest.split('|').map((c) => c.trim());
-      // cells[0]=Current ownership, cells[1]=Target ownership, cells[2]=TID,
-      // cells[3]=SID, cells[4]=CID (§3.2-3.5 shape only — §3.1 has no CID
-      // column, and §3.6's platform-table rows have neither SID nor CID, so
-      // cells[3]/cells[4] there are simply prose/undefined and correctly
-      // never match `isRequiredMarker`).
+      const [, modelName, colCell] = m;
       result.set(modelName, {
-        tid: isRequiredMarker(cells[2]),
-        sid: isRequiredMarker(cells[3]),
+        tid: /`tenantId`/.test(colCell),
+        sid: /`storeId`/.test(colCell),
         cid: NO_CID_COLUMN_TABLES.has(modelName)
           ? false
-          : isRequiredMarker(cells[4]) || CID_REQUIRED_OVERRIDE.has(modelName),
+          : /customerId/i.test(colCell) || CID_REQUIRED_OVERRIDE.has(modelName),
       });
     }
     return result;
@@ -182,7 +167,7 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
     return cols;
   }
 
-  describe('every spec-required column exists, is nullable, has no default, and is not part of any FK yet', () => {
+  describe('every spec-required column exists, has no default, and matches post-W7 nullability', () => {
     const cases = Object.keys(MODEL_TO_TABLE).flatMap((model) =>
       expectedColumnsFor(model).map(
         (col) => [MODEL_TO_TABLE[model], col] as const,
@@ -203,23 +188,10 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
         column,
       );
       expect(rows).toHaveLength(1);
-      expect(rows[0].is_nullable).toBe('YES');
+      // W7 SET NOT NULL on tenantId for these 20 tables; storeId and the
+      // customerId-family columns stay nullable.
+      expect(rows[0].is_nullable).toBe(column === 'tenantId' ? 'NO' : 'YES');
       expect(rows[0].column_default).toBeNull();
-
-      const fkRows = await prisma.$queryRawUnsafe<
-        { constraint_name: string }[]
-      >(
-        `SELECT tc.constraint_name FROM information_schema.table_constraints tc
-           JOIN information_schema.key_column_usage kcu
-             ON tc.constraint_name = kcu.constraint_name
-          WHERE tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_name = $1
-            AND kcu.column_name = $2`,
-        table,
-        column,
-      );
-      // W6 (composite FKs) has not started — no FK constraint on this column yet.
-      expect(fkRows).toHaveLength(0);
     });
   });
 
@@ -235,21 +207,24 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
     expect(rows[0].column_default).toBeNull();
   });
 
-  it('no existing commerce row was touched — every W3 column reads back NULL on an untouched row (no backfill executed)', async () => {
+  it('W7 rejects a commerce insert that omits tenantId; storeId may still be null', async () => {
     await resetDatabase(prisma);
-    // Phase 4 W7 (P4-D2) made `tenantId` non-nullable in Prisma Client's
-    // own generated types, so `prisma.category.create({...})` can no
-    // longer omit it — but the point of THIS test is to prove the
-    // pre-backfill DB-column state (still nullable in `printforge_test`;
-    // W7's migration has only ever run against a disposable scratch
-    // database, never here). `rawInsert` bypasses Prisma Client's typed
-    // `.create()` for exactly this reason — see its own doc comment.
+    await expect(
+      rawInsert(prisma, 'categories', {
+        name: 'Test',
+        slug: `cat-${randomUUID()}`,
+      }),
+    ).rejects.toThrow(/tenantId/);
+    const tenant = await prisma.tenant.create({
+      data: { slug: `t-${randomUUID()}` },
+    });
     const { id } = await rawInsert(prisma, 'categories', {
       name: 'Test',
       slug: `cat-${randomUUID()}`,
+      tenantId: tenant.id,
     });
     const category = await rawSelectById(prisma, 'categories', id);
-    expect(category.tenantId).toBeNull();
+    expect(category.tenantId).toBe(tenant.id);
     expect(category.storeId).toBeNull();
   });
 
@@ -276,6 +251,8 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
       flatAmountOff: 10,
       scopeType: 'STORE_WIDE',
       createdByAdminId: user.id,
+      tenantId: tenant.id,
+      storeId: store.id,
     });
     const order = await rawInsert(prisma, 'orders', {
       orderNumber: `ORD-${randomUUID()}`,
@@ -290,12 +267,14 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
       shippingState: 'State',
       shippingPostalCode: '000000',
       shippingCountry: 'IN',
+      tenantId: tenant.id,
     });
     const usageNoStore = await rawInsert(prisma, 'coupon_usages', {
       couponId: coupon.id,
       userId: user.id,
       orderId: order.id,
       discountAppliedAmount: 10,
+      tenantId: tenant.id,
     });
     const readBackNoStore = await rawSelectById(
       prisma,
@@ -318,12 +297,14 @@ describe('SaaS Phase 4 (W3) — tenant/store/customer scoping columns', () => {
       shippingState: 'State',
       shippingPostalCode: '000000',
       shippingCountry: 'IN',
+      tenantId: tenant.id,
     });
     const usageWithStore = await rawInsert(prisma, 'coupon_usages', {
       couponId: coupon.id,
       userId: user.id,
       orderId: order2.id,
       discountAppliedAmount: 10,
+      tenantId: tenant.id,
       storeId: store.id,
     });
     const readBackWithStore = await rawSelectById(

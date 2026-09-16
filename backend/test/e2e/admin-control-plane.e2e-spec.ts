@@ -175,7 +175,7 @@ describe('Admin control plane (Phase 13.2)', () => {
       ).toBeNull();
     });
 
-    it('lists storeName defaulting to "PrintForge" and admin can update both values (persisted)', async () => {
+    it('lists storeName defaulting to "AB Creations" and admin can update both values (persisted)', async () => {
       const admin = await registerAdmin(app, prisma);
 
       const list = await http(app)
@@ -185,7 +185,7 @@ describe('Admin control plane (Phase 13.2)', () => {
       const storeName = (
         list.body.data as Array<{ key: string; value: string }>
       ).find((s) => s.key === 'storeName');
-      expect(storeName?.value).toBe('PrintForge');
+      expect(storeName?.value).toBe('AB Creations');
 
       await http(app)
         .patch(apiPath('/admin/settings/storeName'))
@@ -224,12 +224,12 @@ describe('Admin control plane (Phase 13.2)', () => {
         .expect(400);
     });
 
-    it('public GET /settings/storeName returns "PrintForge" by default, then the saved value', async () => {
+    it('public GET /settings/storeName returns "AB Creations" by default, then the saved value', async () => {
       // Default, before any admin has saved.
       const before = await http(app)
         .get(apiPath('/settings/storeName'))
         .expect(200);
-      expect(before.body.data.value).toBe('PrintForge');
+      expect(before.body.data.value).toBe('AB Creations');
 
       const admin = await registerAdmin(app, prisma);
       await http(app)

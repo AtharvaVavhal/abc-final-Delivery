@@ -46,7 +46,7 @@ each is required.
 | `SENTRY_DSN` | — | — | ⬜ recommended | Error tracking. `Sentry.init` is a **no-op when unset** — intentionally *not* enforced so error reporting can never block boot. | `https://xxx@oyyy.ingest.sentry.io/zzz` | Render service env |
 
 Legend: ✅ required · ⬜ optional (has a safe empty default) · — not applicable / has a hard-coded default
-\* CI's generated `.env.test` **does** set `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` to dummy values because `payments-race.e2e-spec.ts` exercises the real local HMAC path (no network call).
+\* CI's generated `.env.test` **does** set `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, and a 32-byte test `PAYMENT_CREDENTIALS_MASTER_KEY` (the same placeholder as `env.validation.spec.ts`) because payment e2e encrypts merchant credentials locally and signs HMAC payloads — no live Razorpay/Cloudinary/Resend network call.
 \** `FRONTEND_URL` / `BACKEND_URL` have `localhost` defaults in `configuration.ts` for dev convenience; they are Tier-2 (production-enforced) so a prod deploy cannot silently fall back to `localhost` CORS.
 
 ### Render service settings

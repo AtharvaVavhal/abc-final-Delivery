@@ -128,7 +128,7 @@ describe('AppSetting tenant/store ownership (Phase 5 W9)', () => {
           s.value,
         ]),
       );
-      expect(byKeyB.storeName).toBe('PrintForge'); // untouched default
+      expect(byKeyB.storeName).toBe('AB Creations'); // untouched default
       expect(byKeyB.shippingFeeFlat).toBe('0.00');
 
       const storeA = await prisma.store.findFirstOrThrow({

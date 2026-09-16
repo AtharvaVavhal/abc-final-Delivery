@@ -122,6 +122,10 @@ jobs:
       # verifySignature/verifyWebhookSignature), which throws if either is
       # unset — still no real Razorpay network call, just two consistent
       # dummy secrets the test and the app both read.
+      # PAYMENT_CREDENTIALS_MASTER_KEY is the same 32-byte test placeholder
+      # used by env.validation.spec.ts — phase8/payments-race encrypt
+      # PaymentAccount credentials locally (AES-256-GCM), never against a
+      # production key.
       - name: Write .env.test
         working-directory: backend
         run: |
@@ -135,6 +139,7 @@ jobs:
           REFRESH_TOKEN_EXPIRES_IN=30d
           RAZORPAY_KEY_SECRET=ci-test-razorpay-key-secret
           RAZORPAY_WEBHOOK_SECRET=ci-test-razorpay-webhook-secret
+          PAYMENT_CREDENTIALS_MASTER_KEY=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
           EOF
 
       # test/jest-e2e.json already sets maxWorkers: 1 (these tests share
