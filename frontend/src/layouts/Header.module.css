@@ -8,9 +8,9 @@
 
 .inner {
   display: grid;
-  grid-template-columns: minmax(9.5rem, auto) minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: clamp(1.25rem, 3vw, 2.5rem);
+  column-gap: 1.5rem;
   min-height: 4.25rem;
   width: 100%;
   max-width: var(--container-max);
@@ -23,7 +23,8 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  height: 44px;
+  min-height: 44px;
+  height: 100%;
   justify-self: start;
   flex-shrink: 0;
 }
@@ -45,9 +46,9 @@
 
 .brandLogo {
   display: block;
-  height: 40px;
+  height: 44px;
   width: auto;
-  max-width: 11.5rem;
+  max-width: 12.75rem;
   object-fit: contain;
   object-position: center;
 }
@@ -55,7 +56,7 @@
 .navDesktop {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-width: 0;
   justify-self: stretch;
   overflow: visible;
@@ -68,7 +69,7 @@
 .navList {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(1rem, 2.2vw, 1.75rem);
   margin: 0;
   padding: 0;
@@ -720,13 +721,17 @@
   }
 
   :global([data-sidebar='open']) .brandLogo {
-    height: 42px;
-    max-width: 11.25rem;
+    height: 48px;
+    max-width: 13.5rem;
   }
 
   :global([data-sidebar='open']) .navDesktop {
     justify-content: flex-start;
-    padding-left: 1.5rem;
+    padding: 0 1.25rem 0 1.5rem;
+  }
+
+  :global([data-sidebar='open']) .navList {
+    gap: clamp(1rem, 2.2vw, 1.75rem);
   }
 }
 
