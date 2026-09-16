@@ -30,15 +30,25 @@ const BYPASS_SETTING = 'app.bypass_tenant_rls';
  * client — a nested `prisma.$transaction()` would abort the outer
  * transaction (Prisma "Transaction not found") and can deadlock the
  * connection pool.
+ *
+ * Prisma 6's `TransactionClient` also exposes `$transaction` (savepoints).
+ * Duck-typing on that method nested a second interactive transaction inside
+ * `createProduct`. `$extends` exists only on the real `PrismaClient`.
  */
+export function isPrismaService(
+  prisma: PrismaService | Prisma.TransactionClient,
+): prisma is PrismaService {
+  return typeof (prisma as PrismaService).$extends === 'function';
+}
+
 export async function withTenantRlsContext<T>(
   prisma: PrismaService | Prisma.TransactionClient,
   tenantId: string,
   fn: (tx: Prisma.TransactionClient) => Promise<T>,
   options?: { maxWait?: number; timeout?: number },
 ): Promise<T> {
-  if (typeof (prisma as PrismaService).$transaction === 'function') {
-    return (prisma as PrismaService).$transaction(
+  if (isPrismaService(prisma)) {
+    return prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT set_config(${TENANT_ID_SETTING}, ${tenantId}, true)`;
         return fn(tx);

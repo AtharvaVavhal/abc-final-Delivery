@@ -1,7 +1,8 @@
 .section {
-  padding: 1.25rem var(--container-padding);
-  background: #0b1220;
-  border-top: 1px solid #1e293b;
+  padding: var(--space-6) var(--container-padding);
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .grid {
@@ -22,7 +23,7 @@
 }
 
 .icon {
-  color: #fda4af;
+  color: var(--color-text-muted);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -30,14 +31,14 @@
 .itemTitle {
   margin: 0 0 0.15rem;
   font-size: 0.9rem;
-  font-weight: 650;
-  color: #ffffff;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .itemText {
   margin: 0;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   line-height: 1.45;
 }
 

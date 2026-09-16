@@ -1,4 +1,5 @@
 import { useProducts } from '@/hooks/useProducts'
+import { storefrontProductListParams } from '@/constants/query'
 import type { ListProductsParams } from '@/types/catalog'
 import { ProductCard } from '@/features/catalog/ProductCard'
 import { ProductCardSkeleton } from '@/features/catalog/ProductCardSkeleton'
@@ -32,11 +33,14 @@ export function ProductCollection({
   viewAllLabel,
   layout = 'rail',
 }: ProductCollectionProps) {
-  const { data, isPending, isError } = useProducts({ limit: layout === 'grid' ? 8 : 12, ...params })
+  const displayLimit = layout === 'grid' ? 8 : 12
+  const { data, isPending, isError } = useProducts(
+    storefrontProductListParams(params, displayLimit),
+  )
 
   if (isError) return null
 
-  const items = data?.items ?? []
+  const items = (data?.items ?? []).slice(0, displayLimit)
   if (!isPending && items.length === 0) return null
 
   const cards = isPending

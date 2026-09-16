@@ -58,6 +58,14 @@ function getExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() ?? ''
 }
 
+/** Cloudinary (and this field's own server-side re-check) always reports a
+ * JPEG as `jpg`, never `jpeg` — normalise both sides so a field configured
+ * with either spelling in `allowedFormats` accepts a `.jpg` file, matching
+ * the backend's equivalent normalisation in customization-validation.util.ts. */
+function normalizeImageFormat(format: string): string {
+  return format.toLowerCase() === 'jpg' ? 'jpeg' : format.toLowerCase()
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
@@ -104,8 +112,11 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
 
   function validateLocally(file: File): string | null {
     if (constraints.allowedFormats?.length) {
-      const extension = getExtension(file.name)
-      if (!constraints.allowedFormats.includes(extension)) {
+      const extension = normalizeImageFormat(getExtension(file.name))
+      const allowed = constraints.allowedFormats.some(
+        (f) => normalizeImageFormat(f) === extension,
+      )
+      if (!allowed) {
         return `${field.label} must be one of: ${constraints.allowedFormats.join(', ')}`
       }
     }
@@ -180,12 +191,15 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
     inputRef.current?.click()
   }
 
-  // localError (client-side format/size pre-check) takes priority over
-  // error (RHF/zod, e.g. "required") — once a rejected file clears the
-  // field back to blank, the required error would otherwise mask the
-  // more specific reason the file was rejected in the first place.
+  // localError (client-side format/size pre-check) and a failed upload
+  // both take priority over error (RHF/zod, e.g. "required") — once a
+  // rejected/failed file clears the field back to blank, the required
+  // error would otherwise mask the more specific reason the file never
+  // made it in (found via E2E testing: an upload failure, e.g. HTTP 401
+  // for an anonymous visitor, was silently swapped for "Photo is
+  // required" with no indication anything had even been attempted).
   const displayError =
-    localError ?? error ?? (upload.isError ? getApiErrorMessage(upload.error) : undefined)
+    localError ?? (upload.isError ? getApiErrorMessage(upload.error) : undefined) ?? error
 
   return (
     <div className={styles.field}>
@@ -202,7 +216,10 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
         ref={inputRef}
         id={field.id}
         type="file"
-        accept={constraints.allowedFormats?.map((format) => `.${format}`).join(',')}
+        accept={constraints.allowedFormats
+          ?.flatMap((format) => (format.toLowerCase() === 'jpeg' ? ['jpeg', 'jpg'] : [format]))
+          .map((format) => `.${format}`)
+          .join(',')}
         onChange={handleFileChange}
         disabled={upload.isPending}
         aria-invalid={Boolean(displayError)}

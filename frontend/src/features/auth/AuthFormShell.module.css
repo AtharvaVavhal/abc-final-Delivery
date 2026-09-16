@@ -4,7 +4,7 @@
   align-items: center;
   min-height: calc(100vh - 260px);
   padding: 3.5rem var(--container-padding);
-  background: radial-gradient(ellipse at 50% 30%, rgb(245 158 11 / 6%) 0%, transparent 60%), var(--color-canvas);
+  background: var(--color-canvas);
 }
 
 .card {
@@ -12,10 +12,9 @@
   max-width: 420px;
   padding: 2.5rem;
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--color-amber-primary);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--color-bg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .title {

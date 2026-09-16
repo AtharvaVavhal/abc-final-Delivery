@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { fetchCategoryTree, fetchProducts } from '@/services/api/catalog'
+import { useCategoryTree } from '@/hooks/useCategoryTree'
+import { useProducts } from '@/hooks/useProducts'
 import { categoryLeaves, categoryStillImage } from '@/features/catalog/categoryNavOrder'
 import { stillImageUrl, videoUrl, optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
-import { CATALOG_STALE_TIME_MS } from '@/constants/query'
+import { NEWEST_PRODUCTS_QUERY } from '@/constants/query'
 import { ROUTES } from '@/constants/routes'
 import type { ShowcaseCategory } from '@/services/api/settings'
 import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
@@ -25,18 +25,8 @@ export function CategoryDiscovery({
 }: {
   curated?: ShowcaseCategory[]
 }) {
-  const treeQuery = useQuery({
-    queryKey: ['categories', 'tree'],
-    queryFn: fetchCategoryTree,
-    staleTime: CATALOG_STALE_TIME_MS,
-    enabled: !curated?.length,
-  })
-  const productsQuery = useQuery({
-    queryKey: ['products', 'list', { limit: 100, sort: 'newest' as const }],
-    queryFn: () => fetchProducts({ limit: 100, sort: 'newest' }),
-    staleTime: CATALOG_STALE_TIME_MS,
-    enabled: !curated?.length,
-  })
+  const treeQuery = useCategoryTree({ enabled: !curated?.length })
+  const productsQuery = useProducts(NEWEST_PRODUCTS_QUERY, { enabled: !curated?.length })
 
   const items = useMemo<DiscoveryItem[]>(() => {
     if (curated?.length) {

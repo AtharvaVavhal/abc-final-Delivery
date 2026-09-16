@@ -21,6 +21,8 @@
   },
   "include": [
     "vite.config.ts",
+    "vite.storefront-shell-plugin.ts",
+    "src/features/media/heroLcpImage.ts",
     "src/seo/seoFiles.ts",
     "src/seo/siteConfig.constants.ts"
   ]

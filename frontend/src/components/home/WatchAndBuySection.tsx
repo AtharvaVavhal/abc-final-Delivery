@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { fetchProducts } from '@/services/api/catalog'
+import { useProducts } from '@/hooks/useProducts'
 import { videoUrl } from '@/features/media/mediaAsset'
-import { CATALOG_STALE_TIME_MS } from '@/constants/query'
+import { NEWEST_PRODUCTS_QUERY } from '@/constants/query'
 import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
 import { VideoProductCard } from './VideoProductCard'
 import styles from './WatchAndBuySection.module.css'
@@ -13,11 +12,7 @@ import styles from './WatchAndBuySection.module.css'
  * backend has no such field.
  */
 export function WatchAndBuySection() {
-  const { data, isPending, isError } = useQuery({
-    queryKey: ['products', 'list', { limit: 100, sort: 'newest' as const }],
-    queryFn: () => fetchProducts({ limit: 100, sort: 'newest' }),
-    staleTime: CATALOG_STALE_TIME_MS,
-  })
+  const { data, isPending, isError } = useProducts(NEWEST_PRODUCTS_QUERY)
 
   const items = useMemo(
     () => (data?.items ?? []).filter((product) => Boolean(videoUrl(product))),

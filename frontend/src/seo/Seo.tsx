@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react'
 import { SITE_NAME, absoluteUrl, clampDescription, pageTitle } from './siteConfig'
 import type { JsonLdObject } from './jsonLd'
 
@@ -20,12 +21,36 @@ interface SeoProps {
   jsonLd?: JsonLdObject | JsonLdObject[]
 }
 
+function upsertMeta(attr: 'name' | 'property', key: string, content: string | undefined): void {
+  const nodes = [...document.head.querySelectorAll(`meta[${attr}="${key}"]`)]
+  if (!content) {
+    for (const node of nodes) node.remove()
+    return
+  }
+  const el =
+    (nodes[0] as HTMLMetaElement | undefined) ?? document.head.appendChild(document.createElement('meta'))
+  el.setAttribute(attr, key)
+  el.setAttribute('content', content)
+  for (const extra of nodes.slice(1)) extra.remove()
+}
+
+function upsertCanonical(href: string | undefined): void {
+  const nodes = [...document.head.querySelectorAll('link[rel="canonical"]')]
+  if (!href) {
+    for (const node of nodes) node.remove()
+    return
+  }
+  const el =
+    (nodes[0] as HTMLLinkElement | undefined) ?? document.head.appendChild(document.createElement('link'))
+  el.setAttribute('rel', 'canonical')
+  el.setAttribute('href', href)
+  for (const extra of nodes.slice(1)) extra.remove()
+}
+
 /**
- * Route-level document metadata, rendered with React 19's native support
- * for `<title>` / `<meta>` / `<link>` in component output (which hoists
- * them into `<head>` and tears them down on unmount) — no head-management
- * dependency, no second system competing with the tags already in
- * index.html.
+ * Route-level document metadata. Title and JSON-LD still use React 19's
+ * native head hoisting. Description / OG / Twitter / canonical are upserted
+ * onto the tags already in index.html so hydration does not duplicate them.
  *
  * SPA caveat (§16): these tags are applied after the JS bundle runs.
  * Googlebot renders the page before indexing so it sees the final values,
@@ -46,26 +71,30 @@ export function Seo({
   const desc = description ? clampDescription(description) : undefined
   const canonicalUrl =
     !noindex && canonicalPath ? absoluteUrl(canonicalPath) : undefined
+  const robots = noindex ? 'noindex, nofollow' : 'index, follow'
+  const twitterCard = ogImage ? 'summary_large_image' : 'summary'
 
   const blocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
+
+  useLayoutEffect(() => {
+    upsertMeta('name', 'robots', robots)
+    upsertMeta('name', 'description', desc)
+    upsertCanonical(canonicalUrl)
+    upsertMeta('property', 'og:site_name', SITE_NAME)
+    upsertMeta('property', 'og:type', ogType)
+    upsertMeta('property', 'og:title', fullTitle)
+    upsertMeta('property', 'og:description', desc)
+    upsertMeta('property', 'og:url', canonicalUrl)
+    upsertMeta('property', 'og:image', ogImage)
+    upsertMeta('name', 'twitter:card', twitterCard)
+    upsertMeta('name', 'twitter:title', fullTitle)
+    upsertMeta('name', 'twitter:description', desc)
+    upsertMeta('name', 'twitter:image', ogImage)
+  }, [robots, desc, canonicalUrl, ogType, fullTitle, ogImage, twitterCard])
 
   return (
     <>
       <title>{fullTitle}</title>
-      <meta
-        name="robots"
-        content={noindex ? 'noindex, nofollow' : 'index, follow'}
-      />
-      {desc && <meta name="description" content={desc} />}
-      {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
-
-      <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:type" content={ogType} />
-      <meta property="og:title" content={fullTitle} />
-      {desc && <meta property="og:description" content={desc} />}
-      {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-      {ogImage && <meta property="og:image" content={ogImage} />}
-
       {blocks.map((block, i) => (
         <script
           key={i}

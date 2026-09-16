@@ -87,14 +87,13 @@
 }
 
 .closeButton:hover {
-  background: #e11d48;
+  background: var(--color-text-strong);
   border-color: #ffffff;
-  transform: scale(1.1);
 }
 
 .closeButton:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.6);
+  box-shadow: var(--focus-ring);
 }
 
 .titleBadge {
@@ -124,41 +123,35 @@
   width: 100%;
   max-width: 320px;
   padding: 0.875rem 1.75rem;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #fb7185 100%);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
   color: #ffffff;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
   text-decoration: none;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.45),
-              0 2px 6px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0;
+  box-shadow: none;
   border: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s ease,
-              filter 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .ctaButton:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 12px 30px rgba(225, 29, 72, 0.6),
-              0 4px 10px rgba(0, 0, 0, 0.25);
-  filter: brightness(1.05);
+  background: var(--color-primary-hover);
 }
 
 .ctaButton:active {
-  transform: translateY(0) scale(0.98);
+  background: var(--color-primary-active);
 }
 
 .ctaButton:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #e11d48;
+  box-shadow: var(--focus-ring);
 }
 
 @media (max-width: 640px) {

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
+import { ThrottleAuth } from '../common/throttling/throttle.decorators';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { REFRESH_TOKEN_COOKIE_NAME } from '../common/constants/app.constants';
@@ -37,6 +38,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @ThrottleAuth()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -47,6 +49,7 @@ export class AuthController {
   }
 
   @Public()
+  @ThrottleAuth()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -94,6 +97,7 @@ export class AuthController {
   }
 
   @Public()
+  @ThrottleAuth()
   @Post('password-reset/request')
   @HttpCode(HttpStatus.OK)
   async requestPasswordReset(
@@ -108,6 +112,7 @@ export class AuthController {
   }
 
   @Public()
+  @ThrottleAuth()
   @Post('password-reset/confirm')
   @HttpCode(HttpStatus.OK)
   async confirmPasswordReset(

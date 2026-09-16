@@ -29,7 +29,9 @@ this repo). Topology is frozen — see [`README.md`](./README.md).
 See [`ENVIRONMENT.md`](./ENVIRONMENT.md). Summary of what MUST be present in
 production: `NODE_ENV=production`, `PORT`, `DATABASE_URL`,
 `JWT_ACCESS_SECRET`, `REFRESH_TOKEN_SECRET`, `RAZORPAY_KEY_ID`,
-`RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `CLOUDINARY_CLOUD_NAME`,
+`RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_SAAS_KEY_ID`,
+`RAZORPAY_SAAS_KEY_SECRET`, `RAZORPAY_SAAS_WEBHOOK_SECRET`,
+`PAYMENT_CREDENTIALS_MASTER_KEY`, `CLOUDINARY_CLOUD_NAME`,
 `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`,
 `EMAIL_FROM_ADDRESS`, `FRONTEND_URL`, `BACKEND_URL`. `SENTRY_DSN` recommended.
 
@@ -65,15 +67,24 @@ in production — it can generate/rename migrations).
 
 ## 5. Backend deployment (Render)
 
+**Root Directory:** `backend`
+
 1. Push to the deploy branch, or click **Manual Deploy → Deploy latest commit**.
-2. Render build: `npm ci && npm run prisma:generate && npm run build`.
-3. Migrations: pre-deploy/release step runs `npm run prisma:migrate:deploy`.
-4. Start command: `node dist/main` (`npm run start:prod`).
-5. Boot-time env validation runs first. **If a required production variable is
+2. Render build: `npm ci --include=dev && npx prisma generate && npm run build`.
+3. Start command: `npx prisma migrate deploy && npm run start:prod`.
+   (`migrate deploy` is forward-only and applies already-committed migrations;
+   it does not prompt, reset, or push schema.)
+4. Boot-time env validation runs first. **If a required production variable is
    missing the process exits with `Environment validation failed: <VAR> is
    required in production`** — fix the env var and redeploy; the old instance
    keeps serving until the new one is healthy.
+5. Health check path: `/api/v1/health` (HTTP 200, `{success:true,data:{status:"ok",...}}`).
 6. Wait for Render health check to pass.
+
+`DATABASE_URL` must be the Render PostgreSQL **Internal Database URL**.
+`FRONTEND_URL` must be the real Vercel/custom-domain origin (no trailing slash)
+and same-site with `BACKEND_URL` so the httpOnly `SameSite=Strict` refresh
+cookie is sent. Razorpay webhook: `{BACKEND_URL}/api/v1/payments/webhook`.
 
 ## 6. Frontend deployment (Vercel)
 
@@ -88,8 +99,8 @@ in production — it can generate/rename migrations).
 
 | Check | Expectation |
 |---|---|
-| `GET {BACKEND_URL}/api/v1/health` | `200 {"status":"ok"}` — process is up |
-| `GET {BACKEND_URL}/api/v1/health/deep` | `200` — DB reachable; `503 "Service unavailable"` if not |
+| `GET {BACKEND_URL}/api/v1/health` | `200 {"success":true,"data":{"status":"ok","timestamp":"..."}}` — process is up |
+| `GET {BACKEND_URL}/api/v1/health/deep` | `200` — DB reachable; `503` with generic `"Service unavailable"` if not |
 | `GET {FRONTEND_URL}/` | `200`, SPA shell loads |
 
 ## 8. Smoke checks

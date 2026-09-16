@@ -5,6 +5,7 @@ import { loadEnv, type Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { DEFAULT_SITE_URL } from './src/seo/siteConfig.constants.ts'
 import { buildRobotsTxt, buildSitemapXml } from './src/seo/seoFiles.ts'
+import { storefrontShellHtmlPlugin } from './vite.storefront-shell-plugin.ts'
 
 /**
  * Emits robots.txt and a static sitemap.xml into the build output. The
@@ -37,7 +38,7 @@ export default defineConfig(({ mode }) => {
   const siteUrl = (env.VITE_SITE_URL?.trim() || DEFAULT_SITE_URL).replace(/\/+$/, '')
 
   return {
-    plugins: [react(), seoFiles(siteUrl)],
+    plugins: [react(), seoFiles(siteUrl), storefrontShellHtmlPlugin(process.cwd())],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),
@@ -65,6 +66,7 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       css: true,
+      exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     },
   }
 })

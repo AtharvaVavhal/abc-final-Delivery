@@ -14,6 +14,10 @@ import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import {
+  SkipHttpThrottle,
+  ThrottleCheckout,
+} from '../common/throttling/throttle.decorators';
 import { PaymentsService } from './payments.service';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 
@@ -28,6 +32,7 @@ import { VerifyPaymentDto } from './dto/verify-payment.dto';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @ThrottleCheckout()
   @Post('verify')
   async verify(
     @CurrentUser() user: AuthenticatedUser,
@@ -42,6 +47,7 @@ export class PaymentsController {
    * webhook here once RAZORPAY_WEBHOOK_SECRET is set.
    */
   @Public()
+  @SkipHttpThrottle()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   async webhook(
@@ -71,6 +77,7 @@ export class PaymentsController {
    * :id/connect` (P8-5).
    */
   @Public()
+  @SkipHttpThrottle()
   @Post('webhook/:accountId')
   @HttpCode(HttpStatus.OK)
   async merchantWebhook(

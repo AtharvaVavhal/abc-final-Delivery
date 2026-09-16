@@ -40,9 +40,9 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: var(--color-amber-primary);
+  background: var(--color-obsidian-surface);
+  border: 1px solid var(--color-obsidian-border);
+  color: var(--color-obsidian-text);
   flex-shrink: 0;
 }
 
@@ -76,7 +76,7 @@
   font-weight: var(--font-weight-semibold);
   color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .columnList {
@@ -97,7 +97,7 @@
 
 .link:hover,
 .link:focus-visible {
-  color: var(--color-amber-primary);
+  color: #ffffff;
 }
 
 .address {

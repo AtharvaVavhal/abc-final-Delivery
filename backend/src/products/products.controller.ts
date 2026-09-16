@@ -13,6 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
+import { ThrottlePublicRead } from '../common/throttling/throttle.decorators';
 import { RequirePermission } from '../auth/permissions/require-permission.decorator';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -59,6 +60,7 @@ export class ProductsController {
   }
 
   @Public()
+  @ThrottlePublicRead()
   @Get()
   async list(
     @Query() query: ListProductsQueryDto,
@@ -109,6 +111,7 @@ export class ProductsController {
   }
 
   @Public()
+  @ThrottlePublicRead()
   @Get(':slug')
   async getBySlug(
     @Param('slug') slug: string,

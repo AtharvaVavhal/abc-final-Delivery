@@ -1,7 +1,8 @@
 .section {
   padding: var(--space-8) var(--container-padding);
-  background: #0b1220;
-  color: #e2e8f0;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border);
 }
 
 .grid {
@@ -15,10 +16,10 @@
 
 .media {
   min-height: 280px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .image {
@@ -36,10 +37,10 @@
   align-items: center;
   justify-content: center;
   font-size: clamp(1.4rem, 3vw, 2rem);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .copy {
@@ -49,30 +50,30 @@
 .eyebrow {
   margin: 0;
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #fda4af;
+  color: var(--color-text-muted);
 }
 
 .title {
   margin: 0.5rem 0 1rem;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
-  color: #ffffff;
+  color: var(--color-text-strong);
 }
 
 .body {
   margin: 0;
   font-size: 1rem;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: var(--color-text-muted);
 }
 
 .link {
   display: inline-flex;
   margin-top: 1.25rem;
-  color: #fda4af;
-  font-weight: 600;
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
 

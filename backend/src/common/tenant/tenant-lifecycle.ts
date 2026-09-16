@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Prisma, TenantStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { withTenantRlsContext } from './tenant-rls';
+import { isPrismaService, withTenantRlsContext } from './tenant-rls';
 
 /**
  * Phase 5 W4 (SaaS Master Plan §11) — the single, authoritative "is this
@@ -47,20 +47,20 @@ export async function assertTenantActive(
   message: string,
 ): Promise<void> {
   // PrismaService queries need the RLS tenant GUC; a TransactionClient is
-  // already inside a caller-owned transaction (bypass or tenant context)
-  // and has no `$transaction` to nest. Unit-test doubles expose neither.
-  const tenant =
-    typeof (prisma as PrismaService).$transaction === 'function'
-      ? await withTenantRlsContext(prisma as PrismaService, tenantId, (tx) =>
-          tx.tenant.findUnique({
-            where: { id: tenantId },
-            select: { status: true },
-          }),
-        )
-      : await prisma.tenant.findUnique({
+  // already inside a caller-owned transaction (bypass or tenant context).
+  // Detect the real client via `$extends` — Prisma 6 TransactionClient also
+  // has `$transaction`, and nesting that aborts the outer write.
+  const tenant = isPrismaService(prisma)
+    ? await withTenantRlsContext(prisma, tenantId, (tx) =>
+        tx.tenant.findUnique({
           where: { id: tenantId },
           select: { status: true },
-        });
+        }),
+      )
+    : await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { status: true },
+      });
 
   throwIfTenantSuspended(tenant?.status, message);
 }

@@ -10,6 +10,7 @@ import {
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../common/decorators/public.decorator';
+import { SkipHttpThrottle } from '../common/throttling/throttle.decorators';
 import { BillingWebhookIngestionService } from './billing-webhook-ingestion.service';
 
 /**
@@ -40,6 +41,7 @@ import { BillingWebhookIngestionService } from './billing-webhook-ingestion.serv
  * second parameter is optional and a non-Razorpay adapter (or
  * `FakeBillingProvider`) may not need it at all.
  */
+@SkipHttpThrottle()
 @Controller('webhooks/billing')
 export class BillingWebhooksController {
   constructor(

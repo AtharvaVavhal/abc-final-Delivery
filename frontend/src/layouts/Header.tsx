@@ -307,8 +307,7 @@ export function Header() {
       <nav
         id="mobile-nav"
         className={cn(styles.navRowMobile, mobileOpen && styles.open)}
-        aria-label="Categories"
-        role="navigation"
+        aria-label="Mobile categories"
         onClick={(event) => {
           if ((event.target as HTMLElement).closest('a')) setMobileOpen(false)
         }}

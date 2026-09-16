@@ -7,7 +7,7 @@
   min-height: 40px;
   height: 40px;
   padding: 0;
-  background: #000000;
+  background: var(--color-obsidian);
   color: #ffffff;
   font-size: 13px;
   font-weight: 500;

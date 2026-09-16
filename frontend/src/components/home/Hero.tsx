@@ -3,7 +3,16 @@ import type { FocusEvent, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
+import {
+  HERO_LCP_INTRINSIC_HEIGHT,
+  HERO_LCP_INTRINSIC_WIDTH,
+  HERO_LCP_SIZES,
+  HERO_PRELOAD_WIDTH,
+  heroFallbackSrc,
+  heroSrcSet,
+  localHeroBasename,
+  optimizedHeroUrl,
+} from '@/features/media/heroLcpImage'
 import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
 import styles from './Hero.module.css'
 
@@ -21,11 +30,61 @@ export interface HeroSlide {
 }
 
 const AUTOPLAY_MS = 6500
-const HERO_IMAGE_WIDTH = 1600
-const HERO_SRC_WIDTHS = [800, 1200, 1600] as const
 
-function heroSrcSet(url: string): string {
-  return HERO_SRC_WIDTHS.map((width) => `${optimizedCloudinaryUrl(url, width)} ${width}w`).join(', ')
+function HeroSlideImage({
+  url,
+  alt,
+  className,
+  style,
+  lcp,
+}: {
+  url: string
+  alt: string
+  className?: string
+  style?: { animationDuration?: string }
+  lcp: boolean
+}) {
+  const loading = lcp ? 'eager' : 'lazy'
+  const fetchPriority = lcp ? 'high' : 'low'
+  const img = (
+    <img
+      src={heroFallbackSrc(url)}
+      srcSet={heroSrcSet(url, 'jpg')}
+      sizes={HERO_LCP_SIZES}
+      width={HERO_LCP_INTRINSIC_WIDTH}
+      height={HERO_LCP_INTRINSIC_HEIGHT}
+      alt={alt}
+      className={className}
+      style={style}
+      loading={loading}
+      fetchPriority={fetchPriority}
+      decoding="async"
+    />
+  )
+  if (!localHeroBasename(url)) {
+    return (
+      <img
+        src={optimizedHeroUrl(url, HERO_PRELOAD_WIDTH)}
+        srcSet={heroSrcSet(url, 'jpg')}
+        sizes={HERO_LCP_SIZES}
+        width={HERO_LCP_INTRINSIC_WIDTH}
+        height={HERO_LCP_INTRINSIC_HEIGHT}
+        alt={alt}
+        className={className}
+        style={style}
+        loading={loading}
+        fetchPriority={fetchPriority}
+        decoding="async"
+      />
+    )
+  }
+  return (
+    <picture>
+      <source type="image/avif" srcSet={heroSrcSet(url, 'avif')} sizes={HERO_LCP_SIZES} />
+      <source type="image/webp" srcSet={heroSrcSet(url, 'webp')} sizes={HERO_LCP_SIZES} />
+      {img}
+    </picture>
+  )
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -152,12 +211,8 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
               aria-hidden={!isActive}
             >
               {shouldLoad ? (
-                <img
-                  src={optimizedCloudinaryUrl(slide.image, HERO_IMAGE_WIDTH)}
-                  srcSet={heroSrcSet(slide.image)}
-                  sizes="100vw"
-                  width={1600}
-                  height={727}
+                <HeroSlideImage
+                  url={slide.image}
                   alt={isActive ? slide.alt : ''}
                   className={cn(styles.image, isActive && !reducedMotion && styles.kenBurns)}
                   style={
@@ -165,9 +220,7 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
                       ? { animationDuration: `${AUTOPLAY_MS}ms` }
                       : undefined
                   }
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  fetchPriority={index === 0 && currentIndex === 0 ? 'high' : 'low'}
-                  decoding="async"
+                  lcp={index === 0 && currentIndex === 0}
                 />
               ) : null}
             </div>

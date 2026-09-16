@@ -4,6 +4,7 @@ import { UploadsService } from '../../uploads/uploads.service';
 import {
   CustomizationSubmission,
   CustomizationValidationResult,
+  formatMatchesAllowed,
   isFileFieldType,
   parseFieldConstraints,
   validateCustomizationFieldShape,
@@ -55,7 +56,7 @@ export class CustomizationValidationService {
     if (
       constraints.allowedFormats &&
       constraints.allowedFormats.length > 0 &&
-      !constraints.allowedFormats.includes(file.format)
+      !formatMatchesAllowed(file.format, constraints.allowedFormats)
     ) {
       return {
         valid: false,

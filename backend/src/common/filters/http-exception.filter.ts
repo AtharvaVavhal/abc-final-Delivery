@@ -30,13 +30,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ? exception.getStatus()
       : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    const technicalMessage = isHttpException
+      ? this.extractMessage(exception)
+      : 'Internal server error';
+    const isThrottled = status === HttpStatus.TOO_MANY_REQUESTS;
+
     const body: ApiErrorResponse = {
       success: false,
       error: {
         code: HttpStatus[status] ?? 'INTERNAL_SERVER_ERROR',
-        message: isHttpException
-          ? this.extractMessage(exception)
-          : 'Internal server error',
+        message: isThrottled
+          ? 'Please wait a moment and try again.'
+          : technicalMessage,
         details: isHttpException ? this.extractDetails(exception) : [],
       },
     };
@@ -45,6 +50,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       // Unexpected (non-HttpException) errors are always logged with full detail server-side.
       this.logger.error(
         exception instanceof Error ? exception.stack : exception,
+      );
+    } else if (isThrottled) {
+      this.logger.warn(
+        `${request.method} ${request.path} throttled: ${technicalMessage}`,
       );
     }
 

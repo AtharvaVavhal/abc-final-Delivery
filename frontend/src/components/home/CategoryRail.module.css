@@ -45,9 +45,9 @@
 
 .card:hover,
 .card:focus-visible {
-  transform: translateY(-4px);
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: var(--shadow-md);
+  transform: none;
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-xs);
   outline: none;
 }
 
@@ -68,11 +68,11 @@
 }
 
 .card:hover .mark {
-  background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e293b 100%);
-  color: var(--color-amber-primary);
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%), 0 0 12px rgb(245 158 11 / 18%);
-  transform: scale(1.08);
+  background: var(--color-text-strong);
+  color: var(--color-bg);
+  border-color: var(--color-text-strong);
+  box-shadow: none;
+  transform: none;
 }
 
 .name {
@@ -89,7 +89,7 @@
 }
 
 .card:hover .browsePill {
-  color: var(--color-primary);
+  color: var(--color-text-muted);
 }
 
 .skeletonCard {

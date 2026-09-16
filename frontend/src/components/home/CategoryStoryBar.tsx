@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
-import { useQuery } from '@tanstack/react-query'
-import { fetchCategoryTree, fetchProducts } from '@/services/api/catalog'
+import { useCategoryTree } from '@/hooks/useCategoryTree'
+import { useProducts } from '@/hooks/useProducts'
 import { categoryLeaves, categoryStillImage } from '@/features/catalog/categoryNavOrder'
 import { optimizedCloudinaryUrl, stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
-import { CATALOG_STALE_TIME_MS } from '@/constants/query'
+import { NEWEST_PRODUCTS_QUERY } from '@/constants/query'
 import { ROUTES } from '@/constants/routes'
 import type { CategoryTreeNode, Product } from '@/types/catalog'
 import styles from './CategoryStoryBar.module.css'
@@ -76,18 +76,8 @@ export function CategoryCircleCarousel({ stories }: { stories?: StoryCategory[] 
   const location = useLocation()
   const live = stories === undefined
   const allowMedia = useDeferUntilIdle()
-  const treeQuery = useQuery({
-    queryKey: ['categories', 'tree'],
-    queryFn: fetchCategoryTree,
-    staleTime: CATALOG_STALE_TIME_MS,
-    enabled: live,
-  })
-  const productsQuery = useQuery({
-    queryKey: ['products', 'list', { limit: 100, sort: 'newest' as const }],
-    queryFn: () => fetchProducts({ limit: 100, sort: 'newest' }),
-    staleTime: CATALOG_STALE_TIME_MS,
-    enabled: live && allowMedia,
-  })
+  const treeQuery = useCategoryTree({ enabled: live })
+  const productsQuery = useProducts(NEWEST_PRODUCTS_QUERY, { enabled: live && allowMedia })
 
   const resolvedStories = useMemo(() => {
     if (stories) return stories

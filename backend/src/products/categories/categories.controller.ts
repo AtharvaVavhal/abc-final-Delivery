@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -12,6 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
+import { ThrottlePublicRead } from '../../common/throttling/throttle.decorators';
 import { RequirePermission } from '../../auth/permissions/require-permission.decorator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -19,6 +21,10 @@ import type { AuthenticatedUser } from '../../common/decorators/current-user.dec
 import type { TenantContext } from '../../common/tenant/tenant-context';
 import type { RequestWithTenantContext } from '../../common/tenant/tenant-context';
 import { StorefrontTenantResolver } from '../../common/tenant/storefront-tenant.resolver';
+import {
+  PUBLIC_STOREFRONT_CACHE_CONTROL,
+  PUBLIC_STOREFRONT_CACHE_VARY,
+} from '../../common/http/public-storefront-cache';
 import { ProductsService } from '../products.service';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
@@ -55,6 +61,9 @@ export class CategoriesController {
   }
 
   @Public()
+  @ThrottlePublicRead()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get()
   async list(@Req() request: RequestWithHostname) {
     const tenantId = await this.resolveTenantId(request);
@@ -62,6 +71,9 @@ export class CategoriesController {
   }
 
   @Public()
+  @ThrottlePublicRead()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get('tree')
   async tree(@Req() request: RequestWithHostname) {
     const tenantId = await this.resolveTenantId(request);

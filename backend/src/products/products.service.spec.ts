@@ -425,6 +425,10 @@ describe('ProductsService.createProduct — audit atomicity (Phase 5 W8)', () =>
     // both back atomically because nothing here catches/swallows the
     // audit failure.
     expect(productDelegate.create).toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ timeout: 20_000, maxWait: 10_000 }),
+    );
   });
 });
 

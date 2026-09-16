@@ -43,7 +43,7 @@ const FeaturedMediaCarousel = lazy(() =>
 )
 
 const HOME_DESCRIPTION =
-  'Browse the AB Creations catalog and personalize products that support customization — each item printed for your order.'
+  'Browse the AB Creations catalogue and personalise products that support customization — each item printed for your order.'
 
 function toStorefrontHeroSlides(slides: SettingsHeroSlide[]): StorefrontHeroSlide[] {
   return slides.map((slide, index) => ({

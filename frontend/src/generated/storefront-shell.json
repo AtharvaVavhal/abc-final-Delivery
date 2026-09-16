@@ -1,0 +1,312 @@
+{
+  "generatedAt": "2026-09-16T04:48:36.909Z",
+  "source": {
+    "origin": "http://127.0.0.1:4000",
+    "settingsPath": "/api/v1/settings",
+    "categoriesPath": "/api/v1/categories/tree"
+  },
+  "deploymentKey": "ab-creations-storefront",
+  "lcp": {
+    "sourceUrl": "/catalog/hero-3.jpg",
+    "href": "/catalog/optimized/hero-3-768.avif",
+    "type": "image/avif",
+    "sizes": "100vw",
+    "srcsetAvif": "/catalog/optimized/hero-3-480.avif 480w, /catalog/optimized/hero-3-768.avif 768w, /catalog/optimized/hero-3-1024.avif 1024w, /catalog/optimized/hero-3-1280.avif 1280w",
+    "srcsetWebp": "/catalog/optimized/hero-3-480.webp 480w, /catalog/optimized/hero-3-768.webp 768w, /catalog/optimized/hero-3-1024.webp 1024w, /catalog/optimized/hero-3-1280.webp 1280w",
+    "srcsetJpg": "/catalog/optimized/hero-3-480.jpg 480w, /catalog/optimized/hero-3-768.jpg 768w, /catalog/optimized/hero-3-1024.jpg 1024w, /catalog/optimized/hero-3-1280.jpg 1280w",
+    "fallback": "/catalog/optimized/hero-3-768.jpg"
+  },
+  "settings": {
+    "storeName": "AB Creations",
+    "storeLogo": "https://res.cloudinary.com/mvilbuqq/image/upload/v1/printforge/development/products/dwfgite97heey7h8lltf?_a=BAMCr6LW0",
+    "whatsappNumber": null,
+    "announcement_text": "🎉 Get Extra 12% OFF — Use Code AB2026　 |　 🚚 Free Shipping Across India　 |　 ✅ Design Approval Before Processing　 |　 😊 Trusted by 25,000+ Happy Customers　 |　 ✨ Premium",
+    "contact": {
+      "email": "",
+      "phone": "",
+      "address": ""
+    },
+    "homepage": {
+      "hero_slides": [
+        {
+          "imageUrl": "/catalog/hero-3.jpg",
+          "headline": "Acrylic caricatures from your photo",
+          "subtext": "Made to order. Typically 3–5 working days after we receive your files.",
+          "ctaText": "Shop acrylic gifts",
+          "ctaLink": "/products?category=acrylic-gifts"
+        },
+        {
+          "imageUrl": "/catalog/hero-4.jpg",
+          "headline": "Corporate gifting, ready for your brand",
+          "subtext": "Polos, diaries, bottles, and pens — print-ready for teams and events.",
+          "ctaText": "Shop corporate",
+          "ctaLink": "/products?category=corporate-and-branding"
+        },
+        {
+          "imageUrl": "/catalog/hero-5.jpg",
+          "headline": "Wedding and festive keepsakes",
+          "subtext": "Personalised acrylic plaques for the people you celebrate.",
+          "ctaText": "Shop gifts",
+          "ctaLink": "/products?category=personalized-gifts"
+        }
+      ],
+      "banners": [
+        {
+          "imageUrl": "/catalog/banner-1.jpg",
+          "title": "Acrylic gifts",
+          "text": "Cutouts, caricatures, clocks, and standees.",
+          "link": "/products"
+        }
+      ],
+      "featured_media": [
+        "/catalog/about.jpg",
+        "/catalog/hero-1.jpg"
+      ]
+    }
+  },
+  "categories": [
+    {
+      "id": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+      "name": "Acrylic Gifts",
+      "slug": "acrylic-gifts",
+      "parentCategoryId": null,
+      "children": [
+        {
+          "id": "c636d734-189c-4af9-aad9-b8592770a92d",
+          "name": "Acrylic Caricatures",
+          "slug": "acrylic-caricatures",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "73e51733-3f9e-4658-8474-50b8e26bdbd5",
+          "name": "Acrylic Clocks",
+          "slug": "acrylic-clocks",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "1114a933-a196-4316-b98a-2cef6f43bc6b",
+          "name": "Acrylic Cutouts",
+          "slug": "acrylic-cutouts",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "fe86db85-1200-47be-8a25-bb227f87c873",
+          "name": "Acrylic Photo Frames",
+          "slug": "acrylic-photo-frames",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "4d94b482-14d4-4efb-aef7-3e37f45fe749",
+          "name": "Acrylic Photos",
+          "slug": "acrylic-photos",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "7a09c598-ab9c-487b-a145-009f9e67e99f",
+          "name": "Acrylic Standees",
+          "slug": "acrylic-standees",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        },
+        {
+          "id": "dd7683cf-f64f-47df-b48f-9e8ddea0baab",
+          "name": "Acrylic Wall Art",
+          "slug": "acrylic-wall-art",
+          "parentCategoryId": "0eb5bd8f-e670-4035-b526-9ba582a60048",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "207dd93f-d455-4815-a1b1-353fd8d99c66",
+      "name": "Car & Auto",
+      "slug": "car-and-auto",
+      "parentCategoryId": null,
+      "children": [
+        {
+          "id": "6085a93b-17e0-4fda-8b0d-fc87e01dfe5e",
+          "name": "Car Hanging Photos",
+          "slug": "car-hanging-photos",
+          "parentCategoryId": "207dd93f-d455-4815-a1b1-353fd8d99c66",
+          "children": []
+        },
+        {
+          "id": "159f86d1-fa64-4c24-85d1-4b565a414e83",
+          "name": "Dashboard Photos",
+          "slug": "dashboard-photos",
+          "parentCategoryId": "207dd93f-d455-4815-a1b1-353fd8d99c66",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+      "name": "Corporate & Branding",
+      "slug": "corporate-and-branding",
+      "parentCategoryId": null,
+      "children": [
+        {
+          "id": "9c1e2c19-16a2-4dda-89b1-86b324d8ceb2",
+          "name": "Badges",
+          "slug": "badges",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "5c0b2fce-9596-4a04-83b3-d2fcfe6f8048",
+          "name": "Banner Printing",
+          "slug": "banner-printing",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "6c43adb2-2d48-4858-b8bb-3b048821d7c7",
+          "name": "Bottles",
+          "slug": "corporate-bottles",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "7cf93e5a-b3a0-4c17-9600-21a834eac2c6",
+          "name": "Corporate T-Shirts",
+          "slug": "corporate-t-shirts",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "71e97673-ca6a-4226-adf7-f9955d73dfdb",
+          "name": "Diaries",
+          "slug": "corporate-diaries",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "0d04f2db-95ec-4cef-80ac-ea863698de22",
+          "name": "Pens",
+          "slug": "corporate-pens",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "af8c4a29-2dae-495b-8f80-add91a693fed",
+          "name": "Trophies",
+          "slug": "trophies",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        },
+        {
+          "id": "b1de0d89-c240-4f08-bec6-ba3a8479e52e",
+          "name": "Vinyl Printing",
+          "slug": "vinyl-printing",
+          "parentCategoryId": "8a85ac2f-c310-414b-a494-62f316e4ea10",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "3672d9c9-94d4-4f91-ae1b-d1936b387b8c",
+      "name": "Home & Decor",
+      "slug": "home-and-decor",
+      "parentCategoryId": null,
+      "children": [
+        {
+          "id": "306e50b1-a498-405b-8943-f7ba83c060fb",
+          "name": "Clocks",
+          "slug": "clocks",
+          "parentCategoryId": "3672d9c9-94d4-4f91-ae1b-d1936b387b8c",
+          "children": []
+        },
+        {
+          "id": "d8d15cab-f002-4244-9473-a8b93bf450e9",
+          "name": "Divine Frames",
+          "slug": "divine-frames",
+          "parentCategoryId": "3672d9c9-94d4-4f91-ae1b-d1936b387b8c",
+          "children": []
+        },
+        {
+          "id": "1d76b91a-7efe-4ab4-9980-f8dd26e9cbc8",
+          "name": "Name Plates",
+          "slug": "name-plates",
+          "parentCategoryId": "3672d9c9-94d4-4f91-ae1b-d1936b387b8c",
+          "children": []
+        },
+        {
+          "id": "015c6191-f41c-4e20-a768-f7cf26ae9bef",
+          "name": "Wall Art",
+          "slug": "wall-art",
+          "parentCategoryId": "3672d9c9-94d4-4f91-ae1b-d1936b387b8c",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+      "name": "Personalized Gifts",
+      "slug": "personalized-gifts",
+      "parentCategoryId": null,
+      "children": [
+        {
+          "id": "b505a21a-91e4-4579-8aba-a1801000c9ce",
+          "name": "Bottles",
+          "slug": "bottles",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "bb85d11e-70e5-4aac-8fe3-a8cfefd27282",
+          "name": "Diaries",
+          "slug": "diaries",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "9ccd97f2-1449-48b4-8cdb-ed2562f3f724",
+          "name": "Fridge Magnets",
+          "slug": "fridge-magnets",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "3527a80c-5316-4821-9c8b-ba7b97d62519",
+          "name": "Illusion Lamps",
+          "slug": "illusion-lamps",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "e766c3e9-c756-4cf1-b9ba-76ad154e7f76",
+          "name": "Key/Car Photos",
+          "slug": "key-car-photos",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "df655faa-a812-4b4c-b022-d91f451fedbd",
+          "name": "Mugs",
+          "slug": "mugs",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "37a4fe7c-9769-4ef1-b284-4761ee7282e0",
+          "name": "Pens",
+          "slug": "pens",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        },
+        {
+          "id": "0eb70aa6-189e-4a14-ac7c-819f9b19cc44",
+          "name": "T-Shirts",
+          "slug": "t-shirts",
+          "parentCategoryId": "e0e22faa-081c-4428-b683-d9fe919fbd9a",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

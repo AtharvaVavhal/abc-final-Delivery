@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "pf_refresh_token",
+      "value": "9bb6da1f96c7a34474cc7a0ce3d34fc37a29cae740b7f8950e8d51af2d58b860377aee301ebea16dd92837d74ac7c7036adf926bf54f7362a1b27f46307b9125",
+      "domain": "127.0.0.1",
+      "path": "/api/v1/auth/refresh",
+      "expires": 1792134187.082841,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": []
+}

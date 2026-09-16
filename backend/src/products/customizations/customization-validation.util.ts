@@ -38,6 +38,24 @@ export function isFileFieldType(type: CustomizationFieldType): boolean {
   return FILE_FIELD_TYPES.has(type);
 }
 
+/** Cloudinary's upload response always reports a JPEG's format as `jpg`,
+ * never `jpeg` — but admins configuring a field's `allowedFormats` (or a
+ * customer's own file extension, checked client-side) commonly write
+ * `jpeg`. Without this, any field whose constraints list only one spelling
+ * rejects every real JPEG upload, regardless of which spelling the file
+ * itself used, since Cloudinary's returned format never matches. */
+export function normalizeImageFormat(format: string): string {
+  return format.toLowerCase() === 'jpg' ? 'jpeg' : format.toLowerCase();
+}
+
+export function formatMatchesAllowed(
+  format: string,
+  allowedFormats: readonly string[],
+): boolean {
+  const normalized = normalizeImageFormat(format);
+  return allowedFormats.some((f) => normalizeImageFormat(f) === normalized);
+}
+
 export function parseFieldConstraints(
   constraints: Prisma.JsonValue | null,
 ): FieldConstraints {

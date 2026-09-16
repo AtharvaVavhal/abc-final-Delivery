@@ -1,5 +1,13 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
+import { ThrottlePublicRead } from '../common/throttling/throttle.decorators';
 import type { RequestWithTenantContext } from '../common/tenant/tenant-context';
 import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { AppSettingService } from './app-setting.service';
@@ -7,6 +15,10 @@ import {
   getAdminSettingDefinition,
   isPublicSettingKey,
 } from './app-setting.constants';
+import {
+  PUBLIC_STOREFRONT_CACHE_CONTROL,
+  PUBLIC_STOREFRONT_CACHE_VARY,
+} from '../common/http/public-storefront-cache';
 
 type RequestWithHostname = RequestWithTenantContext & { hostname: string };
 
@@ -29,6 +41,7 @@ type RequestWithHostname = RequestWithTenantContext & { hostname: string };
  * `StorefrontTenantResolver`, anchored to `request.tenantContext` /
  * `request.hostname`, never a client-supplied id.
  */
+@ThrottlePublicRead()
 @Controller('settings')
 export class AppSettingController {
   constructor(
@@ -46,6 +59,8 @@ export class AppSettingController {
   }
 
   @Public()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get(':key')
   async getOne(@Param('key') key: string, @Req() request: RequestWithHostname) {
     if (!isPublicSettingKey(key)) {
@@ -61,6 +76,8 @@ export class AppSettingController {
   }
 
   @Public()
+  @Header('Cache-Control', PUBLIC_STOREFRONT_CACHE_CONTROL)
+  @Header('Vary', PUBLIC_STOREFRONT_CACHE_VARY)
   @Get()
   async getMany(
     @Query('keys') keys: string | undefined,

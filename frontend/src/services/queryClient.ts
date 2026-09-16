@@ -14,17 +14,17 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
 }
 
 /**
- * Single QueryClient for the app. Deliberately no global staleTime/
- * refetchOnWindowFocus override here — the cart resource (§18) will need
- * `staleTime: 0, refetchOnWindowFocus: true` on its own query, and other
- * resources will want their own tuning; a global default here would just
- * fight per-query overrides added later. One retry softens transient
- * network blips without looping on 4xx.
+ * Single QueryClient for the app. Default `refetchOnWindowFocus: false` so
+ * public catalog/settings do not re-hit the public-read throttle on tab
+ * focus. Cart (§18) opts back in with `staleTime: 0, refetchOnWindowFocus:
+ * true` on its own query. One retry softens transient network blips
+ * without looping on 4xx (including 429).
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: shouldRetryQuery,
+      refetchOnWindowFocus: false,
     },
   },
 })

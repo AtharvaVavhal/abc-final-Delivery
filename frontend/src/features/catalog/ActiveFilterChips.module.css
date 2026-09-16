@@ -37,12 +37,12 @@
 }
 
 .chip:hover {
-  border-color: var(--color-accent);
+  border-color: var(--color-border-strong);
 }
 
 .chip:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-accent-ring);
+  box-shadow: var(--focus-ring);
 }
 
 .chipText {
@@ -55,7 +55,7 @@
 .clearAll {
   border: none;
   background: transparent;
-  color: var(--color-accent);
+  color: var(--color-text-muted);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;

@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query, Req } from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
+import { ThrottlePublicRead } from '../common/throttling/throttle.decorators';
 import type { RequestWithTenantContext } from '../common/tenant/tenant-context';
 import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { ReviewsService } from './reviews.service';
@@ -24,6 +25,7 @@ export class ProductReviewsController {
   ) {}
 
   @Public()
+  @ThrottlePublicRead()
   @Get()
   async list(
     @Param('id', ParseUUIDPipe) productId: string,

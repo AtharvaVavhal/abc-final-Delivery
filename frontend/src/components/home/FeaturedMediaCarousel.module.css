@@ -8,9 +8,9 @@
 .eyebrow,
 .title {
   margin: 0;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
 }
 
 .eyebrow {
@@ -29,7 +29,7 @@
   height: 8px;
   margin: 0.75rem auto 1.5rem;
   transform: rotate(45deg);
-  background: var(--color-primary);
+  background: var(--color-accent-warm);
 }
 
 .scroller {

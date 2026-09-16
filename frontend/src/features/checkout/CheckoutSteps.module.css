@@ -48,7 +48,6 @@
   border-color: var(--color-amber-primary);
   background: var(--color-amber-primary);
   color: #090d16;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
 }
 
 .done {

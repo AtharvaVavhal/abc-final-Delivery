@@ -4,6 +4,11 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import {
+  CUSTOMER_THROTTLE_MESSAGE,
+  THROTTLE_LIMITS,
+  THROTTLE_TTL_MS,
+} from './common/throttling/throttle.constants';
 import configuration from './common/config/configuration';
 import { validateEnv } from './common/config/env.validation';
 import { PrismaModule } from './common/database/prisma.module';
@@ -128,14 +133,16 @@ import { UsersModule } from './users/users.module';
       load: [configuration],
       validate: validateEnv,
     }),
-    // TODO(common): move ttl/limit to AppConfig if per-environment tuning is
-    // needed later; a static config is sufficient for scaffolding.
-    // skipIf disables throttling only under NODE_ENV=test (test/e2e/support/
-    // env.setup.ts sets this from .env.test) — every e2e request originates
-    // from the same loopback address, so without this the shared 20-req/60s
-    // IP limit trips well before it's the thing actually under test (§27).
+    // Per-route budgets: auth is stricter than the old global 20/60s;
+    // public catalog reads and checkout are raised via @Throttle on those
+    // controllers (see common/throttling/). skipIf disables throttling
+    // only under NODE_ENV=test (test/e2e/support/env.setup.ts) — every e2e
+    // request originates from the same loopback address, so without this
+    // the shared IP limit trips well before it's the thing actually under
+    // test (§27).
     ThrottlerModule.forRoot({
-      throttlers: [{ ttl: 60_000, limit: 20 }],
+      errorMessage: CUSTOMER_THROTTLE_MESSAGE,
+      throttlers: [{ ttl: THROTTLE_TTL_MS, limit: THROTTLE_LIMITS.default }],
       skipIf: () => process.env.NODE_ENV === 'test',
     }),
     // Registered exactly once, app-wide. The ScheduleExplorer it installs

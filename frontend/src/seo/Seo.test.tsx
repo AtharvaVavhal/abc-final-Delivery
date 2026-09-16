@@ -104,4 +104,18 @@ describe('Seo', () => {
     unmount()
     expect(document.head.querySelectorAll('title')).toHaveLength(0)
   })
+
+  it('updates an existing index.html description tag instead of appending a duplicate', () => {
+    const existing = document.createElement('meta')
+    existing.setAttribute('name', 'description')
+    existing.setAttribute('content', 'Static shell description')
+    document.head.appendChild(existing)
+
+    render(<Seo title="" description="Route description" canonicalPath="/" />)
+
+    const tags = document.head.querySelectorAll('meta[name="description"]')
+    expect(tags).toHaveLength(1)
+    expect(tags[0]?.getAttribute('content')).toBe('Route description')
+    cleanup()
+  })
 })
