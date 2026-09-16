@@ -50,6 +50,16 @@ describe('Header', () => {
     mock.restore()
   })
 
+  it('shows Identica seller identity, GSTIN, and Payment Protected in the navbar', async () => {
+    renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
+
+    const trust = await screen.findByRole('region', { name: 'Seller identity' })
+    expect(trust).toHaveTextContent('Identica')
+    expect(trust).toHaveTextContent('Sakinaka, Mumbai, Maharashtra')
+    expect(trust).toHaveTextContent('GST No. 27ARLPM5978P1ZL')
+    expect(trust).toHaveTextContent('Payment Protected')
+  })
+
   it('renders the store logo as the brand, labelled with the configured store name', async () => {
     publicSettings.storeName = 'Atharva Prints'
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })

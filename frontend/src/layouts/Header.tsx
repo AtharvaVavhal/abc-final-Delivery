@@ -14,6 +14,7 @@ import { CategoryAccordion } from '@/components/layout/CategoryAccordion'
 import type { CategoryTreeNode } from '@/types/catalog'
 import { sortCategoryTree } from '@/features/catalog/categoryNavOrder'
 import { HeaderSearch } from './HeaderSearch'
+import { HeaderTrustBar } from './HeaderTrustBar'
 import styles from './Header.module.css'
 
 /** Keep long group names from colliding with brand and cart icons. */
@@ -142,6 +143,7 @@ export function Header() {
               width={264}
               height={56}
               decoding="async"
+              key={storeLogo || STORE_LOGO_FALLBACK}
             />
           </NavLink>
         </div>
@@ -310,6 +312,7 @@ export function Header() {
           </NavLink>
         </div>
       </div>
+      <HeaderTrustBar />
 
       <div
         id={searchPanelId}

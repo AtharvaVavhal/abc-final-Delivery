@@ -23,7 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const outFile = join(here, '../src/generated/storefront-shell.json')
 const origin = (process.env.STOREFRONT_API_ORIGIN || 'http://127.0.0.1:4000').replace(/\/+$/, '')
 const KEYS =
-  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media'
+  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 function withParent(nodes, parentId = null) {
   return (nodes ?? []).map((node) => ({
@@ -131,6 +131,21 @@ const snapshot = {
       email: raw.storeContactEmail?.trim() ?? '',
       phone: raw.storeContactPhone?.trim() ?? '',
       address: raw.storeAddress?.trim() ?? '',
+    },
+    seller: {
+      legalName: Object.prototype.hasOwnProperty.call(raw, 'sellerLegalName')
+        ? String(raw.sellerLegalName ?? '').trim()
+        : 'GOURAV KUMAR ABHAY SINGH',
+      locality: Object.prototype.hasOwnProperty.call(raw, 'sellerLocality')
+        ? String(raw.sellerLocality ?? '').trim()
+        : 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
+      gstin: Object.prototype.hasOwnProperty.call(raw, 'sellerGstin')
+        ? String(raw.sellerGstin ?? '').trim()
+        : '23EQZPS2886B1Z7',
+      paymentProtected:
+        raw.sellerPaymentProtected == null
+          ? true
+          : String(raw.sellerPaymentProtected).trim().toLowerCase() === 'true',
     },
     homepage: {
       hero_slides: parseList(raw.hero_slides),

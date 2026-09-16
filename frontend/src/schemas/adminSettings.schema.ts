@@ -80,10 +80,23 @@ export const storeLogoSchema = z.object({
     ),
 })
 
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/
+
+export const gstinSchema = z.object({
+  value: z
+    .string()
+    .trim()
+    .refine((v) => {
+      const upper = v.toUpperCase()
+      return upper === '' || GSTIN_PATTERN.test(upper)
+    }, 'GSTIN must be 15 characters in the standard format'),
+})
+
 export function schemaForKind(kind: SettingKind, key?: string) {
   // A few settings need a rule stricter than their `kind` implies.
   if (key === 'storeName') return storeNameSchema
   if (key === 'storeLogo') return storeLogoSchema
+  if (key === 'sellerGstin' || key === 'invoice.sellerGstin') return gstinSchema
   if (key === 'hero_slides' || key === 'brand_story' || key === 'featured_media' || key === 'storeAddress') {
     return longTextSchema
   }

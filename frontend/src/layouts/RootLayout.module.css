@@ -1,6 +1,7 @@
 .shell {
   --storefront-sidebar-width: 272px;
   --storefront-header-height: 4.5rem;
+  --storefront-chrome-height: 7.35rem;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -52,7 +53,7 @@
 
 .sidebarToggle {
   position: absolute;
-  top: calc(var(--storefront-header-height) + 1.05rem);
+  top: calc(var(--storefront-chrome-height, var(--storefront-header-height)) + 1.05rem);
   left: calc(var(--storefront-sidebar-width) - 14px);
   z-index: 20;
   width: 28px;

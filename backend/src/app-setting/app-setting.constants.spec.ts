@@ -19,6 +19,38 @@ describe('app-setting constants — public allowlist & store identity', () => {
     expect(isPublicSettingKey('invoice.sellerGstin')).toBe(false);
   });
 
+  it('exposes navbar seller identity to the public storefront', () => {
+    for (const key of [
+      'sellerLegalName',
+      'sellerLocality',
+      'sellerGstin',
+      'sellerPaymentProtected',
+    ]) {
+      expect(isPublicSettingKey(key)).toBe(true);
+      expect(getAdminSettingDefinition(key)?.ownership).toBe('STORE');
+    }
+    expect(getAdminSettingDefinition('sellerLegalName')).toMatchObject({
+      default: 'Identica',
+    });
+    expect(getAdminSettingDefinition('sellerGstin')).toMatchObject({
+      default: '27ARLPM5978P1ZL',
+    });
+    expect(getAdminSettingDefinition('sellerPaymentProtected')).toMatchObject({
+      kind: 'boolean',
+      default: 'true',
+    });
+  });
+
+  it('accepts a valid navbar GSTIN and rejects a malformed one', () => {
+    expect(normalizeAdminSettingValue('sellerGstin', '27ARLPM5978P1ZL')).toEqual({
+      valid: true,
+      value: '27ARLPM5978P1ZL',
+    });
+    expect(normalizeAdminSettingValue('sellerGstin', 'NOT-A-GSTIN').valid).toBe(
+      false,
+    );
+  });
+
   it('exposes whatsappNumber to the public storefront read surface', () => {
     expect(isPublicSettingKey('whatsappNumber')).toBe(true);
     expect(getAdminSettingDefinition('whatsappNumber')).toMatchObject({

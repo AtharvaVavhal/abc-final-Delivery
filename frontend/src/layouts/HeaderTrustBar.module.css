@@ -1,0 +1,119 @@
+.bar {
+  border-top: 1px solid rgb(9 13 22 / 8%);
+  background: #ffffff;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0.7rem clamp(1.5rem, 3.5vw, 2.5rem);
+}
+
+.seller {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.locality {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.locality svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  min-width: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+.badgeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-success-solid);
+  color: #ffffff;
+}
+
+.gstin {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.compact {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.compact .inner {
+  max-width: none;
+  margin: 0;
+  padding: 0.7rem 1rem;
+}
+
+@media (min-width: 1024px) {
+  :global([data-sidebar='open']) .inner {
+    max-width: none;
+    margin: 0;
+    padding-left: calc(var(--storefront-sidebar-width, 272px) + 1.75rem);
+    padding-right: clamp(1.25rem, 3vw, 2rem);
+  }
+}
+
+@media (max-width: 1023px) {
+  .inner {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 0.65rem 0.75rem 0.75rem;
+  }
+
+  .name {
+    font-size: 0.875rem;
+  }
+
+  .badges {
+    width: 100%;
+    gap: 0.5rem 1rem;
+  }
+}

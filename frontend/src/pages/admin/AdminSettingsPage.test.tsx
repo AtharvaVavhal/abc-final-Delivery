@@ -66,6 +66,46 @@ const SETTINGS_RESPONSE = {
       default: '',
     },
     {
+      key: 'storeAddress',
+      label: 'Store address',
+      description: 'Public studio/office address.',
+      kind: 'text',
+      value: '',
+      default: '',
+    },
+    {
+      key: 'sellerLegalName',
+      label: 'Navbar seller name',
+      description: 'Registered business name on the storefront navbar.',
+      kind: 'text',
+      value: 'Identica',
+      default: 'Identica',
+    },
+    {
+      key: 'sellerLocality',
+      label: 'Navbar seller locality',
+      description: 'City / locality shown on the navbar.',
+      kind: 'text',
+      value: 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
+      default: 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
+    },
+    {
+      key: 'sellerGstin',
+      label: 'Navbar GSTIN',
+      description: 'GST identification number shown on the navbar.',
+      kind: 'text',
+      value: '27ARLPM5978P1ZL',
+      default: '27ARLPM5978P1ZL',
+    },
+    {
+      key: 'sellerPaymentProtected',
+      label: 'Show Payment Protected',
+      description: 'When true, the navbar shows a Payment Protected mark.',
+      kind: 'boolean',
+      value: 'true',
+      default: 'true',
+    },
+    {
       key: 'tax.enabled',
       label: 'GST / tax enabled',
       description: 'When off, every order records tax = ₹0.00.',
@@ -114,10 +154,12 @@ const SETTINGS_RESPONSE = {
 
 describe('AdminSettingsPage', () => {
   let mock: MockAdapter
+  let adminSettingsReply: () => [number, unknown] | Promise<[number, unknown]>
 
   beforeEach(() => {
     mock = new MockAdapter(apiClient)
-    mock.onGet('/admin/settings').reply(200, SETTINGS_RESPONSE)
+    adminSettingsReply = () => [200, SETTINGS_RESPONSE]
+    mock.onGet('/admin/settings').reply(() => adminSettingsReply())
     mock.onGet('/admin/payment-accounts').reply(200, {
       success: true,
       data: [],
@@ -137,11 +179,18 @@ describe('AdminSettingsPage', () => {
     expect(await screen.findByLabelText('Flat shipping fee (₹)')).toBeInTheDocument()
     expect(screen.getByLabelText('Announcement bar text')).toBeInTheDocument()
     const saveable = SETTINGS_RESPONSE.data.filter(
-      (s) => s.key !== 'storeLogo' && s.key !== 'hero_slides',
+      (s) =>
+        s.key !== 'storeLogo' &&
+        s.key !== 'hero_slides' &&
+        s.key !== 'sellerLegalName' &&
+        s.key !== 'sellerLocality' &&
+        s.key !== 'sellerGstin' &&
+        s.key !== 'sellerPaymentProtected',
     )
     expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(saveable.length)
     expect(screen.getByRole('button', { name: 'Upload logo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save slides' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save navbar strip' })).toBeInTheDocument()
   })
 
   it('disables Save until the value is changed', async () => {
@@ -233,12 +282,79 @@ describe('AdminSettingsPage', () => {
     const content = screen.getByRole('region', { name: 'Storefront content' })
     expect(within(content).getByLabelText('Announcement bar text')).toBeInTheDocument()
 
+    const navbarSeller = screen.getByRole('region', { name: 'Navbar seller identity' })
+    expect(within(navbarSeller).getByLabelText('Legal name')).toHaveValue('Identica')
+    expect(within(navbarSeller).getByLabelText('Location')).toHaveValue(
+      'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
+    )
+    expect(within(navbarSeller).getByLabelText('GSTIN')).toHaveValue('23EQZPS2886B1Z7')
+    expect(
+      within(navbarSeller).getByRole('checkbox', { name: /show payment protected/i }),
+    ).toBeChecked()
+    expect(within(navbarSeller).getByRole('region', { name: 'Navbar preview' })).toHaveTextContent(
+      'Identica',
+    )
+
     const tax = screen.getByRole('region', { name: 'Tax (GST)' })
     expect(within(tax).getByLabelText('GST / tax enabled')).toBeInTheDocument()
     expect(within(tax).getByLabelText('Tax pricing mode')).toBeInTheDocument()
 
     const invoicing = screen.getByRole('region', { name: 'Invoicing' })
     expect(within(invoicing).getByLabelText('Invoice number prefix')).toBeInTheDocument()
+  })
+
+  it('still shows navbar seller identity when the API omits those keys', async () => {
+    adminSettingsReply = () => [
+      200,
+      {
+        success: true,
+        data: SETTINGS_RESPONSE.data.filter(
+          (setting) =>
+            setting.key !== 'sellerLegalName' &&
+            setting.key !== 'sellerLocality' &&
+            setting.key !== 'sellerGstin' &&
+            setting.key !== 'sellerPaymentProtected',
+        ),
+      },
+    ]
+    renderWithProviders(<AdminSettingsPage />)
+
+    expect(await screen.findByLabelText('Legal name')).toHaveValue('Identica')
+    expect(screen.getByLabelText('Location')).toHaveValue('Sakinaka, Mumbai, Maharashtra')
+    expect(screen.getByLabelText('GSTIN')).toHaveValue('27ARLPM5978P1ZL')
+    expect(screen.getByRole('checkbox', { name: /show payment protected/i })).toBeChecked()
+  })
+
+  it('saves navbar seller identity from the dedicated editor', async () => {
+    const user = userEvent.setup()
+    mock.onPatch('/admin/settings/sellerLegalName').reply(200, {
+      success: true,
+      data: {
+        key: 'sellerLegalName',
+        label: 'Legal name',
+        description: '',
+        kind: 'text',
+        value: 'Atharva Prints',
+        default: 'Identica',
+      },
+    })
+    renderWithProviders(<AdminSettingsPage />)
+
+    const legalName = await screen.findByLabelText('Legal name')
+    await user.clear(legalName)
+    await user.type(legalName, 'Atharva Prints')
+    expect(screen.getByRole('region', { name: 'Navbar preview' })).toHaveTextContent(
+      'Atharva Prints',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Save navbar strip' }))
+
+    await waitFor(() => expect(mock.history.patch).toHaveLength(1))
+    expect(mock.history.patch[0].url).toBe('/admin/settings/sellerLegalName')
+    expect(JSON.parse(mock.history.patch[0].data as string)).toEqual({
+      value: 'Atharva Prints',
+    })
+    expect(await screen.findByText(/the storefront navbar will use these values/i)).toBeInTheDocument()
   })
 
   it('populates each field with the current backend value', async () => {
@@ -298,7 +414,7 @@ describe('AdminSettingsPage', () => {
   // ─── States ────────────────────────────────────────────────────────────
 
   it('shows a page-level skeleton (polite loading status) while loading', () => {
-    mock.onGet('/admin/settings').reply(() => new Promise(() => {}))
+    adminSettingsReply = () => new Promise(() => {})
     renderWithProviders(<AdminSettingsPage />)
 
     expect(screen.getByText('Loading').closest('[role="status"]')).toBeInTheDocument()
@@ -306,10 +422,13 @@ describe('AdminSettingsPage', () => {
   })
 
   it('surfaces a settings fetch error through the shared Alert', async () => {
-    mock.onGet('/admin/settings').reply(500, {
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Settings unavailable', details: [] },
-    })
+    adminSettingsReply = () => [
+      500,
+      {
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Settings unavailable', details: [] },
+      },
+    ]
     renderWithProviders(<AdminSettingsPage />)
 
     expect(await screen.findByText('Settings unavailable')).toBeInTheDocument()
@@ -319,16 +438,19 @@ describe('AdminSettingsPage', () => {
   // ─── Store identity (Store Name / Store Admin Name) ────────────────────
 
   it('loads the current store name and store admin name from the API', async () => {
-    mock.onGet('/admin/settings').reply(200, {
-      success: true,
-      data: SETTINGS_RESPONSE.data.map((s) =>
-        s.key === 'storeName'
-          ? { ...s, value: 'Atharva Prints' }
-          : s.key === 'storeAdminName'
-            ? { ...s, value: 'Atharva Vavhal' }
-            : s,
-      ),
-    })
+    adminSettingsReply = () => [
+      200,
+      {
+        success: true,
+        data: SETTINGS_RESPONSE.data.map((s) =>
+          s.key === 'storeName'
+            ? { ...s, value: 'Atharva Prints' }
+            : s.key === 'storeAdminName'
+              ? { ...s, value: 'Atharva Vavhal' }
+              : s,
+        ),
+      },
+    ]
     renderWithProviders(<AdminSettingsPage />)
 
     expect(await screen.findByLabelText('Store name')).toHaveValue('Atharva Prints')
@@ -418,17 +540,27 @@ describe('AdminSettingsPage', () => {
         createdAt: '2026-01-01T00:00:00.000Z',
       },
     })
+    const savedLogo = {
+      key: 'storeLogo',
+      label: 'Store logo',
+      description: 'Shown in the storefront navbar. Upload a PNG or JPEG.',
+      kind: 'text' as const,
+      value: 'https://res.cloudinary.com/demo/image/upload/logo.png',
+      default: '/catalog/logo.png',
+    }
     mock.onPatch('/admin/settings/storeLogo').reply(200, {
       success: true,
-      data: {
-        key: 'storeLogo',
-        label: 'Store logo',
-        description: 'Shown in the storefront navbar. Upload a PNG or JPEG.',
-        kind: 'text',
-        value: 'https://res.cloudinary.com/demo/image/upload/logo.png',
-        default: '/catalog/logo.png',
-      },
+      data: savedLogo,
     })
+    adminSettingsReply = () => [
+      200,
+      {
+        ...SETTINGS_RESPONSE,
+        data: SETTINGS_RESPONSE.data.map((setting) =>
+          setting.key === 'storeLogo' ? savedLogo : setting,
+        ),
+      },
+    ]
     renderWithProviders(<AdminSettingsPage />)
 
     const input = await screen.findByLabelText('Store logo')
@@ -441,6 +573,12 @@ describe('AdminSettingsPage', () => {
       value: 'https://res.cloudinary.com/demo/image/upload/logo.png',
     })
     expect(await screen.findByText(/logo saved/i)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByAltText('Current store logo')).toHaveAttribute(
+        'src',
+        'https://res.cloudinary.com/demo/image/upload/logo.png',
+      ),
+    )
   })
 
   it('loads existing hero slides and saves copy edits', async () => {

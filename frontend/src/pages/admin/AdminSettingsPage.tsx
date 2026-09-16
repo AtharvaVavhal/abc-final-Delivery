@@ -16,6 +16,7 @@ import type { AdminSettingView } from '@/services/api/settings'
 import { PaymentAccountSettings } from '@/features/admin/PaymentAccountSettings'
 import { StoreLogoSettings } from '@/features/admin/StoreLogoSettings'
 import { HeroSlidesSettings } from '@/features/admin/HeroSlidesSettings'
+import { NavbarSellerSettings, withNavbarSellerSettings } from '@/features/admin/NavbarSellerSettings'
 import styles from './AdminSettingsPage.module.css'
 
 /** Client-side presentation grouping only — derived from the setting
@@ -27,6 +28,12 @@ const STORE_CONTACT_KEYS = [
   'storeContactEmail',
   'storeContactPhone',
   'storeAddress',
+]
+const NAVBAR_SELLER_KEYS = [
+  'sellerLegalName',
+  'sellerLocality',
+  'sellerGstin',
+  'sellerPaymentProtected',
 ]
 const STOREFRONT_CONTENT_KEYS = [
   'announcement_text',
@@ -42,6 +49,10 @@ const GROUPS: { title: string; belongs: (key: string) => boolean }[] = [
     belongs: (k) => STORE_CONTACT_KEYS.includes(k),
   },
   {
+    title: 'Navbar seller identity',
+    belongs: (k) => NAVBAR_SELLER_KEYS.includes(k),
+  },
+  {
     title: 'Storefront content',
     belongs: (k) => STOREFRONT_CONTENT_KEYS.includes(k),
   },
@@ -50,6 +61,7 @@ const GROUPS: { title: string; belongs: (key: string) => boolean }[] = [
     belongs: (k) =>
       !STORE_IDENTITY_KEYS.includes(k) &&
       !STORE_CONTACT_KEYS.includes(k) &&
+      !NAVBAR_SELLER_KEYS.includes(k) &&
       !STOREFRONT_CONTENT_KEYS.includes(k) &&
       !k.startsWith('tax.') &&
       !k.startsWith('invoice.'),
@@ -88,7 +100,9 @@ export function AdminSettingsPage() {
     return <AdminPageSkeleton rows={4} />
   }
 
-  const groups = settingsQuery.data ? groupSettings(settingsQuery.data) : []
+  const groups = settingsQuery.data
+    ? groupSettings(withNavbarSellerSettings(settingsQuery.data))
+    : []
 
   return (
     <AdminPage
@@ -102,14 +116,18 @@ export function AdminSettingsPage() {
       {groups.map((group) => (
         <AdminCard key={group.title} as="section" title={group.title}>
           <div className={styles.group}>
-            {group.settings.map((setting) =>
-              setting.key === 'storeLogo' ? (
-                <StoreLogoSettings key={setting.key} setting={setting} />
-              ) : setting.key === 'hero_slides' ? (
-                <HeroSlidesSettings key={setting.key} setting={setting} />
-              ) : (
-                <SettingRow key={setting.key} setting={setting} />
-              ),
+            {group.title === 'Navbar seller identity' ? (
+              <NavbarSellerSettings settings={group.settings} />
+            ) : (
+              group.settings.map((setting) =>
+                setting.key === 'storeLogo' ? (
+                  <StoreLogoSettings key={setting.key} setting={setting} />
+                ) : setting.key === 'hero_slides' ? (
+                  <HeroSlidesSettings key={setting.key} setting={setting} />
+                ) : (
+                  <SettingRow key={setting.key} setting={setting} />
+                ),
+              )
             )}
           </div>
         </AdminCard>

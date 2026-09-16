@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { useUpdateAdminSetting } from '@/hooks/useUpdateAdminSetting'
@@ -19,15 +19,23 @@ export function StoreLogoSettings({ setting }: StoreLogoSettingsProps) {
   const uploadFile = useUploadFile()
   const updateSetting = useUpdateAdminSetting()
   const [error, setError] = useState<string | null>(null)
+  const fallback = setting.default || STORE_LOGO_FALLBACK
+  const [previewSrc, setPreviewSrc] = useState(
+    () => setting.value.trim() || fallback,
+  )
 
-  const currentSrc = setting.value.trim() || setting.default || STORE_LOGO_FALLBACK
-  const isDefault = currentSrc === (setting.default || STORE_LOGO_FALLBACK)
+  useEffect(() => {
+    setPreviewSrc(setting.value.trim() || fallback)
+  }, [setting.value, fallback])
+
+  const isDefault = previewSrc === fallback
   const busy = uploadFile.isPending || updateSetting.isPending
 
   async function saveLogo(url: string) {
     setError(null)
     try {
-      await updateSetting.mutateAsync({ key: 'storeLogo', value: url })
+      const saved = await updateSetting.mutateAsync({ key: 'storeLogo', value: url })
+      setPreviewSrc(saved.value.trim() || fallback)
     } catch (err) {
       setError(getApiErrorMessage(err))
     }
@@ -41,6 +49,7 @@ export function StoreLogoSettings({ setting }: StoreLogoSettingsProps) {
     }
     try {
       const uploaded = await uploadFile.mutateAsync(file)
+      setPreviewSrc(uploaded.url)
       await saveLogo(uploaded.url)
     } catch (err) {
       setError(getApiErrorMessage(err))
@@ -55,7 +64,7 @@ export function StoreLogoSettings({ setting }: StoreLogoSettingsProps) {
         {setting.label}
       </p>
       <div className={styles.logoPreviewFrame}>
-        <img src={currentSrc} alt="Current store logo" className={styles.logoPreview} />
+        <img src={previewSrc} alt="Current store logo" className={styles.logoPreview} />
       </div>
       <p className={styles.help}>{setting.description}</p>
 
@@ -90,7 +99,7 @@ export function StoreLogoSettings({ setting }: StoreLogoSettingsProps) {
             type="button"
             variant="secondary"
             disabled={busy}
-            onClick={() => void saveLogo(setting.default || STORE_LOGO_FALLBACK)}
+            onClick={() => void saveLogo(fallback)}
           >
             Use default logo
           </Button>

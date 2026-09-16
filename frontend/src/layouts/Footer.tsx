@@ -42,6 +42,7 @@ export function Footer() {
                 src={storeLogo || STORE_LOGO_FALLBACK}
                 alt=""
                 className={styles.brandLogo}
+                key={storeLogo || STORE_LOGO_FALLBACK}
               />
             </Link>
             <p className={styles.tagline}>Custom prints, made to order.</p>

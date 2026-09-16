@@ -1,5 +1,11 @@
 import type { ApiSuccessResponse } from '@/types/api'
 import { apiClient } from './client'
+import {
+  SELLER_GSTIN_DEFAULT,
+  SELLER_LEGAL_NAME_DEFAULT,
+  SELLER_LOCALITY_DEFAULT,
+  SELLER_PAYMENT_PROTECTED_DEFAULT,
+} from '@/constants/sellerIdentity'
 
 export interface HeroSlide {
   imageUrl: string
@@ -36,18 +42,26 @@ export interface HomepageSettings {
   featured_media?: string[]
 }
 
+export interface StorefrontSellerIdentity {
+  legalName: string
+  locality: string
+  gstin: string
+  paymentProtected: boolean
+}
+
 export interface StorefrontPublicSettings {
   storeName: string | null
   storeLogo: string | null
   whatsappNumber: string | null
   announcement_text: string
   contact: StoreContact
+  seller: StorefrontSellerIdentity
   homepage: HomepageSettings
 }
 
 /** Chrome + homepage keys in one public `GET /settings?keys=` round-trip. */
 export const STOREFRONT_PUBLIC_SETTING_KEYS =
-  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media'
+  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 /**
  * `GET /settings?keys=…` is the one bulk public-settings read. Its wire
@@ -90,9 +104,34 @@ function parseHomepageSettings(raw: Record<string, string>): HomepageSettings {
   }
 }
 
+function readSetting(
+  raw: Record<string, string>,
+  key: string,
+  fallback: string,
+): string {
+  if (!Object.prototype.hasOwnProperty.call(raw, key) || raw[key] == null) {
+    return fallback
+  }
+  return raw[key].trim()
+}
+
+export function parseSellerIdentity(raw: Record<string, string>): StorefrontSellerIdentity {
+  const paymentRaw = raw.sellerPaymentProtected
+  return {
+    legalName: readSetting(raw, 'sellerLegalName', SELLER_LEGAL_NAME_DEFAULT),
+    locality: readSetting(raw, 'sellerLocality', SELLER_LOCALITY_DEFAULT),
+    gstin: readSetting(raw, 'sellerGstin', SELLER_GSTIN_DEFAULT),
+    paymentProtected:
+      paymentRaw == null
+        ? SELLER_PAYMENT_PROTECTED_DEFAULT
+        : paymentRaw.trim().toLowerCase() === 'true',
+  }
+}
+
 async function fetchPublicSettingsMap(): Promise<Record<string, string>> {
   const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
     params: { keys: STOREFRONT_PUBLIC_SETTING_KEYS },
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
   })
   return res.data.data?.data ?? {}
 }
@@ -109,6 +148,7 @@ export async function fetchStorefrontPublicSettings(): Promise<StorefrontPublicS
       phone: raw.storeContactPhone?.trim() ?? '',
       address: raw.storeAddress?.trim() ?? '',
     },
+    seller: parseSellerIdentity(raw),
     homepage: parseHomepageSettings(raw),
   }
 }

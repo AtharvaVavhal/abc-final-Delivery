@@ -5,7 +5,8 @@ import { Prisma } from '@prisma/client';
  * authentication. `GET /settings` and `GET /settings/:key` filter to this
  * list, so internal rows (e.g. the order-number / invoice-number counters)
  * are never publicly readable. Tax / invoice settings are admin-only and
- * are deliberately NOT here.
+ * are deliberately NOT here — navbar seller identity is a separate, public
+ * STORE-owned display (legal name / locality / GSTIN).
  */
 export const PUBLIC_SETTING_KEYS = [
   'announcement_text',
@@ -30,6 +31,11 @@ export const PUBLIC_SETTING_KEYS = [
   'storeAddress',
   'brand_story',
   'featured_media',
+  // Navbar seller-identity strip (legal name, locality, GSTIN, payment mark).
+  'sellerLegalName',
+  'sellerLocality',
+  'sellerGstin',
+  'sellerPaymentProtected',
 ] as const;
 
 export type PublicSettingKey = (typeof PUBLIC_SETTING_KEYS)[number];
@@ -515,6 +521,10 @@ const NORMALIZERS: Record<string, (raw: string) => NormalizeResult> = {
   storeContactEmail: normalizeOptionalEmail,
   storeContactPhone: normalizeOptionalPhoneDisplay,
   storeAddress: boundedText(MAX_ADDRESS_LENGTH, 'Store address'),
+  sellerLegalName: boundedText(MAX_NAME_LENGTH, 'Seller legal name'),
+  sellerLocality: boundedText(MAX_ADDRESS_LENGTH, 'Seller locality'),
+  sellerGstin: normalizeGstin,
+  sellerPaymentProtected: normalizeBoolean,
   brand_story: boundedText(MAX_BRAND_STORY_LENGTH, 'Brand story'),
   featured_media: normalizeFeaturedMedia,
   hero_slides: normalizeHeroSlides,
@@ -609,6 +619,42 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
       'Public studio/office address. Leave blank to hide until the client supplies it.',
     kind: 'text',
     default: '',
+  },
+  {
+    key: 'sellerLegalName',
+    ownership: 'STORE',
+    label: 'Legal name',
+    description:
+      'Registered business name on the storefront navbar strip (under the logo). Leave blank to hide the name.',
+    kind: 'text',
+    default: 'GOURAV KUMAR ABHAY SINGH',
+  },
+  {
+    key: 'sellerLocality',
+    ownership: 'STORE',
+    label: 'Location',
+    description:
+      'City / locality shown next to the pin on the navbar. Leave blank to hide.',
+    kind: 'text',
+    default: 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
+  },
+  {
+    key: 'sellerGstin',
+    ownership: 'STORE',
+    label: 'GSTIN',
+    description:
+      'GST identification number shown on the navbar. Validated for format only. Leave blank to hide the GST badge. Invoice GSTIN is a separate invoicing field.',
+    kind: 'text',
+    default: '23EQZPS2886B1Z7',
+  },
+  {
+    key: 'sellerPaymentProtected',
+    ownership: 'STORE',
+    label: 'Show Payment Protected',
+    description:
+      'When true, the navbar shows a Payment Protected mark (Razorpay checkout). Set false to hide it.',
+    kind: 'boolean',
+    default: 'true',
   },
   {
     key: 'brand_story',

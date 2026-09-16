@@ -68,7 +68,7 @@ describe('fetchHomepageSettings — real wire contract', () => {
 
     const call = mock.history.get.find((r) => r.url === '/settings')
     expect(call?.params).toEqual({
-      keys: 'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media',
+      keys: 'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media',
     })
   })
 
