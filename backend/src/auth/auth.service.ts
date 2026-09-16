@@ -61,9 +61,7 @@ export class AuthService {
   private readonly customerRefreshTokenTtlMs: number;
   private readonly adminRefreshTokenTtlMs: number;
   private readonly frontendUrl: string;
-  private readonly refreshCookieBase: ReturnType<
-    typeof refreshCookieBaseOptions
-  >;
+  private readonly backendUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -81,10 +79,7 @@ export class AuthService {
       authConfig.adminRefreshTokenExpiresIn,
     );
     this.frontendUrl = configService.get('frontendUrl', { infer: true });
-    this.refreshCookieBase = refreshCookieBaseOptions(
-      this.frontendUrl,
-      configService.get('backendUrl', { infer: true }),
-    );
+    this.backendUrl = configService.get('backendUrl', { infer: true });
   }
 
   // ─── Register (§13.A) ───────────────────────────────────────────────
@@ -426,19 +421,28 @@ export class AuthService {
     };
   }
 
+  private refreshCookieOptions(res: Response) {
+    const originHeader = res.req?.headers?.origin;
+    const origin =
+      typeof originHeader === 'string' && originHeader.length > 0
+        ? originHeader
+        : this.frontendUrl;
+    return refreshCookieBaseOptions(origin, this.backendUrl);
+  }
+
   private setRefreshCookie(
     res: Response,
     token: string,
     expiresAt: Date,
   ): void {
     res.cookie(REFRESH_TOKEN_COOKIE_NAME, token, {
-      ...this.refreshCookieBase,
+      ...this.refreshCookieOptions(res),
       expires: expiresAt,
     });
   }
 
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.refreshCookieBase);
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.refreshCookieOptions(res));
   }
 
   private sleep(ms: number): Promise<void> {

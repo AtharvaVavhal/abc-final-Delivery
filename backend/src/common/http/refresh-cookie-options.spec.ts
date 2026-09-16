@@ -55,7 +55,22 @@ describe('refreshCookieBaseOptions', () => {
     });
   });
 
-  it('uses SameSite=None; Secure when the SPA and API are different sites', () => {
+  it('uses SameSite=None; Secure; Partitioned when local Vite calls a hosted API', () => {
+    expect(
+      refreshCookieBaseOptions(
+        'http://localhost:5173',
+        'https://abcweb.onrender.com',
+      ),
+    ).toEqual({
+      httpOnly: true,
+      path: '/api/v1/auth/refresh',
+      sameSite: 'none',
+      secure: true,
+      partitioned: true,
+    });
+  });
+
+  it('uses SameSite=None; Secure; Partitioned when the SPA and API are different sites', () => {
     expect(
       refreshCookieBaseOptions(
         'https://abc-woad-six.vercel.app',
@@ -66,6 +81,7 @@ describe('refreshCookieBaseOptions', () => {
       path: '/api/v1/auth/refresh',
       sameSite: 'none',
       secure: true,
+      partitioned: true,
     });
   });
 

@@ -19,6 +19,8 @@ export type RefreshCookieBaseOptions = {
   secure: boolean;
   sameSite: 'strict' | 'none';
   path: string;
+  /** CHIPS — required for Chrome to send a cross-site refresh cookie. */
+  partitioned?: true;
 };
 
 export function cookieSiteKey(hostname: string): string {
@@ -53,10 +55,12 @@ export function originsAreSameSite(a: string, b: string): boolean {
 
 /**
  * SPA + API on different registrable sites (e.g. *.vercel.app calling
- * *.onrender.com) is a cross-site fetch. SameSite=Strict cookies are
- * stored but never sent on that POST /auth/refresh, so a reload looks
- * like logout. SameSite=None; Secure is required for the browser to
- * attach the refresh cookie. Same-site deployments keep Strict.
+ * *.onrender.com, or local Vite calling a hosted API) is a cross-site
+ * fetch. SameSite=Strict cookies are stored but never sent on that
+ * POST /auth/refresh, so a reload looks like logout. SameSite=None;
+ * Secure; Partitioned is required for Chrome to attach the refresh
+ * cookie as a third-party CHIPS cookie. Same-site deployments keep
+ * Strict.
  */
 export function refreshCookieBaseOptions(
   frontendUrl: string,
@@ -71,5 +75,6 @@ export function refreshCookieBaseOptions(
     path: REFRESH_TOKEN_COOKIE_PATH,
     sameSite: crossSite ? 'none' : 'strict',
     secure: crossSite || https,
+    ...(crossSite ? { partitioned: true as const } : {}),
   };
 }
