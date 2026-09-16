@@ -1,4 +1,7 @@
-import { cartMatchesUnpaidOrder } from './unpaid-cart-match';
+import {
+  cartItemIdsCoveredByPaidOrder,
+  cartMatchesUnpaidOrder,
+} from './unpaid-cart-match';
 
 describe('cartMatchesUnpaidOrder', () => {
   const mug = {
@@ -32,5 +35,38 @@ describe('cartMatchesUnpaidOrder', () => {
 
   it('does not match an empty cart', () => {
     expect(cartMatchesUnpaidOrder([], [mug])).toBe(false);
+  });
+});
+
+describe('cartItemIdsCoveredByPaidOrder', () => {
+  const mug = {
+    productId: 'prod-mug',
+    variantLabel: null as string | null,
+    quantity: 1,
+    customizations: [] as Array<{
+      fieldLabel: string;
+      textValue: string | null;
+      uploadedFileId: string | null;
+    }>,
+  };
+
+  it('keeps a newly added product after the original line is paid', () => {
+    const poster = { ...mug, productId: 'prod-poster' };
+    expect(
+      cartItemIdsCoveredByPaidOrder(
+        [
+          { id: 'cart-mug', ...mug },
+          { id: 'cart-poster', ...poster },
+        ],
+        [mug],
+      ),
+    ).toEqual(['cart-mug']);
+  });
+
+  it('returns nothing when the cart no longer has the paid merchandise', () => {
+    const poster = { ...mug, productId: 'prod-poster' };
+    expect(
+      cartItemIdsCoveredByPaidOrder([{ id: 'cart-poster', ...poster }], [mug]),
+    ).toEqual([]);
   });
 });

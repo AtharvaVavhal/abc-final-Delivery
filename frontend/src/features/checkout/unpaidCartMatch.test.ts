@@ -51,4 +51,8 @@ describe('shouldResumeUnpaidOrder', () => {
   it('resumes when the cart is empty so the shopper can still pay or cancel', () => {
     expect(shouldResumeUnpaidOrder(cart([]), { items: [orderItem()] })).toBe(true)
   })
+
+  it('does not resume while the cart has not loaded', () => {
+    expect(shouldResumeUnpaidOrder(undefined, { items: [orderItem()] })).toBe(false)
+  })
 })

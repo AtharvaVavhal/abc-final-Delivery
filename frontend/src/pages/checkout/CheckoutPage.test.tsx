@@ -134,9 +134,11 @@ function ConfirmationStub() {
 
 let checkoutMock: MockAdapter
 
-function renderCheckout(profile: Record<string, unknown> = PROFILE_NO_ADDRESS) {
+function renderCheckout(
+  profile: Record<string, unknown> = PROFILE_NO_ADDRESS,
+  queryClient = createTestQueryClient(),
+) {
   checkoutMock.onGet('/users/me').reply(200, { success: true, data: profile })
-  const queryClient = createTestQueryClient()
   render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/checkout']}>
@@ -669,5 +671,123 @@ describe('CheckoutPage', () => {
     expect(await screen.findByLabelText('Recipient name')).toBeInTheDocument()
     expect(screen.getByText('Poster')).toBeInTheDocument()
     expect(screen.queryByText(/awaiting payment/i)).not.toBeInTheDocument()
+  })
+
+  it('does not resume a cached unpaid order after the fresh cart fetch includes another product', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(['cart'], buildCart())
+    mock.onGet('/cart').reply(200, {
+      success: true,
+      data: {
+        ...buildCart(),
+        items: [
+          ...buildCart().items,
+          {
+            id: 'item-2',
+            productId: 'prod-2',
+            productName: 'Poster',
+            variantId: null,
+            variantLabel: null,
+            quantity: 1,
+            unitPrice: '80.00',
+            lineTotal: '80.00',
+            isAvailable: true,
+            unavailableReason: null,
+            customizations: [],
+          },
+        ],
+        itemCount: 3,
+        subtotal: '380.00',
+      },
+    })
+    mock.onGet('/orders').reply((config) => {
+      const status = (config.params as { status?: string } | undefined)?.status
+      if (status === 'PENDING_PAYMENT') {
+        return [
+          200,
+          {
+            success: true,
+            data: [
+              {
+                id: ORDER_VIEW.id,
+                orderNumber: ORDER_VIEW.orderNumber,
+                status: ORDER_VIEW.status,
+                total: ORDER_VIEW.total,
+                currency: ORDER_VIEW.currency,
+                itemCount: 1,
+                needsManualRefund: false,
+                createdAt: ORDER_VIEW.createdAt,
+              },
+            ],
+            meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+          },
+        ]
+      }
+      return [
+        200,
+        { success: true, data: [], meta: { page: 1, limit: 1, total: 0, totalPages: 0 } },
+      ]
+    })
+    mock.onGet('/orders/order-1').reply(200, { success: true, data: ORDER_VIEW })
+    mock.onPost('/checkout/validate').reply(200, { success: true, data: BASE_PREVIEW })
+
+    renderCheckout(PROFILE_NO_ADDRESS, queryClient)
+
+    expect(await screen.findByLabelText('Recipient name')).toBeInTheDocument()
+    expect(screen.getByText('Poster')).toBeInTheDocument()
+    expect(screen.queryByText(/awaiting payment/i)).not.toBeInTheDocument()
+  })
+
+  it('cancels the unpaid order from checkout so the current cart can be paid instead', async () => {
+    mock.onGet('/orders').reply((config) => {
+      const status = (config.params as { status?: string } | undefined)?.status
+      if (status === 'PENDING_PAYMENT') {
+        return [
+          200,
+          {
+            success: true,
+            data: [
+              {
+                id: ORDER_VIEW.id,
+                orderNumber: ORDER_VIEW.orderNumber,
+                status: ORDER_VIEW.status,
+                total: ORDER_VIEW.total,
+                currency: ORDER_VIEW.currency,
+                itemCount: 1,
+                needsManualRefund: false,
+                createdAt: ORDER_VIEW.createdAt,
+              },
+            ],
+            meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+          },
+        ]
+      }
+      return [
+        200,
+        { success: true, data: [], meta: { page: 1, limit: 1, total: 0, totalPages: 0 } },
+      ]
+    })
+    mock.onGet('/orders/order-1').reply(200, { success: true, data: ORDER_VIEW })
+    mock.onPost('/checkout/validate').reply(200, { success: true, data: BASE_PREVIEW })
+    mock.onPost('/orders/order-1/cancel').reply(200, {
+      success: true,
+      data: { ...ORDER_VIEW, status: 'CANCELLED' },
+    })
+
+    renderCheckout()
+    expect(await screen.findByText(/awaiting payment/i)).toBeInTheDocument()
+
+    mock.onGet('/orders').reply(200, {
+      success: true,
+      data: [],
+      meta: { page: 1, limit: 1, total: 0, totalPages: 0 },
+    })
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Cancel order and check out cart' }))
+
+    expect(await screen.findByLabelText('Recipient name')).toBeInTheDocument()
+    expect(screen.queryByText(/awaiting payment/i)).not.toBeInTheDocument()
+    expect(mock.history.post.some((r) => r.url === '/orders/order-1/cancel')).toBe(true)
   })
 })

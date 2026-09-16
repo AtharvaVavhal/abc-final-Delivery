@@ -1,10 +1,11 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '@/hooks/useCart'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useCheckoutPreview } from '@/hooks/useCheckoutPreview'
 import { useCreateOrder } from '@/hooks/useCreateOrder'
 import { useRetryPayment } from '@/hooks/useRetryPayment'
+import { useCancelOrder } from '@/hooks/useCancelOrder'
 import { useUnpaidCheckoutOrder } from '@/hooks/useOrders'
 import { useRazorpayCheckout } from '@/features/checkout/useRazorpayCheckout'
 import { ShippingForm } from '@/features/checkout/ShippingForm'
@@ -26,6 +27,7 @@ import type { ShippingFormValues } from '@/schemas/checkout.schema'
 import type { CheckoutOrderView } from '@/types/checkout'
 import type { CheckoutPreviewView } from '@/types/coupons'
 import type { UserProfileView } from '@/types/auth'
+import type { OrderDetailView } from '@/types/orders'
 import { shouldResumeUnpaidOrder } from '@/features/checkout/unpaidCartMatch'
 import styles from './CheckoutPage.module.css'
 
@@ -96,7 +98,7 @@ function savedAddressDefaults(
  */
 export function CheckoutPage() {
   const navigate = useNavigate()
-  const [idempotencyKey] = useState(() => crypto.randomUUID())
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const [order, setOrder] = useState<CheckoutOrderView | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [couponPreview, setCouponPreview] = useState<CheckoutPreviewView | null>(null)
@@ -112,7 +114,7 @@ export function CheckoutPage() {
   const isRetryingRef = useRef(false)
   const isCreatingRef = useRef(false)
 
-  const { data: cart, isPending: isCartPending, isError: isCartError, error: cartError } = useCart()
+  const { data: cart, isPending: isCartPending, isError: isCartError, error: cartError, isFetchedAfterMount: isCartFetchedAfterMount } = useCart()
   const unpaidQuery = useUnpaidCheckoutOrder()
   // Profile drives Razorpay email/phone prefill AND the shipping-form
   // address prefill. A failure here is non-fatal — the form just starts
@@ -123,10 +125,11 @@ export function CheckoutPage() {
       Boolean(cart) &&
       (cart?.items.length ?? 0) > 0 &&
       couponPreview === null &&
-      !unpaidQuery.data?.couponCode,
+      !(unpaidQuery.data?.couponCode && shouldResumeUnpaidOrder(cart, unpaidQuery.data)),
   })
   const createOrder = useCreateOrder()
   const retryPayment = useRetryPayment()
+  const cancelUnpaid = useCancelOrder(order?.id ?? unpaidQuery.data?.id ?? '')
 
   const { openCheckout, isOpening, isVerifying, isLoadingScript } = useRazorpayCheckout({
     // Never render "payment confirmed" here — only navigate. The
@@ -199,11 +202,31 @@ export function CheckoutPage() {
     !order && unpaidQuery.data && shouldResumeUnpaidOrder(cart, unpaidQuery.data)
       ? toCheckoutOrderView(unpaidQuery.data)
       : null
-  const payableOrder = order ?? restoredUnpaid
+  const payableOrder =
+    order && shouldResumeUnpaidOrder(cart, order) ? order : restoredUnpaid
+
+  useEffect(() => {
+    if (order && cart && !shouldResumeUnpaidOrder(cart, order)) {
+      setOrder(null)
+      setIdempotencyKey(crypto.randomUUID())
+    }
+  }, [order, cart])
 
   function handleRetry() {
     if (payableOrder) {
       void startPayment(payableOrder)
+    }
+  }
+
+  async function handleCancelUnpaid() {
+    if (!payableOrder) return
+    setPaymentError(null)
+    try {
+      await cancelUnpaid.mutateAsync(undefined)
+      setOrder(null)
+      setIdempotencyKey(crypto.randomUUID())
+    } catch {
+      // cancelUnpaid.isError renders the message on the pending view.
     }
   }
 
@@ -215,7 +238,10 @@ export function CheckoutPage() {
     </>
   )
 
-  if (isCartPending || profileQuery.isLoading || unpaidQuery.isPending) {
+  const waitingForFreshCart =
+    !order && Boolean(unpaidQuery.data) && !isCartFetchedAfterMount
+
+  if (isCartPending || profileQuery.isLoading || unpaidQuery.isPending || waitingForFreshCart) {
     return withSeo(
       <Page>
         <h1>Checkout</h1>
@@ -232,9 +258,11 @@ export function CheckoutPage() {
         <CheckoutSteps current="payment" />
         <OrderPendingPayment
           order={payableOrder}
-          error={paymentError}
+          error={paymentError ?? (cancelUnpaid.isError ? getApiErrorMessage(cancelUnpaid.error) : null)}
           onRetry={handleRetry}
+          onCancel={() => void handleCancelUnpaid()}
           isProcessing={retryPayment.isPending || isOpening || isVerifying}
+          isCancelling={cancelUnpaid.isPending}
           isScriptLoading={isLoadingScript}
         />
       </Page>,

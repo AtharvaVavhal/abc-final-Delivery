@@ -12,6 +12,7 @@ export function useCancelOrder(orderId: string) {
     mutationFn: (reason?: string) => cancelOrder(orderId, reason),
     onSuccess: (updated) => {
       queryClient.setQueryData(orderQueryKey(orderId), updated)
+      queryClient.setQueryData(UNPAID_CHECKOUT_ORDER_QUERY_KEY, null)
       void queryClient.invalidateQueries({ queryKey: ['orders'] })
       void queryClient.invalidateQueries({ queryKey: UNPAID_CHECKOUT_ORDER_QUERY_KEY })
     },

@@ -15,14 +15,15 @@ function lineKey(line: {
 }
 
 /** True when checkout should resume the unpaid order instead of placing a
- * new one from the current cart. An empty cart still resumes (pay or
- * cancel the pending order). A changed cart does not. */
+ * new one from the current cart. Unknown cart data must not resume — that
+ * was charging the previous Razorpay order after a new product was added.
+ * An empty cart still resumes (pay or cancel the pending order). */
 export function shouldResumeUnpaidOrder(
   cart: CartView | undefined,
   order: Pick<OrderDetailView, 'items'> | null | undefined,
 ): boolean {
-  if (!order) return false
-  if (!cart || cart.items.length === 0) return true
+  if (!order || !cart) return false
+  if (cart.items.length === 0) return true
   return cartMatchesUnpaidOrderItems(cart, order.items)
 }
 

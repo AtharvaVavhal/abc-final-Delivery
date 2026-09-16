@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
 import { decimalToPaise } from '../cart/pricing/money.util';
+import { cartItemIdsCoveredByPaidOrder } from '../checkout/unpaid-cart-match';
 import { isTransitionAllowed } from '../orders/state-machine/order-state-machine';
 import { PaymentAccountResolutionError } from './payment-accounts/payment-account-resolution.errors';
 import {
@@ -1429,10 +1430,43 @@ export class PaymentsService {
     if (!cart) return;
     const items = await tx.cartItem.findMany({
       where: { cartId: cart.id },
-      select: { id: true },
+      include: {
+        variant: { select: { label: true } },
+        customizations: { include: { customizationField: true } },
+      },
     });
     if (items.length === 0) return;
-    const itemIds = items.map((item) => item.id);
+    const orderItems = await tx.orderItem.findMany({
+      where: { orderId: order.id },
+      include: { customizations: true },
+    });
+    // Only the merchandise this capture actually paid for. A product added
+    // after the unpaid checkout must survive — deleting every cart line
+    // here is how a reused old order wiped the new bag.
+    const itemIds = cartItemIdsCoveredByPaidOrder(
+      items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        variantLabel: item.variant?.label ?? null,
+        quantity: item.quantity,
+        customizations: item.customizations.map((c) => ({
+          fieldLabel: c.customizationField.label,
+          textValue: c.textValue,
+          uploadedFileId: c.uploadedFileId,
+        })),
+      })),
+      orderItems.map((item) => ({
+        productId: item.productId,
+        variantLabel: item.variantLabelSnapshot,
+        quantity: item.quantity,
+        customizations: item.customizations.map((c) => ({
+          fieldLabel: c.fieldLabelSnapshot,
+          textValue: c.textValue,
+          uploadedFileId: c.uploadedFileId,
+        })),
+      })),
+    );
+    if (itemIds.length === 0) return;
     await tx.cartItemCustomization.deleteMany({
       where: { cartItemId: { in: itemIds } },
     });

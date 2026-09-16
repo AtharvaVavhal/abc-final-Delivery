@@ -200,7 +200,7 @@ export class CheckoutService {
         },
       });
 
-      const existingUnpaid = await tx.order.findFirst({
+      const existingUnpaidOrders = await tx.order.findMany({
         where: {
           userId,
           tenantId: lockedCart.tenantId,
@@ -216,35 +216,43 @@ export class CheckoutService {
           },
         },
       });
-      if (existingUnpaid) {
-        const cartStillMatches =
-          !cart || cart.items.length === 0
-            ? true
-            : cartMatchesUnpaidOrder(
-                cart.items.map((item) => ({
-                  productId: item.productId,
-                  variantLabel: item.variant?.label ?? null,
-                  quantity: item.quantity,
-                  customizations: item.customizations.map((c) => ({
-                    fieldLabel: c.customizationField.label,
-                    textValue: c.textValue,
-                    uploadedFileId: c.uploadedFileId,
+      if (existingUnpaidOrders.length > 0) {
+        const cartLines =
+          cart?.items.map((item) => ({
+            productId: item.productId,
+            variantLabel: item.variant?.label ?? null,
+            quantity: item.quantity,
+            customizations: item.customizations.map((c) => ({
+              fieldLabel: c.customizationField.label,
+              textValue: c.textValue,
+              uploadedFileId: c.uploadedFileId,
+            })),
+          })) ?? [];
+        const matchingUnpaid =
+          cartLines.length === 0
+            ? existingUnpaidOrders[0]
+            : existingUnpaidOrders.find((unpaid) =>
+                cartMatchesUnpaidOrder(
+                  cartLines,
+                  unpaid.items.map((item) => ({
+                    productId: item.productId,
+                    variantLabel: item.variantLabelSnapshot,
+                    quantity: item.quantity,
+                    customizations: item.customizations.map((c) => ({
+                      fieldLabel: c.fieldLabelSnapshot,
+                      textValue: c.textValue,
+                      uploadedFileId: c.uploadedFileId,
+                    })),
                   })),
-                })),
-                existingUnpaid.items.map((item) => ({
-                  productId: item.productId,
-                  variantLabel: item.variantLabelSnapshot,
-                  quantity: item.quantity,
-                  customizations: item.customizations.map((c) => ({
-                    fieldLabel: c.fieldLabelSnapshot,
-                    textValue: c.textValue,
-                    uploadedFileId: c.uploadedFileId,
-                  })),
-                })),
+                ),
               );
-        if (cartStillMatches) {
+        for (const unpaid of existingUnpaidOrders) {
+          if (unpaid.id === matchingUnpaid?.id) continue;
+          await this.abandonUnpaidOrder(tx, unpaid, userId);
+        }
+        if (matchingUnpaid) {
           const requestedCode = dto.couponCode?.trim().toUpperCase() || null;
-          const existingCode = existingUnpaid.couponCode;
+          const existingCode = matchingUnpaid.couponCode;
           if (requestedCode && existingCode && existingCode !== requestedCode) {
             throw new ConflictException(
               'This order is already awaiting payment with a different coupon. Complete that payment first — the payable amount cannot be changed after a coupon is claimed.',
@@ -253,14 +261,13 @@ export class CheckoutService {
           if (requestedCode && !existingCode) {
             await this.applyCouponToUnpaidOrder(
               tx,
-              existingUnpaid,
+              matchingUnpaid,
               requestedCode,
               userId,
             );
           }
-          return { orderId: existingUnpaid.id, created: false };
+          return { orderId: matchingUnpaid.id, created: false };
         }
-        await this.abandonUnpaidOrder(tx, existingUnpaid, userId);
       }
 
       const claim = await this.idempotencyService.claim(tx, {

@@ -11,7 +11,9 @@ interface OrderPendingPaymentProps {
   order: CheckoutOrderView
   error: string | null
   onRetry: () => void
+  onCancel: () => void
   isProcessing: boolean
+  isCancelling?: boolean
   isScriptLoading?: boolean
 }
 
@@ -24,8 +26,16 @@ interface OrderPendingPaymentProps {
  * POST /checkout/orders/:id/retry-payment rather than re-submitting a new
  * checkout — the same order, reusing its Razorpay order id.
  */
-export function OrderPendingPayment({ order, error, onRetry, isProcessing, isScriptLoading }: OrderPendingPaymentProps) {
-  const isDisabled = isProcessing || isScriptLoading
+export function OrderPendingPayment({
+  order,
+  error,
+  onRetry,
+  onCancel,
+  isProcessing,
+  isCancelling,
+  isScriptLoading,
+}: OrderPendingPaymentProps) {
+  const isDisabled = isProcessing || isScriptLoading || isCancelling
 
   return (
     <div className={styles.wrap}>
@@ -33,9 +43,9 @@ export function OrderPendingPayment({ order, error, onRetry, isProcessing, isScr
         <p className={styles.eyebrow}>Order placed · awaiting payment</p>
         <h2 className={styles.heading}>Order {order.orderNumber}</h2>
         <p className={styles.subheading}>
-          Payment is not done yet, so this order is still waiting. Pay below,
-          or change your cart first — checkout will then use the new items
-          instead of this order.
+          Payment is not done yet, so this order is still waiting. Pay below
+          for these items, or cancel it to check out whatever is in your cart
+          now.
         </p>
       </div>
 
@@ -66,11 +76,20 @@ export function OrderPendingPayment({ order, error, onRetry, isProcessing, isScr
 
       <Button
         onClick={onRetry}
-        isLoading={isDisabled}
+        isLoading={isDisabled && !isCancelling}
         className={styles.payButton}
         disabled={isDisabled}
       >
         {isScriptLoading ? 'Loading payment…' : error ? 'Retry payment' : 'Pay now'}
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={onCancel}
+        isLoading={Boolean(isCancelling)}
+        className={styles.payButton}
+        disabled={isDisabled}
+      >
+        Cancel order and check out cart
       </Button>
       <p className={styles.cartLink}>
         <Link to={ROUTES.CART}>Change items in cart</Link>

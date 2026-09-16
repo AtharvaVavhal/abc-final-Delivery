@@ -34,7 +34,7 @@ export function cartMatchesUnpaidOrder(
   return cartKeys.every((key, i) => key === orderKeys[i]);
 }
 
-function lineFingerprint(line: {
+type MatchLine = {
   productId: string | null;
   variantLabel: string | null;
   quantity: number;
@@ -43,7 +43,30 @@ function lineFingerprint(line: {
     textValue: string | null;
     uploadedFileId: string | null;
   }>;
-}): string {
+};
+
+/**
+ * Cart line ids that were included in a now-paid order. Extra products
+ * added after the unpaid checkout must stay in the bag — wiping the whole
+ * cart on capture was charging the old order and deleting the new items.
+ */
+export function cartItemIdsCoveredByPaidOrder(
+  cartLines: Array<MatchLine & { id: string }>,
+  orderLines: MatchLine[],
+): string[] {
+  const remaining = orderLines.map(lineFingerprint);
+  const ids: string[] = [];
+  for (const line of cartLines) {
+    const key = lineFingerprint(line);
+    const idx = remaining.indexOf(key);
+    if (idx === -1) continue;
+    remaining.splice(idx, 1);
+    ids.push(line.id);
+  }
+  return ids;
+}
+
+function lineFingerprint(line: MatchLine): string {
   const custom = [...line.customizations]
     .map(
       (c) =>
