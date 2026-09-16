@@ -1,6 +1,6 @@
 .shell {
   --storefront-sidebar-width: 272px;
-  --storefront-header-height: 4.25rem;
+  --storefront-header-height: 4.5rem;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

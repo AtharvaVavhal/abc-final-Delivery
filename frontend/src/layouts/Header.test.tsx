@@ -213,11 +213,11 @@ describe('Header', () => {
   it('renders product search in the header bar, not inside the mobile nav drawer', () => {
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
-    expect(screen.getAllByRole('search', { hidden: true })).toHaveLength(1)
+    expect(screen.getAllByPlaceholderText('Search products…').length).toBeGreaterThanOrEqual(1)
 
     const drawer = document.getElementById('mobile-nav') as HTMLElement
     expect(within(drawer).queryByRole('search', { hidden: true })).not.toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Search products…')).toBeInTheDocument()
+    expect(within(drawer).queryByPlaceholderText('Search products…')).not.toBeInTheDocument()
   })
 
   it('exposes account + orders + log out inside the nav drawer for an authenticated user (UX-16)', () => {

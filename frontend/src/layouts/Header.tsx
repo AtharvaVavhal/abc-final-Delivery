@@ -139,8 +139,8 @@ export function Header() {
               src={storeLogo || STORE_LOGO_FALLBACK}
               alt=""
               className={styles.brandLogo}
-              width={188}
-              height={44}
+              width={264}
+              height={56}
               decoding="async"
             />
           </NavLink>
@@ -263,6 +263,10 @@ export function Header() {
           </ul>
         </nav>
 
+        <div className={styles.searchSlot}>
+          <HeaderSearch variant="bar" active />
+        </div>
+
         <div className={styles.actions}>
           <CurrencySelector />
 
@@ -272,7 +276,7 @@ export function Header() {
             </NavLink>
           )}
 
-          <div ref={searchWrapRef}>
+          <div ref={searchWrapRef} className={styles.searchIconWrap}>
             <button
               type="button"
               className={cn(styles.iconButton, searchOpen && styles.iconButtonActive)}
