@@ -53,7 +53,7 @@ describe('Hero autoplay', () => {
     const hero = screen.getByLabelText('Promotional hero')
     act(() => {
       hero.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }))
-      vi.advanceTimersByTime(6500)
+      vi.advanceTimersByTime(4500)
     })
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Second')
@@ -66,7 +66,7 @@ describe('Hero autoplay', () => {
     )
 
     act(() => {
-      vi.advanceTimersByTime(6500)
+      vi.advanceTimersByTime(4500)
     })
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Second')

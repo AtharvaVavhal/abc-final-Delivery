@@ -27,7 +27,7 @@ export interface HeroSlide {
   secondaryLink?: string
 }
 
-const AUTOPLAY_MS = 6500
+const AUTOPLAY_MS = 4500
 
 function HeroSlideImage({
   url,
