@@ -114,20 +114,23 @@ describe('Checkout order-creation races (§27 #3, #13, #14)', () => {
     ]);
 
     // Different Idempotency-Keys mean the idempotency claim cannot be what
-    // dedupes this — if it's still exactly one order, the cart row lock is
-    // what did it. Exactly one request should succeed; the other loses the
-    // lock race and finds the cart already emptied ("Your cart is empty").
-    const statuses = [resA.status, resB.status].sort((a, b) => a - b);
-    expect(statuses).toEqual([201, 400]);
+    // dedupes this — if it's still exactly one order, the cart row lock
+    // plus resume-unpaid-order is what did it. Both requests succeed with
+    // the same order; the cart stays populated until payment is captured.
+    const statuses = [resA.status, resB.status].sort((a, b) => a - b)
+    expect(statuses).toEqual([200, 201])
 
-    const orders = await prisma.order.findMany({ where: { userId: user.id } });
-    expect(orders).toHaveLength(1);
-    expect(orders[0].total.toFixed(2)).toBe('120.00');
+    const orders = await prisma.order.findMany({ where: { userId: user.id } })
+    expect(orders).toHaveLength(1)
+    expect(orders[0].total.toFixed(2)).toBe('120.00')
 
-    const winner = resA.status === 201 ? resA : resB;
-    const loser = resA.status === 201 ? resB : resA;
-    expect(winner.body.data.id).toBe(orders[0].id);
-    expect(loser.body.error.message).toMatch(/cart is empty/i);
+    expect(resA.body.data.id).toBe(orders[0].id)
+    expect(resB.body.data.id).toBe(orders[0].id)
+
+    const cartItems = await prisma.cartItem.findMany({
+      where: { cart: { userId: user.id } },
+    })
+    expect(cartItems).toHaveLength(1)
   });
 
   it('#3 — a coupon with usageLimitTotal: 1, claimed by genuinely concurrent checkouts from different users, is granted to exactly one', async () => {
@@ -181,43 +184,43 @@ describe('Checkout order-creation races (§27 #3, #13, #14)', () => {
     expect(orders).toHaveLength(1);
 
     // Every losing user's cart still has its item — the transaction rolled
-    // back cleanly, nothing silently lost. The winner's cart was emptied by
-    // the successful checkout, same as any ordinary order.
-    const winnerUserId = orders[0].userId;
+    // back cleanly, nothing silently lost. The winner's cart also stays
+    // until payment is captured (dismissing Razorpay must not empty it).
     for (const user of users) {
       const cartItems = await prisma.cartItem.findMany({
         where: { cart: { userId: user.id } },
-      });
-      expect(cartItems).toHaveLength(user.id === winnerUserId ? 0 : 1);
+      })
+      expect(cartItems).toHaveLength(1)
     }
   });
 
-  it('#14 — the cart is left with its items intact for the losing tab to retry from (nothing silently lost)', async () => {
-    // Sanity companion to the race test above: a genuinely sequential
-    // double-checkout (cart re-filled between attempts) still works, so
-    // the fix only serializes concurrent access — it doesn't break the
-    // ordinary "cart emptied by checkout" flow.
-    const user = await registerUser(app);
-    const { productId } = await createProduct(prisma, { basePrice: '10.00' });
-    await addCartItem(app, user, { productId, quantity: 1 });
+  it('#14 — a second checkout while an unpaid order exists resumes that order instead of creating another', async () => {
+    const user = await registerUser(app)
+    const { productId } = await createProduct(prisma, { basePrice: '10.00' })
+    await addCartItem(app, user, { productId, quantity: 1 })
 
-    await http(app)
+    const first = await http(app)
       .post(apiPath('/checkout/orders'))
       .set(...authHeader(user))
       .set('Idempotency-Key', `sequential-first-${randomUUID()}`)
       .send(shippingFields())
-      .expect(201);
+      .expect(201)
 
-    await addCartItem(app, user, { productId, quantity: 1 });
-
-    await http(app)
+    const second = await http(app)
       .post(apiPath('/checkout/orders'))
       .set(...authHeader(user))
       .set('Idempotency-Key', `sequential-second-${randomUUID()}`)
       .send(shippingFields())
-      .expect(201);
+      .expect(200)
 
-    const orders = await prisma.order.findMany({ where: { userId: user.id } });
-    expect(orders).toHaveLength(2);
-  });
+    expect(second.body.data.id).toBe(first.body.data.id)
+
+    const orders = await prisma.order.findMany({ where: { userId: user.id } })
+    expect(orders).toHaveLength(1)
+
+    const cartItems = await prisma.cartItem.findMany({
+      where: { cart: { userId: user.id } },
+    })
+    expect(cartItems).toHaveLength(1)
+  })
 });

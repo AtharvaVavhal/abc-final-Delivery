@@ -1414,7 +1414,31 @@ export class PaymentsService {
         tenantId: order.tenantId,
       },
     });
+    if (to === OrderStatus.PAID) {
+      await this.clearCartForPaidOrder(tx, order);
+    }
     return { ...order, status: to };
+  }
+
+  private async clearCartForPaidOrder(
+    tx: Prisma.TransactionClient | PrismaService,
+    order: Order,
+  ): Promise<void> {
+    const cart = await tx.cart.findFirst({
+      where: { userId: order.userId, tenantId: order.tenantId },
+      select: { id: true },
+    });
+    if (!cart) return;
+    const items = await tx.cartItem.findMany({
+      where: { cartId: cart.id },
+      select: { id: true },
+    });
+    if (items.length === 0) return;
+    const itemIds = items.map((item) => item.id);
+    await tx.cartItemCustomization.deleteMany({
+      where: { cartItemId: { in: itemIds } },
+    });
+    await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
   }
 
   /**

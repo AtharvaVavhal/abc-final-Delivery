@@ -155,11 +155,12 @@ export class CheckoutService {
       // the same cart, *different* Idempotency-Keys) race-safe. The
       // idempotency claim below only dedupes two requests sharing the same
       // key; without this lock, two concurrent transactions with different
-      // keys would both read the same cart items before either deleted
-      // them and both create an order. Locking first (rather than after
-      // the claim) also means a same-key retry that loses this lock race
-      // resumes only after the winner has committed its claim, so the
-      // raced-claim lookup below reliably sees the winner's resultOrderId.
+      // keys would both read the same cart items before either created
+      // an order. Locking first (rather than after the claim) also means
+      // a same-key retry that loses this lock race resumes only after the
+      // winner has committed, so the raced-claim lookup below reliably
+      // sees the winner's resultOrderId. Cart lines stay until payment is
+      // captured so dismissing Razorpay does not empty the bag.
       const [lockedCart] = await tx.$queryRaw<
         { id: string; tenantId: string }[]
       >`
@@ -181,6 +182,24 @@ export class CheckoutService {
         lockedCart.tenantId,
         'This store is currently unavailable',
       );
+
+      // Keep cart items until payment is captured. A dismissed Razorpay
+      // modal must not empty the bag. Concurrent checkouts still serialize
+      // on this lock; the second waiter resumes the unpaid order instead
+      // of creating another.
+      const existingUnpaid = await tx.order.findFirst({
+        where: {
+          userId,
+          tenantId: lockedCart.tenantId,
+          status: {
+            in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAYMENT_FAILED],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (existingUnpaid) {
+        return { orderId: existingUnpaid.id, created: false };
+      }
 
       const claim = await this.idempotencyService.claim(tx, {
         key: idempotencyKey,
@@ -445,13 +464,6 @@ export class CheckoutService {
       });
 
       await this.idempotencyService.recordResult(tx, claim.id, createdOrder.id);
-
-      const itemIds = cart.items.map((i) => i.id);
-      // customization rows RESTRICT-reference the item (§15) — delete first.
-      await tx.cartItemCustomization.deleteMany({
-        where: { cartItemId: { in: itemIds } },
-      });
-      await tx.cartItem.deleteMany({ where: { id: { in: itemIds } } });
 
       return { orderId: createdOrder.id, created: true };
     }, { timeout: CHECKOUT_TRANSACTION_TIMEOUT_MS });
