@@ -129,7 +129,7 @@ export function ProductDetailPage() {
       </div>
 
       <div className={styles.info}>
-        <h1>{product.name}</h1>
+        <h1 className={styles.title}>{product.name}</h1>
         <StarRating avgRating={product.avgRating} reviewCount={product.reviewCount} />
         <p className={styles.price}>{formatPrice(total)}</p>
         <p className={styles.quantityRange}>

@@ -95,6 +95,16 @@ describe('ProductDetailPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('places the product heading after the gallery so mobile stacks image then title', async () => {
+    mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
+
+    renderAtSlug('ceramic-mug')
+
+    const gallery = await screen.findByRole('img', { name: 'Ceramic Mug — no image available' })
+    const heading = screen.getByRole('heading', { name: 'Ceramic Mug', level: 1 })
+    expect(gallery.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('renders the star rating summary near the price', async () => {
     mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
 
