@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { STATIC_PUBLIC_PATHS, buildRobotsTxt, buildSitemapXml } from './seoFiles'
+import { STATIC_PUBLIC_PATHS, buildRobotsTxt, buildSitemapXml, catalogPublicPaths } from './seoFiles'
 
 describe('buildRobotsTxt', () => {
   const txt = buildRobotsTxt('http://localhost:5173/')
@@ -45,13 +45,29 @@ describe('buildSitemapXml', () => {
     ])
   })
 
-  it('never includes a private, admin, or dynamic catalog URL', () => {
+  it('never includes a private, admin, or unlisted catalog URL', () => {
     for (const path of ['/cart', '/checkout', '/account', '/orders', '/admin', '/login', '/invoice']) {
       expect(xml).not.toContain(`${path}<`)
       expect(xml).not.toContain(`${path}/`)
     }
-    // No fabricated product / category slugs.
     expect(xml).not.toMatch(/\/products\/[a-z]/)
+  })
+
+  it('can append real category and product paths from the catalog snapshot', () => {
+    const withCatalog = buildSitemapXml(
+      'https://www.abcmanufactures.com',
+      catalogPublicPaths({
+        categories: ['corporate-signage'],
+        products: ['identica-corporate-signage-directional-signage-board-1500-00-piece'],
+      }),
+    )
+    expect(withCatalog).toContain(
+      '<loc>https://www.abcmanufactures.com/products?category=corporate-signage</loc>',
+    )
+    expect(withCatalog).toContain(
+      '<loc>https://www.abcmanufactures.com/products/identica-corporate-signage-directional-signage-board-1500-00-piece</loc>',
+    )
+    expect(withCatalog).toContain('<loc>https://www.abcmanufactures.com/about</loc>')
   })
 
   it('honours a custom origin (staging / preview deploys)', () => {

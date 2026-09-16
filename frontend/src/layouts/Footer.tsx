@@ -113,6 +113,33 @@ export function Footer() {
         <p className={styles.copyright}>
           &copy; {new Date().getFullYear()} {storeName}. All rights reserved.
         </p>
+
+        <p className={styles.credit}>
+          <picture>
+            <source
+              media="(max-width: 480px)"
+              srcSet="/brand/forge/FORGE-small-white-on-ink.png"
+            />
+            <img
+              className={styles.creditLogo}
+              src="/brand/forge/FORGE-horizontal-white-on-ink.png"
+              alt="FORGE Technologies"
+              width={300}
+              height={62}
+            />
+          </picture>
+          <span className={styles.creditCopy}>
+            Designed &amp; Managed by{' '}
+            <a
+              className={styles.creditLink}
+              href="https://forgebuilds.in"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FORGE Technologies
+            </a>
+          </span>
+        </p>
       </div>
     </footer>
   )

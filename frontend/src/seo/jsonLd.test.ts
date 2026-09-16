@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Product } from '@/types/catalog'
 import type { Crumb } from '@/components/ui/Breadcrumbs'
-import { breadcrumbJsonLd, describeProduct, productJsonLd, websiteJsonLd } from './jsonLd'
+import { breadcrumbJsonLd, collectionJsonLd, describeProduct, organizationJsonLd, productJsonLd, websiteJsonLd } from './jsonLd'
 
 function buildProduct(overrides: Partial<Product> = {}): Product {
   return {
@@ -42,8 +42,7 @@ describe('productJsonLd', () => {
         url: 'http://localhost:5173/products/ceramic-mug',
       },
     })
-    // Nothing fabricated.
-    expect(ld).not.toHaveProperty('brand')
+    expect(ld.brand).toEqual({ '@type': 'Brand', name: 'AB Creations' })
     expect(ld).not.toHaveProperty('sku')
     expect(ld).not.toHaveProperty('gtin')
     expect(ld).not.toHaveProperty('aggregateRating')
@@ -163,13 +162,64 @@ describe('breadcrumbJsonLd', () => {
 })
 
 describe('websiteJsonLd', () => {
-  it('is a plain WebSite entity with no invented SearchAction or Organization data', () => {
+  it('names the site and points publisher at the real Organization', () => {
     const ld = websiteJsonLd()
-    expect(ld).toEqual({
+    expect(ld).toMatchObject({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'AB Creations',
       url: 'http://localhost:5173/',
     })
+    expect(ld).not.toHaveProperty('potentialAction')
+    expect((ld.publisher as Record<string, unknown>)['@type']).toBe('Organization')
+  })
+})
+
+describe('organizationJsonLd', () => {
+  it('uses the published store name, GSTIN, and Gwalior address', () => {
+    const ld = organizationJsonLd()
+    expect(ld).toMatchObject({
+      '@type': 'Organization',
+      name: 'AB Creations',
+      alternateName: 'ABC Manufactures',
+      taxID: '23EQZPS2886B1Z7',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Gwalior',
+        addressCountry: 'IN',
+      },
+    })
+  })
+})
+
+describe('collectionJsonLd', () => {
+  it('lists real product URLs in page order', () => {
+    const ld = collectionJsonLd({
+      name: 'Mugs',
+      path: '/products?category=mugs',
+      products: [
+        { name: 'Ceramic Mug', slug: 'ceramic-mug' },
+        { name: 'Enamel Mug', slug: 'enamel-mug' },
+      ],
+      total: 12,
+      page: 1,
+      limit: 20,
+    })
+    expect(ld['@type']).toBe('CollectionPage')
+    expect((ld.mainEntity as Record<string, unknown>).numberOfItems).toBe(12)
+    expect((ld.mainEntity as { itemListElement: unknown[] }).itemListElement).toEqual([
+      {
+        '@type': 'ListItem',
+        position: 1,
+        url: 'http://localhost:5173/products/ceramic-mug',
+        name: 'Ceramic Mug',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        url: 'http://localhost:5173/products/enamel-mug',
+        name: 'Enamel Mug',
+      },
+    ])
   })
 })

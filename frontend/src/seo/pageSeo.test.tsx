@@ -81,10 +81,11 @@ describe('HomePage SEO', () => {
 
     renderWithProviders(<HomePage />)
 
-    await waitFor(() => expect(document.title).toBe('AB Creations'))
+    await waitFor(() => expect(document.title).toBe('Custom signage and prints | AB Creations'))
     expect(robots()).toBe('index, follow')
     expect(canonical()).toBe('http://localhost:5173/')
     expect(jsonLd().some((b) => b['@type'] === 'WebSite')).toBe(true)
+    expect(jsonLd().some((b) => b['@type'] === 'Organization')).toBe(true)
   })
 })
 
@@ -102,14 +103,22 @@ describe('ProductListPage SEO', () => {
     expect(canonical()).toBe('http://localhost:5173/products')
   })
 
-  it('a category view uses the category name + a category canonical + Breadcrumb JSON-LD', async () => {
+  it('a category view uses the category name + a slug canonical + Collection JSON-LD', async () => {
     renderPLP('/products?categoryId=cat-1')
     await waitFor(() => expect(document.title).toBe('Mugs | AB Creations'))
     expect(robots()).toBe('index, follow')
-    expect(canonical()).toBe('http://localhost:5173/products?categoryId=cat-1')
+    expect(canonical()).toBe('http://localhost:5173/products?category=mugs')
     await waitFor(() =>
       expect(jsonLd().some((b) => b['@type'] === 'BreadcrumbList')).toBe(true),
     )
+    expect(jsonLd().some((b) => b['@type'] === 'CollectionPage')).toBe(true)
+  })
+
+  it('a category slug URL is indexable and canonicalises to itself', async () => {
+    renderPLP('/products?category=mugs')
+    await waitFor(() => expect(document.title).toBe('Mugs | AB Creations'))
+    expect(robots()).toBe('index, follow')
+    expect(canonical()).toBe('http://localhost:5173/products?category=mugs')
   })
 
   it('a filtered/sorted/paged/searched variant is noindex with no canonical or breadcrumb JSON-LD', async () => {
@@ -143,6 +152,7 @@ describe('ProductDetailPage SEO', () => {
     expect(productLd).toMatchObject({
       name: 'Ceramic Mug',
       url: 'http://localhost:5173/products/ceramic-mug',
+      brand: { '@type': 'Brand', name: 'AB Creations' },
       offers: { price: '150.00', priceCurrency: 'INR', availability: 'https://schema.org/InStock' },
       aggregateRating: { ratingValue: '4.50', reviewCount: 4 },
     })

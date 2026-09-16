@@ -9,7 +9,11 @@ import { formatDate } from '@/utils/formatDate'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { Seo } from '@/seo/Seo'
 import { orderDetailPath } from '@/constants/routes'
+import { useStoreName } from '@/hooks/useStoreName'
 import styles from './InvoicePage.module.css'
+
+/** Circular AB Creations seal used only on the printed invoice letterhead. */
+const INVOICE_LOGO_SRC = '/brand/ab-creations/invoice-logo.jpg'
 
 /**
  * Print-friendly invoice, rendered entirely from server-authoritative
@@ -21,6 +25,7 @@ import styles from './InvoicePage.module.css'
 export function InvoicePage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const storeName = useStoreName()
   const isAdmin = user?.role === 'ADMIN'
   // An admin viewing any order uses the admin endpoint (the customer one
   // is owner-scoped and would 404); a customer uses their own.
@@ -62,73 +67,89 @@ export function InvoicePage() {
         </Button>
       </div>
 
-      <article className={styles.sheet}>
-        <header className={styles.head}>
-          <div>
+      <article className={styles.sheet} data-invoice-sheet>
+        <header className={styles.letterhead}>
+          <img
+            className={styles.logo}
+            src={INVOICE_LOGO_SRC}
+            alt={storeName}
+            width={1024}
+            height={1024}
+            decoding="async"
+          />
+          <div className={styles.docMeta}>
             <h1 className={styles.title}>
               {invoice.taxRatePercent ? 'Tax invoice' : 'Invoice'}
             </h1>
             <p className={styles.meta}>
-              <strong>{invoice.invoiceNumber}</strong>
-              <br />
-              Issued {formatDate(invoice.issuedAt)}
-              <br />
-              Order {invoice.orderNumber} · placed{' '}
-              {formatDate(invoice.orderPlacedAt)}
+              <span className={styles.metaRow}>
+                <span className={styles.metaLabel}>No.</span>
+                <strong>{invoice.invoiceNumber}</strong>
+              </span>
+              <span className={styles.metaRow}>
+                <span className={styles.metaLabel}>Issued</span>
+                <span>{formatDate(invoice.issuedAt)}</span>
+              </span>
+              <span className={styles.metaRow}>
+                <span className={styles.metaLabel}>Order</span>
+                <span>
+                  {invoice.orderNumber} · {formatDate(invoice.orderPlacedAt)}
+                </span>
+              </span>
             </p>
           </div>
-          <div className={styles.parties}>
-            <section aria-labelledby="inv-seller">
-              <h2 id="inv-seller" className={styles.partyHeading}>
-                From
-              </h2>
-              {invoice.seller.detailsPending ? (
-                <p className={styles.pending}>
-                  Seller details pending — not published yet.
-                </p>
-              ) : (
-                <p className={styles.address}>
-                  {invoice.seller.legalName}
-                  <br />
-                  {invoice.seller.address}
-                  {invoice.seller.gstin && (
-                    <>
-                      <br />
-                      GSTIN: {invoice.seller.gstin}
-                    </>
-                  )}
-                  {invoice.seller.state && (
-                    <>
-                      <br />
-                      {invoice.seller.state}
-                    </>
-                  )}
-                </p>
-              )}
-            </section>
-            <section aria-labelledby="inv-buyer">
-              <h2 id="inv-buyer" className={styles.partyHeading}>
-                Bill to
-              </h2>
+        </header>
+
+        <div className={styles.parties}>
+          <section aria-labelledby="inv-seller">
+            <h2 id="inv-seller" className={styles.partyHeading}>
+              From
+            </h2>
+            {invoice.seller.detailsPending ? (
+              <p className={styles.pending}>
+                Seller details pending — not published yet.
+              </p>
+            ) : (
               <p className={styles.address}>
-                {invoice.buyer.name}
+                <span className={styles.partyName}>{invoice.seller.legalName}</span>
                 <br />
-                {invoice.buyer.addressLine1}
-                {invoice.buyer.addressLine2 && (
+                {invoice.seller.address}
+                {invoice.seller.gstin && (
                   <>
                     <br />
-                    {invoice.buyer.addressLine2}
+                    GSTIN: {invoice.seller.gstin}
                   </>
                 )}
-                <br />
-                {invoice.buyer.city}, {invoice.buyer.state}{' '}
-                {invoice.buyer.postalCode}
-                <br />
-                {invoice.buyer.country}
+                {invoice.seller.state && (
+                  <>
+                    <br />
+                    {invoice.seller.state}
+                  </>
+                )}
               </p>
-            </section>
-          </div>
-        </header>
+            )}
+          </section>
+          <section aria-labelledby="inv-buyer">
+            <h2 id="inv-buyer" className={styles.partyHeading}>
+              Bill to
+            </h2>
+            <p className={styles.address}>
+              <span className={styles.partyName}>{invoice.buyer.name}</span>
+              <br />
+              {invoice.buyer.addressLine1}
+              {invoice.buyer.addressLine2 && (
+                <>
+                  <br />
+                  {invoice.buyer.addressLine2}
+                </>
+              )}
+              <br />
+              {invoice.buyer.city}, {invoice.buyer.state} {invoice.buyer.postalCode}
+              <br />
+              {invoice.buyer.country}
+            </p>
+          </section>
+        </div>
 
         <table className={styles.table}>
           <thead>

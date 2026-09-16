@@ -89,4 +89,17 @@ describe('Footer', () => {
       )
     })
   })
+
+  it('credits FORGE Technologies without replacing AB Creations branding', () => {
+    renderFooter()
+    expect(screen.getByText(/Designed & Managed by/)).toBeInTheDocument()
+    const credit = screen.getByRole('link', { name: 'FORGE Technologies' })
+    expect(credit).toHaveAttribute('href', 'https://forgebuilds.in')
+    expect(credit).toHaveAttribute('target', '_blank')
+    expect(credit).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getByRole('img', { name: 'FORGE Technologies' })).toHaveAttribute(
+      'src',
+      '/brand/forge/FORGE-horizontal-white-on-ink.png',
+    )
+  })
 })

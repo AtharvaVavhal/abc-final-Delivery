@@ -1,14 +1,14 @@
 import { Seo } from '@/seo/Seo'
 import { ROUTES } from '@/constants/routes'
+import { ABOUT_DESCRIPTION } from '@/seo/pageCopy'
 import styles from './AboutPage.module.css'
 
-// TODO: client to provide final About page copy
 export function AboutPage() {
   return (
     <section className={styles.page}>
       <Seo
         title="About"
-        description="AB Creations is a custom-printing store for designing and ordering printed products entirely online — from product discovery through file upload, checkout, production and delivery."
+        description={ABOUT_DESCRIPTION}
         canonicalPath={ROUTES.ABOUT}
       />
       <h1>About AB Creations</h1>
@@ -18,15 +18,15 @@ export function AboutPage() {
         alt="Packing table with kraft boxes and finished acrylic gifts"
       />
       <p>
-        AB Creations is a custom‑printing store that lets customers design and order
-        printed products entirely online. From product discovery through file upload,
-        checkout, production and delivery — every step is handled in a single,
-        transparent workflow.
+        AB Creations manufactures custom corporate signage, LED letters, acrylic
+        gifts, and made-to-order prints from Gwalior, Madhya Pradesh. Customers
+        design and order online — from product discovery through artwork upload,
+        approval, production, and delivery.
       </p>
       <p>
-        Our mission is to make professional‑grade custom printing accessible to
-        individuals and small businesses without the friction of traditional
-        print‑shop workflows.
+        We build reception boards, 3D letters, name plates, glow signs, and
+        personalised acrylic pieces under one roof, so offices, retailers, and
+        families get the same made-to-order workflow.
       </p>
     </section>
   )

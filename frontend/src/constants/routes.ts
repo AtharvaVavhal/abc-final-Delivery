@@ -56,6 +56,12 @@ export function productDetailPath(slug: string): string {
   return `/products/${encodeURIComponent(slug)}`
 }
 
+/** Indexable category listing. Prefer the human slug over the UUID so
+ * canonicals, breadcrumbs, and the sitemap share one URL shape. */
+export function categoryListingPath(slug: string): string {
+  return `${ROUTES.PRODUCTS}?category=${encodeURIComponent(slug)}`
+}
+
 export function orderDetailPath(id: string): string {
   return `/orders/${encodeURIComponent(id)}`
 }

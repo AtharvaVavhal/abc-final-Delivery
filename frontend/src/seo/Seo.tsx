@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { SITE_NAME, absoluteUrl, clampDescription, pageTitle } from './siteConfig'
 import type { JsonLdObject } from './jsonLd'
+import { defaultShareImage } from './shareImage'
 
 interface SeoProps {
   /** The page name — turned into "<name> | AB Creations". Pass "" for the
@@ -72,7 +73,8 @@ export function Seo({
   const canonicalUrl =
     !noindex && canonicalPath ? absoluteUrl(canonicalPath) : undefined
   const robots = noindex ? 'noindex, nofollow' : 'index, follow'
-  const twitterCard = ogImage ? 'summary_large_image' : 'summary'
+  const shareImage = ogImage ?? (noindex ? undefined : defaultShareImage())
+  const twitterCard = shareImage ? 'summary_large_image' : 'summary'
 
   const blocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
 
@@ -85,12 +87,13 @@ export function Seo({
     upsertMeta('property', 'og:title', fullTitle)
     upsertMeta('property', 'og:description', desc)
     upsertMeta('property', 'og:url', canonicalUrl)
-    upsertMeta('property', 'og:image', ogImage)
+    upsertMeta('property', 'og:locale', noindex ? undefined : 'en_IN')
+    upsertMeta('property', 'og:image', shareImage)
     upsertMeta('name', 'twitter:card', twitterCard)
     upsertMeta('name', 'twitter:title', fullTitle)
     upsertMeta('name', 'twitter:description', desc)
-    upsertMeta('name', 'twitter:image', ogImage)
-  }, [robots, desc, canonicalUrl, ogType, fullTitle, ogImage, twitterCard])
+    upsertMeta('name', 'twitter:image', shareImage)
+  }, [robots, desc, canonicalUrl, ogType, fullTitle, shareImage, twitterCard, noindex])
 
   return (
     <>

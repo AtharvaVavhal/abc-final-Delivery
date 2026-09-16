@@ -5,7 +5,7 @@ import { useProduct } from '@/hooks/useProduct'
 import { useCategoryTree } from '@/hooks/useCategoryTree'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { formatPrice } from '@/utils/formatPrice'
-import { ROUTES, productDetailPath } from '@/constants/routes'
+import { ROUTES, productDetailPath, categoryListingPath } from '@/constants/routes'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Page } from '@/components/ui/Page'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -96,7 +96,7 @@ export function ProductDetailPage() {
     { label: 'All products', to: ROUTES.PRODUCTS },
     ...categoryPath.map((node) => ({
       label: node.name,
-      to: `${ROUTES.PRODUCTS}?categoryId=${node.id}`,
+      to: categoryListingPath(node.slug),
     })),
     { label: product.name },
   ]
@@ -112,7 +112,7 @@ export function ProductDetailPage() {
         title={product.name}
         description={
           describeProduct(product) ??
-          `Order ${product.name} from ${SITE_NAME} — custom-printed, made to order.`
+          `Order ${product.name} from ${SITE_NAME} — custom signage and prints made to order in Gwalior, India.`
         }
         canonicalPath={canonicalPath}
         ogType="product"

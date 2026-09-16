@@ -1,14 +1,10 @@
 /**
- * Pure builders for the two static crawler files emitted at build time by
- * the `seoFiles` Vite plugin (vite.config.ts). Kept dependency-free and
- * side-effect-free so they're trivially testable and safe to import from
- * the Vite config.
+ * Pure builders for the two crawler files emitted at build time by the
+ * `seoFiles` Vite plugin (vite.config.ts). Kept dependency-free so they
+ * are safe to import from the Vite config.
  */
 
-/** Root-relative paths that are genuinely public, indexable, and known at
- * build time without any API access. Product and category URLs are NOT
- * here — they're dynamic and the SPA build has no safe way to enumerate
- * them (see the phase report's limitations). */
+/** Root-relative paths that are genuinely public and known without an API. */
 export const STATIC_PUBLIC_PATHS = [
   '/',
   '/products',
@@ -19,8 +15,12 @@ export const STATIC_PUBLIC_PATHS = [
   '/refund-policy',
 ] as const
 
-/** Paths crawlers should not index — mirrors the `noindex` routes in the
- * app's route/security model (§5/§6). */
+export interface CatalogSitemapPaths {
+  categories?: readonly string[]
+  products?: readonly string[]
+}
+
+/** Paths crawlers should not index — mirrors the `noindex` routes. */
 const DISALLOW = [
   '/cart',
   '/checkout',
@@ -33,6 +33,18 @@ const DISALLOW = [
   '/forbidden',
   '/admin',
 ]
+
+export function catalogPublicPaths(catalog?: CatalogSitemapPaths | null): string[] {
+  const categories = [...new Set(catalog?.categories ?? [])]
+    .filter(Boolean)
+    .sort()
+    .map((slug) => `/products?category=${encodeURIComponent(slug)}`)
+  const products = [...new Set(catalog?.products ?? [])]
+    .filter(Boolean)
+    .sort()
+    .map((slug) => `/products/${encodeURIComponent(slug)}`)
+  return [...STATIC_PUBLIC_PATHS, ...categories, ...products]
+}
 
 export function buildRobotsTxt(siteUrl: string): string {
   const origin = siteUrl.replace(/\/+$/, '')
@@ -52,7 +64,10 @@ export function buildSitemapXml(
 ): string {
   const origin = siteUrl.replace(/\/+$/, '')
   const urls = paths
-    .map((path) => `  <url>\n    <loc>${escapeXml(`${origin}${path}`)}</loc>\n  </url>`)
+    .map((path) => {
+      const loc = escapeXml(`${origin}${path}`)
+      return `  <url>\n    <loc>${loc}</loc>\n  </url>`
+    })
     .join('\n')
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
 }

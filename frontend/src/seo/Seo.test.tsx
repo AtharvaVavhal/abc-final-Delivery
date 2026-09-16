@@ -53,13 +53,19 @@ describe('Seo', () => {
     cleanup()
   })
 
-  it('omits og:image entirely when no real image is supplied', () => {
+  it('uses a default share image on indexable pages when none is supplied', () => {
     render(<Seo title="X" canonicalPath="/x" />)
-    expect(document.head.querySelector('meta[property="og:image"]')).toBeNull()
+    expect(meta('meta[property="og:image"]')).toBe('http://localhost:5173/catalog/logo.png')
     cleanup()
 
     render(<Seo title="X" canonicalPath="/x" ogImage="https://cdn/real.png" />)
     expect(meta('meta[property="og:image"]')).toBe('https://cdn/real.png')
+    cleanup()
+  })
+
+  it('omits og:image on noindex pages', () => {
+    render(<Seo title="Your cart" noindex />)
+    expect(document.head.querySelector('meta[property="og:image"]')).toBeNull()
     cleanup()
   })
 

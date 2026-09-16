@@ -105,6 +105,11 @@ describe('InvoicePage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Invoice' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('article')).toHaveAttribute('data-invoice-sheet')
+    expect(screen.getByRole('img', { name: 'AB Creations' })).toHaveAttribute(
+      'src',
+      '/brand/ab-creations/invoice-logo.jpg',
+    )
   })
 
   it('offers a browser print action — never a fake file download', async () => {

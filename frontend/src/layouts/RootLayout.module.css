@@ -128,3 +128,35 @@
 .main:focus {
   outline: none;
 }
+
+/* Invoice print: hide storefront chrome so only the document sheet is
+   printed. Gated on the invoice article (`data-invoice-sheet`), not a
+   global print rule, so other pages keep their chrome if printed. */
+@media print {
+  .shell:has([data-invoice-sheet]) {
+    min-height: 0;
+    display: block;
+    background: #fff;
+  }
+
+  .shell:has([data-invoice-sheet]) > :not(.body) {
+    display: none !important;
+  }
+
+  .shell:has([data-invoice-sheet]) .chrome,
+  .shell:has([data-invoice-sheet]) .sidebarColumn,
+  .shell:has([data-invoice-sheet]) .sidebarToggle {
+    display: none !important;
+  }
+
+  .shell:has([data-invoice-sheet]) .body,
+  .shell:has([data-invoice-sheet]) .bodyCollapsed {
+    display: block;
+    position: static;
+  }
+
+  .shell:has([data-invoice-sheet]) .main {
+    display: block;
+    width: 100%;
+  }
+}

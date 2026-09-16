@@ -8,6 +8,7 @@
 
     /* Bundler mode */
     "module": "nodenext",
+    "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
@@ -24,6 +25,7 @@
     "vite.storefront-shell-plugin.ts",
     "src/features/media/heroLcpImage.ts",
     "src/seo/seoFiles.ts",
-    "src/seo/siteConfig.constants.ts"
+    "src/seo/siteConfig.constants.ts",
+    "src/generated/sitemap-paths.json"
   ]
 }

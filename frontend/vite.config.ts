@@ -4,19 +4,37 @@ import { loadEnv, type Plugin } from 'vite'
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vitest/config'
 import { DEFAULT_SITE_URL } from './src/seo/siteConfig.constants.ts'
-import { buildRobotsTxt, buildSitemapXml } from './src/seo/seoFiles.ts'
+import { buildRobotsTxt, buildSitemapXml, catalogPublicPaths } from './src/seo/seoFiles.ts'
 import { storefrontShellHtmlPlugin } from './vite.storefront-shell-plugin.ts'
+import catalogSitemap from './src/generated/sitemap-paths.json' with { type: 'json' }
 
 /**
- * Emits robots.txt and a static sitemap.xml into the build output. The
- * site origin comes from VITE_SITE_URL (see .env.example) and otherwise
- * falls back to DEFAULT_SITE_URL (local Vite origin). Build-time only
- * — the dev server doesn't need either file.
+ * Emits robots.txt and sitemap.xml (static pages + catalog snapshot) into
+ * the build. Origin comes from VITE_SITE_URL, else DEFAULT_SITE_URL.
  */
 function seoFiles(siteUrl: string): Plugin {
+  const origin = siteUrl.replace(/\/+$/, '')
+  const sitemapPaths = catalogPublicPaths(catalogSitemap)
+  const shareImage =
+    typeof catalogSitemap.shareImage === 'string' && catalogSitemap.shareImage.startsWith('http')
+      ? catalogSitemap.shareImage
+      : `${origin}/catalog/logo.png`
+
   return {
     name: 'printforge-seo-files',
     apply: 'build',
+    transformIndexHtml(html) {
+      const extras = [
+        `<link rel="canonical" href="${origin}/" />`,
+        `<meta property="og:url" content="${origin}/" />`,
+        `<meta property="og:image" content="${shareImage}" />`,
+        `<meta property="og:locale" content="en_IN" />`,
+        `<meta name="twitter:card" content="summary_large_image" />`,
+        `<meta name="twitter:title" content="AB Creations — Custom prints, made to order" />`,
+        `<meta name="twitter:image" content="${shareImage}" />`,
+      ].join('\n    ')
+      return html.replace('</title>', `</title>\n    ${extras}`)
+    },
     generateBundle() {
       this.emitFile({
         type: 'asset',
@@ -26,7 +44,7 @@ function seoFiles(siteUrl: string): Plugin {
       this.emitFile({
         type: 'asset',
         fileName: 'sitemap.xml',
-        source: buildSitemapXml(siteUrl),
+        source: buildSitemapXml(siteUrl, sitemapPaths),
       })
     },
   }

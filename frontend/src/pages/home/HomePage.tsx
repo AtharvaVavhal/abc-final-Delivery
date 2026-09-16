@@ -7,7 +7,8 @@ import { useStoreName } from '@/hooks/useStoreName'
 import type { HeroSlide as SettingsHeroSlide } from '@/services/api/settings'
 import { ROUTES } from '@/constants/routes'
 import { Seo } from '@/seo/Seo'
-import { websiteJsonLd } from '@/seo/jsonLd'
+import { organizationJsonLd, websiteJsonLd } from '@/seo/jsonLd'
+import { HOME_DESCRIPTION, HOME_TITLE } from '@/seo/pageCopy'
 import styles from './HomePage.module.css'
 
 const TrustStrip = lazy(() =>
@@ -41,9 +42,6 @@ const FeaturedMediaCarousel = lazy(() =>
     default: m.FeaturedMediaCarousel,
   })),
 )
-
-const HOME_DESCRIPTION =
-  'Browse the AB Creations catalogue and personalise products that support customization — each item printed for your order.'
 
 function toStorefrontHeroSlides(slides: SettingsHeroSlide[]): StorefrontHeroSlide[] {
   return slides.map((slide, index) => ({
@@ -86,10 +84,10 @@ export function HomePage() {
   return (
     <>
       <Seo
-        title=""
+        title={HOME_TITLE}
         description={HOME_DESCRIPTION}
         canonicalPath="/"
-        jsonLd={websiteJsonLd()}
+        jsonLd={[websiteJsonLd(), organizationJsonLd()]}
       />
       {heroSlides.length > 0 ? (
         <Hero slides={toStorefrontHeroSlides(heroSlides)} />

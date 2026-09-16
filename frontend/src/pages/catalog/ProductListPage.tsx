@@ -5,7 +5,7 @@ import { cn } from '@/utils/cn'
 import { useProducts } from '@/hooks/useProducts'
 import { useCategoryTree } from '@/hooks/useCategoryTree'
 import { getApiErrorMessage } from '@/utils/apiError'
-import { ROUTES } from '@/constants/routes'
+import { ROUTES, categoryListingPath } from '@/constants/routes'
 import { Alert } from '@/components/ui/Alert'
 import { Breadcrumbs, type Crumb } from '@/components/ui/Breadcrumbs'
 import { Pagination } from '@/components/ui/Pagination'
@@ -14,8 +14,8 @@ import { MobileFilterDrawer } from '@/components/layout/MobileFilterDrawer'
 import { ActiveFilterChips } from '@/features/catalog/ActiveFilterChips'
 import { findCategoryBySlug, findCategoryPath } from '@/features/catalog/categoryTree'
 import { Seo } from '@/seo/Seo'
-import { SITE_NAME } from '@/seo/siteConfig.constants'
-import { breadcrumbJsonLd } from '@/seo/jsonLd'
+import { breadcrumbJsonLd, collectionJsonLd, type JsonLdObject } from '@/seo/jsonLd'
+import { catalogDescription, categoryDescription } from '@/seo/pageCopy'
 import { EmptyCatalog } from '@/features/catalog/EmptyCatalog'
 import { ProductCard } from '@/features/catalog/ProductCard'
 import { ProductGridSkeleton } from '@/features/catalog/ProductGridSkeleton'
@@ -77,13 +77,14 @@ export function ProductListPage() {
   }, [categoryId, categoryParam, minPrice, maxPrice, minRating, sort])
 
   const { data: categoryTree = [] } = useCategoryTree()
-  const categoryPath = useMemo(
-    () => findCategoryPath(categoryTree, categoryId),
-    [categoryTree, categoryId],
-  )
   const categoryBySlug = useMemo(
     () => findCategoryBySlug(categoryTree, categoryParam),
     [categoryTree, categoryParam],
+  )
+  const resolvedCategoryId = categoryId ?? categoryBySlug?.id
+  const categoryPath = useMemo(
+    () => findCategoryPath(categoryTree, resolvedCategoryId),
+    [categoryTree, resolvedCategoryId],
   )
   const activeCategory = categoryPath.at(-1) ?? categoryBySlug
 
@@ -103,7 +104,7 @@ export function ProductListPage() {
       to:
         index === categoryPath.length - 1
           ? undefined
-          : `${ROUTES.PRODUCTS}?categoryId=${node.id}`,
+          : categoryListingPath(node.slug),
     })),
     ...(search && !activeCategory
       ? [{ label: `“${search}”` }]
@@ -112,33 +113,30 @@ export function ProductListPage() {
         : []),
   ]
 
-  // Only the bare listing and single-category views are indexable. Any
-  // search term, price/rating filter, explicit sort, or page > 1 makes
-  // this a filtered variant → noindex, and it canonicalises to the
-  // category (or all-products) route so crawl budget isn't spent on the
-  // combinatorial filter space (§4/§14).
+  // Bare catalog and a single resolved category are indexable. Search,
+  // price/rating filters, explicit sort, unknown slugs, and page > 1 stay
+  // noindex so crawl budget is not spent on the filter combinatorics.
+  const unknownCategorySlug = Boolean(categoryParam && !categoryBySlug)
   const isFilteredVariant = Boolean(
-    categoryParam ||
     search ||
+    unknownCategorySlug ||
     minPrice !== undefined ||
     maxPrice !== undefined ||
     minRating !== undefined ||
     sort ||
     page > 1,
   )
-  const canonicalPath = categoryId
-    ? `${ROUTES.PRODUCTS}?categoryId=${categoryId}`
-    : categoryParam
-      ? `${ROUTES.PRODUCTS}?category=${categoryParam}`
-      : ROUTES.PRODUCTS
+  const canonicalPath = activeCategory
+    ? categoryListingPath(activeCategory.slug)
+    : ROUTES.PRODUCTS
   const seoDescription = activeCategory
-    ? `Shop ${activeCategory.name} at ${SITE_NAME} — custom-printed, made to order.`
-    : `Browse every product in the ${SITE_NAME} catalog. Personalize and order custom prints made to order.`
+    ? categoryDescription(activeCategory.name, activeCategory.slug)
+    : catalogDescription()
 
   // `?category=<slug>` links pass a category *slug*, not the *id* GET
   // /products filters by — resolve against the live tree. Unknown slugs
   // fall through to a free-text search on the slug itself.
-  const effectiveCategoryId = categoryId ?? categoryBySlug?.id
+  const effectiveCategoryId = resolvedCategoryId
 
   const productsQuery = useProducts({
     categoryId: effectiveCategoryId,
@@ -185,7 +183,21 @@ export function ProductListPage() {
           canonicalPath={canonicalPath}
           noindex={isFilteredVariant}
           jsonLd={
-            isFilteredVariant ? undefined : (breadcrumbJsonLd(breadcrumbs) ?? undefined)
+            isFilteredVariant
+              ? undefined
+              : [
+                  breadcrumbJsonLd(breadcrumbs),
+                  productsQuery.data
+                    ? collectionJsonLd({
+                        name: pageTitle,
+                        path: canonicalPath,
+                        products: productsQuery.data.items,
+                        total: productsQuery.data.meta.total,
+                        page: productsQuery.data.meta.page,
+                        limit: productsQuery.data.meta.limit,
+                      })
+                    : null,
+                ].filter((block): block is JsonLdObject => block != null)
           }
         />
         <Breadcrumbs items={breadcrumbs} />
@@ -260,7 +272,7 @@ export function ProductListPage() {
             <div className={styles.verticalFilterInner}>
               <FilterSidebar
                 variant="panel"
-                activeCategoryId={categoryId}
+                activeCategoryId={effectiveCategoryId}
                 hasActiveFilters={hasProductFilters}
                 onClearAll={handleClearAllFilters}
                 onClose={() => setIsFilterPanelOpen(false)}
@@ -310,7 +322,7 @@ export function ProductListPage() {
         <MobileFilterDrawer
           isOpen={isFilterDrawerOpen}
           onClose={() => setIsFilterDrawerOpen(false)}
-          activeCategoryId={categoryId}
+          activeCategoryId={effectiveCategoryId}
           hasActiveFilters={hasProductFilters}
           onClearAll={handleClearAllFilters}
         />

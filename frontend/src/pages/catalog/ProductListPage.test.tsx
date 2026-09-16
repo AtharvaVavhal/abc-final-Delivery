@@ -153,7 +153,7 @@ describe('ProductListPage', () => {
     expect(within(crumbs).getByRole('link', { name: 'All products' })).toBeInTheDocument()
     expect(within(crumbs).getByRole('link', { name: 'Mugs' })).toHaveAttribute(
       'href',
-      '/products?categoryId=cat-1',
+      '/products?category=mugs',
     )
   })
 

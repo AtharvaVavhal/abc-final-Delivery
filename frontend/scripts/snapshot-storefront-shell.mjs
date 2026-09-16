@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
- * Regenerates src/generated/storefront-shell.json from the live public API.
+ * Regenerates src/generated/storefront-shell.json and sitemap-paths.json
+ * from the live public API.
  *
- * Source of truth remains Store Admin → Nest → PostgreSQL. This file is a
- * build-time snapshot of PUBLIC storefront chrome (name, logo, announcement,
- * first-viewport hero, category tree) so index.html can paint without a
- * database round-trip. Runtime TanStack Query still refetches /settings and
- * /categories/tree and replaces the snapshot when Store Admin has changed
- * data. Re-run this script (and redeploy the frontend) to refresh the HTML
- * snapshot itself.
+ * Source of truth remains Store Admin → Nest → PostgreSQL. The shell file
+ * is a build-time snapshot of PUBLIC storefront chrome so index.html can
+ * paint without a database round-trip. sitemap-paths.json lists public
+ * category slugs and product slugs for robots/sitemap.xml.
+ * Runtime TanStack Query still refetches /settings and /categories/tree
+ * and replaces the snapshot when Store Admin has changed data. Re-run
+ * this script (and redeploy the frontend) to refresh the HTML snapshot
+ * and the catalog sitemap.
  *
  * Usage:
  *   STOREFRONT_API_ORIGIN=http://127.0.0.1:4000 npm run snapshot:storefront
@@ -21,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outFile = join(here, '../src/generated/storefront-shell.json')
+const sitemapFile = join(here, '../src/generated/sitemap-paths.json')
 const origin = (process.env.STOREFRONT_API_ORIGIN || 'http://127.0.0.1:4000').replace(/\/+$/, '')
 const KEYS =
   'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media'
@@ -33,6 +36,30 @@ function withParent(nodes, parentId = null) {
     parentCategoryId: parentId,
     children: withParent(node.children ?? [], node.id),
   }))
+}
+
+function flattenCategorySlugs(nodes, acc = []) {
+  for (const node of nodes ?? []) {
+    if (node?.slug) acc.push(node.slug)
+    flattenCategorySlugs(node.children, acc)
+  }
+  return acc
+}
+
+async function fetchProductSlugs() {
+  const slugs = []
+  let page = 1
+  let totalPages = 1
+  do {
+    const envelope = await getJson(`/products?page=${page}&limit=100`)
+    const items = Array.isArray(envelope?.data) ? envelope.data : []
+    for (const item of items) {
+      if (item?.slug) slugs.push(item.slug)
+    }
+    totalPages = Number(envelope?.meta?.totalPages) || page
+    page += 1
+  } while (page <= totalPages)
+  return slugs
 }
 
 function parseList(value) {
@@ -160,3 +187,26 @@ const snapshot = {
 
 writeFileSync(outFile, `${JSON.stringify(snapshot, null, 2)}\n`)
 console.log(`Wrote ${outFile} (${categories.length} category groups)`)
+
+const categorySlugs = [...new Set(flattenCategorySlugs(categories))].sort()
+const productSlugs = [...new Set(await fetchProductSlugs())].sort()
+const shareImage =
+  typeof raw.storeLogo === 'string' && /^https?:\/\//i.test(raw.storeLogo.trim())
+    ? raw.storeLogo.trim()
+    : null
+writeFileSync(
+  sitemapFile,
+  `${JSON.stringify(
+    {
+      generatedAt: snapshot.generatedAt,
+      shareImage,
+      categories: categorySlugs,
+      products: productSlugs,
+    },
+    null,
+    2,
+  )}\n`,
+)
+console.log(
+  `Wrote ${sitemapFile} (${categorySlugs.length} categories, ${productSlugs.length} products)`,
+)

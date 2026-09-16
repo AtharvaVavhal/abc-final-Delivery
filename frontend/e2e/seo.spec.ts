@@ -41,6 +41,9 @@ test.describe('SEO', () => {
     const sitemap = await request.get('/sitemap.xml')
     expect(sitemap.ok()).toBe(true)
     const sitemapBody = await sitemap.text()
+    expect(sitemapBody).toContain('<urlset')
+    expect(sitemapBody).toMatch(/\/products\?category=/)
+    expect(sitemapBody).toMatch(/\/products\/[a-z0-9-]+/)
 
     if (sitemapBody.toLowerCase().includes('localhost')) {
       // This local test build was produced with frontend/.env.local's

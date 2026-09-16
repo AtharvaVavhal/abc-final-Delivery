@@ -4,6 +4,7 @@ import { ROUTES } from '@/constants/routes'
 import { useStoreContact } from '@/hooks/useStoreContact'
 import { useWhatsappNumber } from '@/hooks/useWhatsappNumber'
 import { useStoreName } from '@/hooks/useStoreName'
+import { CONTACT_DESCRIPTION } from '@/seo/pageCopy'
 import styles from './ContactPage.module.css'
 
 export function ContactPage() {
@@ -16,7 +17,7 @@ export function ContactPage() {
     <section className={styles.page}>
       <Seo
         title="Contact"
-        description={`Contact ${storeName} for custom print questions and order help.`}
+        description={CONTACT_DESCRIPTION(storeName)}
         canonicalPath={ROUTES.CONTACT}
       />
       <h1>Contact Us</h1>
