@@ -205,6 +205,12 @@
 
 .searchForm,
 .searchFormDrawer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.searchField {
   position: relative;
   display: flex;
   align-items: center;
@@ -282,6 +288,84 @@
   font-size: var(--text-xs);
   color: var(--color-danger);
   white-space: nowrap;
+}
+
+.searchSuggest {
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
+}
+
+.searchSuggestStatus {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.searchSuggestList {
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+.searchSuggestItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  color: var(--color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.searchSuggestItem:hover,
+.searchSuggestItemActive {
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+}
+
+.searchSuggestItem:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+
+.searchSuggestThumb,
+.searchSuggestThumbFallback {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+.searchSuggestName {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchSuggestPrice {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.searchSuggestAll {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .actions {
