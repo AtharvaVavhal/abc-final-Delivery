@@ -261,11 +261,22 @@ export class ProductsService {
   // ─── Category Tree ──────────────────────────────────────────────────────
 
   async getCategoryTree(tenantId: string): Promise<CategoryTreeNode[]> {
-    const categories = await this.prisma.category.findMany({
-      where: { isActive: true, tenantId },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, parentCategoryId: true },
-    });
+    const [categories, productCounts] = await Promise.all([
+      this.prisma.category.findMany({
+        where: { isActive: true, tenantId },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, slug: true, parentCategoryId: true },
+      }),
+      this.prisma.product.groupBy({
+        by: ['categoryId'],
+        where: { tenantId, isActive: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const countByCategoryId = new Map(
+      productCounts.map((row) => [row.categoryId, row._count._all]),
+    );
 
     const map = new Map<string, CategoryTreeNode>();
     const roots: CategoryTreeNode[] = [];
@@ -276,6 +287,7 @@ export class ProductsService {
         id: cat.id,
         name: cat.name,
         slug: cat.slug,
+        productCount: 0,
         children: [],
       });
     }
@@ -294,6 +306,16 @@ export class ProductsService {
       } else {
         roots.push(node);
       }
+    }
+
+    const rollup = (node: CategoryTreeNode): number => {
+      const direct = countByCategoryId.get(node.id) ?? 0;
+      const nested = node.children.reduce((sum, child) => sum + rollup(child), 0);
+      node.productCount = direct + nested;
+      return node.productCount;
+    };
+    for (const root of roots) {
+      rollup(root);
     }
 
     // Sort children recursively

@@ -468,3 +468,40 @@ describe('ProductsService.listProducts', () => {
     );
   });
 });
+
+describe('ProductsService.getCategoryTree', () => {
+  it('rolls active product counts from children onto the parent', async () => {
+    const prisma = {
+      category: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'parent-1', name: 'Corporate Signage', slug: 'corporate-signage', parentCategoryId: null },
+          { id: 'child-1', name: 'Office Name Plate', slug: 'office-name-plate', parentCategoryId: 'parent-1' },
+        ]),
+      },
+      product: {
+        groupBy: jest.fn().mockResolvedValue([
+          { categoryId: 'parent-1', _count: { _all: 4 } },
+          { categoryId: 'child-1', _count: { _all: 12 } },
+        ]),
+      },
+    };
+    const service = new ProductsService(
+      prisma as never,
+      {} as never,
+      makeAudit() as never,
+      {} as never,
+    );
+
+    const tree = await service.getCategoryTree('tenant-a');
+
+    expect(tree).toEqual([
+      expect.objectContaining({
+        id: 'parent-1',
+        productCount: 16,
+        children: [
+          expect.objectContaining({ id: 'child-1', productCount: 12, children: [] }),
+        ],
+      }),
+    ]);
+  });
+});

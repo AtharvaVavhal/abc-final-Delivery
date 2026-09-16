@@ -273,4 +273,18 @@ describe('UploadsService.resolveUrl — local storefront files', () => {
     );
     expect(cloudinary.signedUrl).not.toHaveBeenCalled();
   });
+
+  it('passes through absolute http(s) listing image URLs', () => {
+    const cloudinary = { signedUrl: jest.fn() };
+    const service = new UploadsService(
+      {} as never,
+      cloudinary as never,
+      {} as never,
+    );
+
+    const remote =
+      'https://5.imimg.com/data5/LH/KA/MY-3144071/directional-signs-500x500.jpg';
+    expect(service.resolveUrl(remote, 'image', 'upload')).toBe(remote);
+    expect(cloudinary.signedUrl).not.toHaveBeenCalled();
+  });
 });

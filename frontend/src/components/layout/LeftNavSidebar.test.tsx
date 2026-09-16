@@ -8,8 +8,8 @@ import { LeftNavSidebar } from './LeftNavSidebar'
 vi.mock('@/hooks/useCategoryTree', () => ({
   useCategoryTree: () => ({
     data: [
-      { id: 'cat-1', name: 'Business Cards', slug: 'business-cards', parentCategoryId: null, children: [] },
-      { id: 'cat-2', name: 'name plats', slug: 'plats', parentCategoryId: null, children: [] },
+      { id: 'cat-1', name: 'Business Cards', slug: 'business-cards', parentCategoryId: null, children: [], productCount: 2 },
+      { id: 'cat-2', name: 'name plats', slug: 'plats', parentCategoryId: null, children: [], productCount: 1 },
     ],
     isLoading: false,
   }),

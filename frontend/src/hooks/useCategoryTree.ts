@@ -10,6 +10,7 @@ export function useCategoryTree(options?: { enabled?: boolean }) {
     queryKey: ['categories', 'tree'],
     queryFn: fetchCategoryTree,
     ...STOREFRONT_PUBLIC_QUERY,
+    refetchOnMount: true,
     initialData: snapshot?.categories,
     initialDataUpdatedAt: snapshot ? STOREFRONT_SHELL_GENERATED_AT_MS : undefined,
     enabled: options?.enabled,

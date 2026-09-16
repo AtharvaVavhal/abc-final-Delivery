@@ -77,7 +77,12 @@ export function QuickView({ slug, onClose }: QuickViewProps) {
                   aria-label={`View image ${idx + 1}`}
                   role="listitem"
                 >
-                  <img src={optimizedCloudinaryUrl(img.url, 200)} alt="" loading="lazy" />
+                  <img
+                    src={optimizedCloudinaryUrl(img.url, 200)}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
                 </button>
               ))}
             </div>

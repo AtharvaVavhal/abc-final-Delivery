@@ -33,6 +33,7 @@ export function ProductImage({ images, label, displayWidth = 480 }: ProductImage
       height={displayWidth}
       loading="lazy"
       decoding="async"
+      referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />
   )

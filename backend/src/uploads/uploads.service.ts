@@ -158,6 +158,13 @@ export class UploadsService {
     if (cloudinaryPublicId.startsWith('local/')) {
       return `/${cloudinaryPublicId.slice('local/'.length)}`;
     }
+    // IndiaMART / Identica listing images stored as absolute URLs.
+    if (
+      cloudinaryPublicId.startsWith('https://') ||
+      cloudinaryPublicId.startsWith('http://')
+    ) {
+      return cloudinaryPublicId;
+    }
     return this.cloudinary.signedUrl(
       cloudinaryPublicId,
       resourceType,

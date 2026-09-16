@@ -78,6 +78,10 @@ export async function withTenantRlsContext<T>(
  * membership / Subscription before any tenant context exists),
  * `prisma/seed-ab-creations-categories.ts` (idempotent AB Creations
  * category names for the existing tenant),
+ * `prisma/seed-identica-categories.ts` (idempotent Identica signage
+ * categories from mahakaladvertising.com),
+ * `prisma/seed-identica-products.ts` (idempotent Identica listings mapped
+ * onto those categories),
  * `prisma/seed-uvpixel-catalog.ts` (idempotent verified catalog products),
  * and `prisma/seed-customization-fields.ts` (per-product checkout fields). Do not add
  * a new caller without updating this comment and the migration's own

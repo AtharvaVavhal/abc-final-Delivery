@@ -1,7 +1,29 @@
 import type { CategoryTreeNode } from '@/types/catalog'
 
-/** Display order for known AB Creations groups. Unknown categories stay after, A–Z. */
+/** Display order for known Identica + AB Creations groups. Unknown categories stay after, A–Z. */
 const GROUP_SLUGS = [
+  'corporate-signage',
+  'led-signages',
+  'led-letters',
+  'led-signage-board',
+  'office-and-building-signage-board',
+  'retail-signages',
+  'led-sign-board',
+  'signage-name-plates',
+  'pylons-lolipop',
+  'acrylic-box-solid-letters',
+  'solid-letters',
+  'led-signages-logo',
+  'safety-signs',
+  'graphics-service',
+  'sky-signages',
+  'digital-standee',
+  'glow-signs',
+  'metal-labels',
+  'cladding-work',
+  'uv-printing-services',
+  'flex-branding-work',
+  'sign-board-poles',
   'acrylic-gifts',
   'personalized-gifts',
   'home-and-decor',

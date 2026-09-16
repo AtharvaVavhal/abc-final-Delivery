@@ -33,6 +33,8 @@ export interface CategoryTreeNode {
   slug: string
   parentCategoryId: string | null
   children: CategoryTreeNode[]
+  /** Active products on this node plus descendants. Omitted on stale snapshots. */
+  productCount?: number
 }
 
 export type CustomizationFieldType =

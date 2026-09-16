@@ -64,6 +64,7 @@ export function ProductGallery({
             className={styles.mainImage}
             width={1200}
             height={1200}
+            referrerPolicy="no-referrer"
             onError={() => markFailed(active.id)}
           />
         )}
@@ -88,6 +89,7 @@ export function ProductGallery({
                     alt=""
                     className={styles.thumbImage}
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                     onError={() => markFailed(img.id)}
                   />
                 )}
