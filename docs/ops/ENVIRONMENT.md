@@ -26,7 +26,8 @@ each is required.
 | `JWT_ACCESS_SECRET` | ✅ | ✅ | ✅ | HMAC secret for short-lived access tokens. Use a long random string. | 32+ random bytes, base64/hex | Render service env (secret) |
 | `JWT_ACCESS_EXPIRES_IN` | — | — | — | Access-token TTL. Defaults to `15m`. | `15m` | Render service env (optional) |
 | `REFRESH_TOKEN_SECRET` | ✅ | ✅ | ✅ | Secret for the opaque DB-backed refresh token. **This is the name the code reads** — there is no `JWT_REFRESH_SECRET`. Distinct from the access secret. | 32+ random bytes | Render service env (secret) |
-| `REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Refresh-token / cookie lifetime. Defaults to `30d`. | `30d` | Render service env (optional) |
+| `REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Shopper refresh-token / cookie lifetime. Defaults to `30d`. | `30d` | Render service env (optional) |
+| `ADMIN_REFRESH_TOKEN_EXPIRES_IN` | — | — | — | Admin / super-admin refresh-token / cookie lifetime. Defaults to `12h`. Customers keep `REFRESH_TOKEN_EXPIRES_IN`. | `12h` | Render service env (optional) |
 | `RAZORPAY_KEY_ID` | ⬜ | ⬜ | ✅ | Razorpay API key id. `rzp_test_*` in dev, `rzp_live_*` in production. Also returned to the browser per checkout. | `rzp_live_XXXXXXXXXXXXXX` | Render service env |
 | `RAZORPAY_KEY_SECRET` | ⬜ | ⬜* | ✅ | Razorpay API key secret. Signs/verifies payment HMAC. | opaque string (secret) | Render service env (secret) |
 | `RAZORPAY_WEBHOOK_SECRET` | ⬜ | ⬜* | ✅ | Verifies the `X-Razorpay-Signature` header on `POST /api/v1/payments/webhook`. | opaque string (secret) | Render service env (secret) **and** Razorpay dashboard webhook config |

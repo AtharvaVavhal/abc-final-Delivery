@@ -18,6 +18,7 @@ export interface AppConfig {
     accessTokenExpiresIn: string;
     refreshTokenSecret: string;
     refreshTokenExpiresIn: string;
+    adminRefreshTokenExpiresIn: string;
   };
   razorpay: {
     keyId: string;
@@ -148,6 +149,8 @@ export default (): AppConfig => ({
     accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET ?? '',
     refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '30d',
+    adminRefreshTokenExpiresIn:
+      process.env.ADMIN_REFRESH_TOKEN_EXPIRES_IN ?? '12h',
   },
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID ?? '',

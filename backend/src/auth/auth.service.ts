@@ -20,6 +20,7 @@ import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { parseDurationMs } from './utils/duration.util';
+import { refreshTtlMsForUser } from './refresh-ttl';
 import {
   generateOpaqueToken,
   hashRefreshToken,
@@ -57,7 +58,8 @@ export interface AuthTokenResult {
 @Injectable()
 export class AuthService {
   private readonly refreshTokenSecret: string;
-  private readonly refreshTokenTtlMs: number;
+  private readonly customerRefreshTokenTtlMs: number;
+  private readonly adminRefreshTokenTtlMs: number;
   private readonly frontendUrl: string;
 
   constructor(
@@ -69,7 +71,12 @@ export class AuthService {
   ) {
     const authConfig = configService.get('auth', { infer: true });
     this.refreshTokenSecret = authConfig.refreshTokenSecret;
-    this.refreshTokenTtlMs = parseDurationMs(authConfig.refreshTokenExpiresIn);
+    this.customerRefreshTokenTtlMs = parseDurationMs(
+      authConfig.refreshTokenExpiresIn,
+    );
+    this.adminRefreshTokenTtlMs = parseDurationMs(
+      authConfig.adminRefreshTokenExpiresIn,
+    );
     this.frontendUrl = configService.get('frontendUrl', { infer: true });
   }
 
@@ -87,7 +94,11 @@ export class AuthService {
       rawRefreshToken,
       this.refreshTokenSecret,
     );
-    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    // Register always creates a CUSTOMER — never an admin session.
+    const refreshTokenExpiresAt = this.refreshExpiryFor({
+      role: 'CUSTOMER',
+      platformRole: null,
+    });
 
     let user: User;
     try {
@@ -168,7 +179,7 @@ export class AuthService {
       rawRefreshToken,
       this.refreshTokenSecret,
     );
-    const refreshTokenExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    const refreshTokenExpiresAt = this.refreshExpiryFor(user);
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -241,7 +252,7 @@ export class AuthService {
 
     const newRawToken = generateOpaqueToken();
     const newTokenHash = hashRefreshToken(newRawToken, this.refreshTokenSecret);
-    const newExpiresAt = new Date(Date.now() + this.refreshTokenTtlMs);
+    const newExpiresAt = this.refreshExpiryFor(user);
 
     await this.prisma.$transaction(async (tx) => {
       const created = await tx.refreshToken.create({
@@ -372,6 +383,19 @@ export class AuthService {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────
+
+  private refreshExpiryFor(user: {
+    role: string;
+    platformRole: string | null;
+  }): Date {
+    return new Date(
+      Date.now() +
+        refreshTtlMsForUser(user, {
+          customerMs: this.customerRefreshTokenTtlMs,
+          adminMs: this.adminRefreshTokenTtlMs,
+        }),
+    );
+  }
 
   private signAccessToken(user: User): string {
     // Thin token (decision P2-D4 / Master Plan §8): only `sub` + `tokenVersion`.

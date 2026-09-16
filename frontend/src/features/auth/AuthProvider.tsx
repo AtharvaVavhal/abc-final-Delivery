@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { clearAuth, getAuthState, setAuthenticated, subscribeAuthState } from '@/services/api/authStore'
 import { refreshSession } from '@/services/api/client'
 import { loginRequest, logoutRequest, registerRequest } from '@/services/api/auth'
+import { isAdminSessionRole } from './adminSession'
+import { useAdminIdleLogout } from './useAdminIdleLogout'
 import { AuthContext, type AuthContextValue } from './authContext'
 
 /**
@@ -43,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAuth()
     }
   }, [])
+
+  useAdminIdleLogout(
+    state.status === 'authenticated' && isAdminSessionRole(state.user?.role),
+    logout,
+  )
 
   const value = useMemo<AuthContextValue>(
     () => ({ user: state.user, status: state.status, login, register, logout }),
