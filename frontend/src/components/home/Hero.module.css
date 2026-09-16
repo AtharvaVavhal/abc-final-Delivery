@@ -39,10 +39,10 @@
   display: block;
   transform: scale(1) translate(0%, 0%);
   transform-origin: center center;
-  will-change: transform;
 }
 
 .kenBurns {
+  will-change: transform;
   animation-name: kenBurns;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
@@ -128,15 +128,27 @@
 
 .cta {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  background-color: var(--color-accent-warm);
+  color: var(--color-primary-foreground);
+  font-size: 1.0625rem;
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
 
-.cta :global(button) {
-  background-color: var(--color-accent-warm);
+.cta:hover,
+.cta:focus-visible {
+  background-color: var(--color-accent-warm-hover);
+  color: var(--color-primary-foreground);
 }
 
-.cta :global(button:not(:disabled):hover) {
-  background-color: var(--color-accent-warm-hover);
+.cta:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .secondary {

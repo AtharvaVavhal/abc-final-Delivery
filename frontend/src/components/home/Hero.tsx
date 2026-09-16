@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FocusEvent, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
+import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
 import styles from './Hero.module.css'
 
 export interface HeroSlide {
@@ -21,39 +21,12 @@ export interface HeroSlide {
 }
 
 const AUTOPLAY_MS = 6500
+const HERO_IMAGE_WIDTH = 1600
+const HERO_SRC_WIDTHS = [800, 1200, 1600] as const
 
-export const FALLBACK_HERO_SLIDES: HeroSlide[] = [
-  {
-    id: 'acrylic-gifts',
-    eyebrow: 'Acrylic gifts',
-    headline: 'Caricatures that capture the moment',
-    subtext: 'Hand-illustrated acrylic art from your favorite photo.',
-    ctaText: 'Shop caricatures',
-    ctaLink: `${ROUTES.PRODUCTS}?category=acrylic-gifts`,
-    image: '/catalog/hero-3.jpg',
-    alt: 'Acrylic caricatures and cutouts on a studio table',
-  },
-  {
-    id: 'corporate-gifting',
-    eyebrow: 'Corporate gifting',
-    headline: 'Branded gifts your team will keep',
-    subtext: 'Custom corporate pieces, made to order and ready to ship.',
-    ctaText: 'Shop corporate gifts',
-    ctaLink: `${ROUTES.PRODUCTS}?category=corporate`,
-    image: '/catalog/hero-4.jpg',
-    alt: 'Corporate polo, diary, bottle and pen on a desk',
-  },
-  {
-    id: 'festive-keepsakes',
-    eyebrow: 'Festive keepsakes',
-    headline: 'Wedding and festive keepsakes',
-    subtext: 'Personalised acrylic plaques for the people you celebrate.',
-    ctaText: 'Shop gifts',
-    ctaLink: `${ROUTES.PRODUCTS}?category=festive`,
-    image: '/catalog/hero-5.jpg',
-    alt: 'Acrylic couple plaque with festive gift wrapping',
-  },
-]
+function heroSrcSet(url: string): string {
+  return HERO_SRC_WIDTHS.map((width) => `${optimizedCloudinaryUrl(url, width)} ${width}w`).join(', ')
+}
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false)
@@ -70,15 +43,37 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
+/** Same stage geometry as Hero so the shell does not wait on settings. */
+export function HeroFallback({ title, busy = false }: { title: string; busy?: boolean }) {
+  return (
+    <section className={styles.hero} aria-busy={busy || undefined}>
+      {busy ? (
+        <p className="srOnly" role="status">
+          Loading homepage
+        </p>
+      ) : null}
+      <div className={styles.stage} />
+      <div className={styles.scrim} aria-hidden="true" />
+      <div className={styles.copy}>
+        <h1 id="home-hero-heading" className={styles.headline}>
+          {title}
+        </h1>
+      </div>
+    </section>
+  )
+}
+
 export function Hero({ slides }: { slides?: HeroSlide[] }) {
-  const resolved = slides && slides.length > 0 ? slides : FALLBACK_HERO_SLIDES
+  const resolved = slides && slides.length > 0 ? slides : []
   const slideCount = resolved.length
   const reducedMotion = usePrefersReducedMotion()
+  const allowSecondary = useDeferUntilIdle()
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [interactionPaused, setInteractionPaused] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
+  const currentIndexRef = useRef(currentIndex)
 
   const current = resolved[currentIndex] ?? resolved[0]
 
@@ -92,10 +87,23 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
   const prev = useCallback(() => goTo(currentIndex - 1), [goTo, currentIndex])
 
   useEffect(() => {
-    if (reducedMotion || !isPlaying || interactionPaused || slideCount <= 1) return
-    const timer = window.setInterval(next, AUTOPLAY_MS)
-    return () => window.clearInterval(timer)
-  }, [reducedMotion, isPlaying, interactionPaused, slideCount, next])
+    currentIndexRef.current = currentIndex
+  }, [currentIndex])
+
+  // Reads the index via ref instead of depending on currentIndex, so the
+  // interval is only torn down/recreated on a pause-state change (not on
+  // every slide advance).
+  useEffect(() => {
+    if (reducedMotion || !isPlaying || interactionPaused || slideCount <= 1) {
+      return
+    }
+    const timer = window.setInterval(() => {
+      goTo(currentIndexRef.current + 1)
+    }, AUTOPLAY_MS)
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [reducedMotion, isPlaying, interactionPaused, slideCount, goTo])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -135,24 +143,33 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
       <div className={styles.stage}>
         {resolved.map((slide, index) => {
           const isActive = index === currentIndex
+          const isNext = index === (currentIndex + 1) % slideCount
+          const shouldLoad = index === 0 || isActive || (allowSecondary && isNext)
           return (
             <div
               key={slide.id}
               className={cn(styles.slide, isActive && styles.slideActive)}
               aria-hidden={!isActive}
             >
-              <img
-                key={isActive ? `${slide.id}-active` : slide.id}
-                src={slide.image}
-                alt={isActive ? slide.alt : ''}
-                className={cn(styles.image, isActive && !reducedMotion && styles.kenBurns)}
-                style={
-                  isActive && !reducedMotion
-                    ? { animationDuration: `${AUTOPLAY_MS}ms` }
-                    : undefined
-                }
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
+              {shouldLoad ? (
+                <img
+                  src={optimizedCloudinaryUrl(slide.image, HERO_IMAGE_WIDTH)}
+                  srcSet={heroSrcSet(slide.image)}
+                  sizes="100vw"
+                  width={1600}
+                  height={727}
+                  alt={isActive ? slide.alt : ''}
+                  className={cn(styles.image, isActive && !reducedMotion && styles.kenBurns)}
+                  style={
+                    isActive && !reducedMotion
+                      ? { animationDuration: `${AUTOPLAY_MS}ms` }
+                      : undefined
+                  }
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={index === 0 && currentIndex === 0 ? 'high' : 'low'}
+                  decoding="async"
+                />
+              ) : null}
             </div>
           )
         })}
@@ -160,16 +177,14 @@ export function Hero({ slides }: { slides?: HeroSlide[] }) {
       </div>
 
       <div className={styles.copy}>
-        <p className={styles.eyebrow}>{current.eyebrow}</p>
+        {current.eyebrow ? <p className={styles.eyebrow}>{current.eyebrow}</p> : null}
         <h1 id="home-hero-heading" className={styles.headline}>
           {current.headline}
         </h1>
-        <p className={styles.subtext}>{current.subtext}</p>
+        {current.subtext ? <p className={styles.subtext}>{current.subtext}</p> : null}
         <div className={styles.actions}>
           <Link to={current.ctaLink} className={styles.cta}>
-            <Button variant="primary" shape="pill" size="lg">
-              {current.ctaText}
-            </Button>
+            {current.ctaText}
           </Link>
           {current.secondaryLink ? (
             <Link to={current.secondaryLink} className={styles.secondary}>

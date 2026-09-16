@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequirePermission } from '../../auth/permissions/require-permission.decorator';
@@ -16,9 +17,13 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import type { TenantContext } from '../../common/tenant/tenant-context';
+import type { RequestWithTenantContext } from '../../common/tenant/tenant-context';
+import { StorefrontTenantResolver } from '../../common/tenant/storefront-tenant.resolver';
 import { ProductsService } from '../products.service';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
+
+type RequestWithHostname = RequestWithTenantContext & { hostname: string };
 
 /**
  * Owns (§20): GET /categories (Public, flat list — one nesting level via
@@ -37,18 +42,30 @@ import { UpdateCategoryDto } from '../dto/update-category.dto';
  */
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly tenantResolver: StorefrontTenantResolver,
+  ) {}
+
+  private resolveTenantId(request: RequestWithHostname): Promise<string> {
+    return this.tenantResolver.resolveActiveTenantId(
+      request.tenantContext,
+      request.hostname,
+    );
+  }
 
   @Public()
   @Get()
-  async list() {
-    return this.productsService.listCategories();
+  async list(@Req() request: RequestWithHostname) {
+    const tenantId = await this.resolveTenantId(request);
+    return this.productsService.listCategories(tenantId);
   }
 
   @Public()
   @Get('tree')
-  async tree() {
-    return this.productsService.getCategoryTree();
+  async tree(@Req() request: RequestWithHostname) {
+    const tenantId = await this.resolveTenantId(request);
+    return this.productsService.getCategoryTree(tenantId);
   }
 
   @RequirePermission('products:read')

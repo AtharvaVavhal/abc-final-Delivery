@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/Alert';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { formatPrice } from '@/utils/formatPrice';
 import { Modal } from '@/components/ui/Modal';
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset';
 import styles from './QuickView.module.css';
 
 const EMPTY_CUSTOMIZATION_STATE: CustomizationFormState = {
@@ -76,7 +77,7 @@ export function QuickView({ slug, onClose }: QuickViewProps) {
                   aria-label={`View image ${idx + 1}`}
                   role="listitem"
                 >
-                  <img src={img.url} alt="" loading="lazy" />
+                  <img src={optimizedCloudinaryUrl(img.url, 200)} alt="" loading="lazy" />
                 </button>
               ))}
             </div>

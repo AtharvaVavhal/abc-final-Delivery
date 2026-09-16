@@ -447,15 +447,16 @@ describe('ProductsService.listProducts', () => {
       {} as never,
     );
 
-    await service.listProducts(1, 20, 'parent-1', undefined);
+    await service.listProducts('tenant-a', 1, 20, 'parent-1', undefined);
 
     expect(prisma.category.findMany).toHaveBeenCalledWith({
-      where: { parentCategoryId: 'parent-1', isActive: true },
+      where: { parentCategoryId: 'parent-1', isActive: true, tenantId: 'tenant-a' },
       select: { id: true },
     });
     expect(productDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          tenantId: 'tenant-a',
           isActive: true,
           categoryId: { in: ['parent-1', 'child-1'] },
         }),

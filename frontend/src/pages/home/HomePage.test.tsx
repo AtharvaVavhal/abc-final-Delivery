@@ -78,15 +78,16 @@ function mockHome({
 }: HomeMockOptions & { storeName?: string } = {}) {
   // Real GET /settings?keys=… wire shape: the settings map is nested at
   // data.data and every value is a JSON string.
-  const settingsMap = Object.fromEntries(
-    Object.entries(settings).map(([key, value]) => [
-      key,
-      typeof value === 'string' ? value : JSON.stringify(value),
-    ]),
-  )
+  const settingsMap: Record<string, string> = {
+    storeName,
+    ...Object.fromEntries(
+      Object.entries(settings).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value : JSON.stringify(value),
+      ]),
+    ),
+  }
   mock.onGet('/settings').reply(200, { success: true, data: { data: settingsMap } })
-  mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: storeName } })
-  mock.onGet('/settings/whatsappNumber').reply(200, { success: true, data: { value: '' } })
   mock.onGet('/categories').reply(...ok(categories))
   mock.onGet('/categories/tree').reply(
     ...ok(
@@ -115,24 +116,17 @@ afterEach(() => {
 })
 
 describe('HomePage — storefront layout', () => {
-  it('shows the fallback hero when no promo is configured (no invented claims)', async () => {
+  it('does not invent a promotional hero when no promo is configured', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
 
-    expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: /caricatures that capture the moment/i,
-      }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: /shop caricatures/i }),
-    ).toHaveAttribute('href', '/products?category=acrylic-gifts')
+    expect(await screen.findByRole('heading', { level: 1, name: 'AB Creations' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /shop caricatures/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/acrylic gifts/i)).not.toBeInTheDocument()
   })
 
   it('announces the hero loading state politely while homepage settings are in flight', async () => {
     mock.onGet('/settings').reply(() => new Promise(() => {})) // never settles
-    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'AB Creations' } })
     mock.onGet('/categories').reply(...ok([category()]))
     mock.onGet('/categories/tree').reply(
       ...ok([{ id: 'cat-mugs', name: 'Mugs', slug: 'mugs', parentCategoryId: null, children: [] }]),
@@ -144,20 +138,15 @@ describe('HomePage — storefront layout', () => {
     expect(label.closest('[role="status"]')).toBeInTheDocument()
   })
 
-  it('renders the fallback hero eyebrow when no promo is configured', async () => {
+  it('uses the live store name as the homepage heading when no promo is configured', async () => {
     mockHome({ storeName: 'Atharva Prints' })
     renderWithProviders(<HomePage />)
 
-    const heading = await screen.findByRole('heading', {
-      level: 1,
-      name: /caricatures that capture the moment/i,
-    })
-    expect(heading.previousElementSibling).toHaveTextContent('Acrylic gifts')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Atharva Prints' })).toBeInTheDocument()
   })
 
-  it('still uses the fallback hero when the store-name endpoint fails', async () => {
-    mock.onGet('/settings/storeName').reply(500)
-    mock.onGet('/settings').reply(200, { success: true, data: { data: {} } })
+  it('falls back to AB Creations when the store-name endpoint fails and no promo is configured', async () => {
+    mock.onGet('/settings').reply(500)
     mock.onGet('/categories').reply(...ok([category()]))
     mock.onGet('/categories/tree').reply(
       ...ok([{ id: 'cat-mugs', name: 'Mugs', slug: 'mugs', parentCategoryId: null, children: [] }]),
@@ -165,11 +154,7 @@ describe('HomePage — storefront layout', () => {
     mock.onGet('/products').reply(...ok(NEW_ARRIVALS, { page: 1, limit: 12, total: 0, totalPages: 1 }))
     renderWithProviders(<HomePage />)
 
-    const heading = await screen.findByRole('heading', {
-      level: 1,
-      name: /caricatures that capture the moment/i,
-    })
-    expect(heading.previousElementSibling).toHaveTextContent('Acrylic gifts')
+    expect(await screen.findByRole('heading', { level: 1, name: 'AB Creations' })).toBeInTheDocument()
   })
 
   it('renders live category chips from GET /categories/tree', async () => {
@@ -228,19 +213,28 @@ describe('HomePage — storefront layout', () => {
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
+      await screen.findByRole('heading', { level: 1, name: 'AB Creations' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: /shop by category/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: /featured collection/i })).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: /featured collection/i })).not.toBeInTheDocument()
+    })
+  })
+
+  it('loads store chrome and homepage content with one public settings request', async () => {
+    mockHome()
+    renderWithProviders(<HomePage />)
+    await screen.findByRole('heading', { level: 1, name: 'AB Creations' })
+    expect(mock.history.get.filter((call) => call.url === '/settings')).toHaveLength(1)
   })
 })
 
 describe('HomePage — heading hierarchy (UX-14)', () => {
-  it('has exactly one <h1> (the fallback hero) when no promo is configured', async () => {
+  it('has exactly one <h1> (the store name) when no promo is configured', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
 
-    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
+    await screen.findByRole('heading', { level: 1, name: 'AB Creations' })
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
@@ -258,9 +252,10 @@ describe('HomePage — heading hierarchy (UX-14)', () => {
 
     // The active slide's headline is the sole <h1>; the other slides render
     // their headline as a (hidden) <p>, not a competing heading.
-    const h1s = await screen.findAllByRole('heading', { level: 1 })
-    expect(h1s).toHaveLength(1)
-    expect(h1s[0]).toHaveTextContent('Summer drop')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Summer drop')
+    })
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
   it('renders configured promo-banner titles as <h2>, not <h3> (no level skip under the hero <h1>)', async () => {
@@ -290,7 +285,7 @@ describe('HomePage — configured promo content (data layer)', () => {
 
     expect(await screen.findByRole('region', { name: /promotional hero/i })).toBeInTheDocument()
     expect(
-      screen.queryByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
+      screen.queryByRole('heading', { level: 1, name: 'AB Creations' }),
     ).not.toBeInTheDocument()
   })
 
@@ -332,7 +327,7 @@ describe('HomePage — configured promo content (data layer)', () => {
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i }),
+      await screen.findByRole('heading', { level: 1, name: 'AB Creations' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 1, name: /broken/i })).not.toBeInTheDocument()
   })
@@ -342,7 +337,7 @@ describe('HomePage — content integrity', () => {
   it('does not present fabricated testimonials as real customer feedback', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
-    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
+    await screen.findByRole('heading', { level: 1, name: 'AB Creations' })
 
     expect(screen.queryByText(/what our customers say/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/verified printforge customers/i)).not.toBeInTheDocument()
@@ -353,7 +348,7 @@ describe('HomePage — content integrity', () => {
   it('does not show a fake newsletter subscription', async () => {
     mockHome()
     renderWithProviders(<HomePage />)
-    await screen.findByRole('heading', { level: 1, name: /caricatures that capture the moment/i })
+    await screen.findByRole('heading', { level: 1, name: 'AB Creations' })
 
     expect(screen.queryByRole('button', { name: /subscribe/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/stay updated/i)).not.toBeInTheDocument()

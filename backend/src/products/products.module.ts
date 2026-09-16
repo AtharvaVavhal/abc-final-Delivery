@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../common/audit/audit.module';
 import { LimitEnforcementModule } from '../limits/limit-enforcement.module';
+import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { UploadsModule } from '../uploads/uploads.module';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
@@ -26,7 +27,7 @@ import { CustomizationValidationService } from './customizations/customization-v
 @Module({
   imports: [UploadsModule, AuditModule, LimitEnforcementModule],
   controllers: [ProductsController, CategoriesController],
-  providers: [ProductsService, CustomizationValidationService],
+  providers: [ProductsService, CustomizationValidationService, StorefrontTenantResolver],
   exports: [ProductsService, CustomizationValidationService],
 })
 export class ProductsModule {}

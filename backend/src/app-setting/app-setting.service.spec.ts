@@ -762,4 +762,37 @@ describe('AppSettingService — configurable settings', () => {
       expect(input.metadata).toMatchObject({ ownership: 'STORE' });
     });
   });
+
+  describe('getManyStoreValues (storefront, storeId already resolved)', () => {
+    it('reads StoreSetting by storeId + key without resolving a primary store', async () => {
+      const { service, storeSettingDelegate, storeDelegate } = buildService({
+        storeValues: { storeName: 'AB Creations', announcement_text: 'Hi' },
+      });
+      const values = await service.getManyStoreValues('store-a', [
+        'storeName',
+        'announcement_text',
+        'missing',
+      ]);
+      expect(values).toEqual({
+        storeName: 'AB Creations',
+        announcement_text: 'Hi',
+      });
+      expect(storeSettingDelegate.findMany).toHaveBeenCalledWith({
+        where: {
+          storeId: 'store-a',
+          key: { in: ['storeName', 'announcement_text', 'missing'] },
+        },
+        select: { key: true, value: true },
+      });
+      expect(storeDelegate.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('returns an empty map without querying when no keys are requested', async () => {
+      const { service, storeSettingDelegate } = buildService();
+      await expect(service.getManyStoreValues('store-a', [])).resolves.toEqual(
+        {},
+      );
+      expect(storeSettingDelegate.findMany).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -136,7 +136,7 @@ export function HeroSlidesSettings({ setting }: HeroSlidesSettingsProps) {
       {slides.length === 0 ? (
         <AdminEmptyState
           title="No hero slides yet"
-          description="Upload a PNG or JPEG to add the first homepage banner. Until then the site uses the built-in fallback hero."
+          description="Upload a PNG or JPEG to add the first homepage banner. Until then the homepage shows the store name instead of a promotional carousel."
         />
       ) : (
         <ul className={styles.heroList}>

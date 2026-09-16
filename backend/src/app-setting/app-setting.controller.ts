@@ -36,8 +36,10 @@ export class AppSettingController {
     private readonly tenantResolver: StorefrontTenantResolver,
   ) {}
 
-  private resolveTenantId(request: RequestWithHostname): Promise<string> {
-    return this.tenantResolver.resolveActiveTenantId(
+  private resolveStorefront(
+    request: RequestWithHostname,
+  ): Promise<{ tenantId: string; storeId: string }> {
+    return this.tenantResolver.resolveActiveStorefront(
       request.tenantContext,
       request.hostname,
     );
@@ -49,11 +51,8 @@ export class AppSettingController {
     if (!isPublicSettingKey(key)) {
       return { value: null };
     }
-    const tenantId = await this.resolveTenantId(request);
-    const stored = await this.appSettingService.getStoreValueForTenant(
-      tenantId,
-      key,
-    );
+    const { storeId } = await this.resolveStorefront(request);
+    const stored = await this.appSettingService.getStoreValue(storeId, key);
     // When no row exists yet, fall back to the admin definition's default
     // (e.g. storeName → "AB Creations") so the public read is authoritative
     // for the default too, not just for a value an admin has saved.
@@ -74,9 +73,9 @@ export class AppSettingController {
           .filter(Boolean)
       : [];
     const allowed = requested.filter(isPublicSettingKey);
-    const tenantId = await this.resolveTenantId(request);
-    const values = await this.appSettingService.getManyStoreValuesForTenant(
-      tenantId,
+    const { storeId } = await this.resolveStorefront(request);
+    const values = await this.appSettingService.getManyStoreValues(
+      storeId,
       allowed,
     );
     return { data: values };

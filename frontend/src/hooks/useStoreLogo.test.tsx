@@ -24,27 +24,27 @@ describe('useStoreLogo', () => {
   })
 
   it('starts on the bundled logo before the request resolves', () => {
-    mock.onGet('/settings/storeLogo').reply(() => new Promise(() => {}))
+    mock.onGet('/settings').reply(() => new Promise(() => {}))
     const { result } = renderHook(() => useStoreLogo(), { wrapper: wrapper() })
     expect(result.current).toBe(STORE_LOGO_FALLBACK)
   })
 
   it('returns the configured logo URL once loaded', async () => {
     mock
-      .onGet('/settings/storeLogo')
-      .reply(200, { success: true, data: { value: 'https://cdn.example/logo.png' } })
+      .onGet('/settings')
+      .reply(200, { success: true, data: { data: { storeLogo: 'https://cdn.example/logo.png' } } })
     const { result } = renderHook(() => useStoreLogo(), { wrapper: wrapper() })
     await waitFor(() => expect(result.current).toBe('https://cdn.example/logo.png'))
   })
 
   it('falls back to the bundled logo when the value is blank', async () => {
-    mock.onGet('/settings/storeLogo').reply(200, { success: true, data: { value: '' } })
+    mock.onGet('/settings').reply(200, { success: true, data: { data: { storeLogo: '' } } })
     const { result } = renderHook(() => useStoreLogo(), { wrapper: wrapper() })
     await waitFor(() => expect(result.current).toBe(STORE_LOGO_FALLBACK))
   })
 
   it('falls back to the bundled logo when the endpoint errors', async () => {
-    mock.onGet('/settings/storeLogo').reply(500)
+    mock.onGet('/settings').reply(500)
     const { result } = renderHook(() => useStoreLogo(), { wrapper: wrapper() })
     await waitFor(() => expect(result.current).toBe(STORE_LOGO_FALLBACK))
   })

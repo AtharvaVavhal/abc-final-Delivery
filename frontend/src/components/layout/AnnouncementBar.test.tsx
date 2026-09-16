@@ -6,6 +6,10 @@ import { renderWithProviders } from '@/test/test-utils'
 import { AnnouncementBar, parseAnnouncementSegments } from './AnnouncementBar'
 import styles from './AnnouncementBar.module.css'
 
+function settingsReply(map: Record<string, string>) {
+  return [200, { success: true, data: { data: map } }] as const
+}
+
 describe('parseAnnouncementSegments', () => {
   it('splits pipe-separated messages and trims each one', () => {
     expect(parseAnnouncementSegments('Free shipping | Extra 12% OFF | New drops')).toEqual([
@@ -37,13 +41,13 @@ describe('AnnouncementBar', () => {
   })
 
   it('renders nothing while the setting is loading', () => {
-    mock.onGet('/settings/announcement_text').reply(() => new Promise(() => {}))
+    mock.onGet('/settings').reply(() => new Promise(() => {}))
     const { container } = renderWithProviders(<AnnouncementBar />)
     expect(container).toBeEmptyDOMElement()
   })
 
   it('renders nothing when announcement text is blank', async () => {
-    mock.onGet('/settings/announcement_text').reply(200, { success: true, data: { value: '' } })
+    mock.onGet('/settings').reply(200, { success: true, data: { data: { announcement_text: '' } } })
     const { container } = renderWithProviders(<AnnouncementBar />)
     await waitFor(() => {
       expect(mock.history.get.length).toBeGreaterThan(0)
@@ -53,7 +57,7 @@ describe('AnnouncementBar', () => {
   })
 
   it('renders nothing when the setting request fails', async () => {
-    mock.onGet('/settings/announcement_text').reply(500)
+    mock.onGet('/settings').reply(500)
     const { container } = renderWithProviders(<AnnouncementBar />)
     await waitFor(() => {
       expect(mock.history.get.length).toBeGreaterThan(0)
@@ -63,10 +67,9 @@ describe('AnnouncementBar', () => {
   })
 
   it('renders configured copy in a duplicated marquee track with no close control', async () => {
-    mock.onGet('/settings/announcement_text').reply(200, {
-      success: true,
-      data: { value: 'Free shipping at ₹1,000+ | Extra 12% OFF' },
-    })
+    mock.onGet('/settings').reply(
+      ...settingsReply({ announcement_text: 'Free shipping at ₹1,000+ | Extra 12% OFF' }),
+    )
     const { container } = renderWithProviders(<AnnouncementBar />)
 
     expect(await screen.findByRole('region', { name: 'Store announcements' })).toBeInTheDocument()

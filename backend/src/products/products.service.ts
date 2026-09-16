@@ -60,9 +60,9 @@ export class ProductsService {
 
   // ─── Categories ──────────────────────────────────────────────────────
 
-  async listCategories(): Promise<Category[]> {
+  async listCategories(tenantId: string): Promise<Category[]> {
     return this.prisma.category.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { name: 'asc' },
     });
   }
@@ -256,9 +256,9 @@ export class ProductsService {
 
   // ─── Category Tree ──────────────────────────────────────────────────────
 
-  async getCategoryTree(): Promise<CategoryTreeNode[]> {
+  async getCategoryTree(tenantId: string): Promise<CategoryTreeNode[]> {
     const categories = await this.prisma.category.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, slug: true, parentCategoryId: true },
     });
@@ -307,6 +307,7 @@ export class ProductsService {
   // ─── Products (public reads) ─────────────────────────────────────────
 
   async listProducts(
+    tenantId: string,
     page: number,
     limit: number,
     categoryId: string | undefined,
@@ -317,10 +318,11 @@ export class ProductsService {
     sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating_desc',
   ): Promise<PaginatedResult<ProductWithRelations>> {
     const categoryFilter = categoryId
-      ? await this.publicCategoryIds(categoryId)
+      ? await this.publicCategoryIds(tenantId, categoryId)
       : undefined
 
     const where: Prisma.ProductWhereInput = {
+      tenantId,
       isActive: true,
       ...(categoryFilter ? { categoryId: { in: categoryFilter } } : {}),
       ...(search
@@ -379,17 +381,17 @@ export class ProductsService {
    * Public listing: a parent category includes products filed on it or on
    * any active direct child (one nesting level, matching Category).
    */
-  private async publicCategoryIds(categoryId: string): Promise<string[]> {
+  private async publicCategoryIds(tenantId: string, categoryId: string): Promise<string[]> {
     const children = await this.prisma.category.findMany({
-      where: { parentCategoryId: categoryId, isActive: true },
+      where: { parentCategoryId: categoryId, isActive: true, tenantId },
       select: { id: true },
     })
     return [categoryId, ...children.map((child) => child.id)]
   }
 
-  async getProductBySlug(slug: string): Promise<ProductWithRelations> {
+  async getProductBySlug(tenantId: string, slug: string): Promise<ProductWithRelations> {
     const product = await this.prisma.product.findFirst({
-      where: { slug, isActive: true },
+      where: { slug, isActive: true, tenantId },
       include: PRODUCT_DETAIL_INCLUDE,
     });
     if (!product) {

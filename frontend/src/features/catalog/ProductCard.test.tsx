@@ -47,7 +47,10 @@ describe('ProductCard', () => {
     renderWithProviders(<ProductCard product={product} />)
 
     const img = screen.getByRole('img', { name: 'Ceramic Mug' })
-    expect(img).toHaveAttribute('src', 'https://res.cloudinary.com/demo/image/upload/abc.png')
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_480/abc.png',
+    )
   })
 
   it('renders the placeholder when the product has no images', () => {

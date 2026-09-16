@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCategoryTree, fetchProducts } from '@/services/api/catalog'
 import { categoryLeaves, categoryStillImage } from '@/features/catalog/categoryNavOrder'
-import { stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
+import { stillImageUrl, videoUrl, optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { CATALOG_STALE_TIME_MS } from '@/constants/query'
 import { ROUTES } from '@/constants/routes'
@@ -77,11 +77,11 @@ export function CategoryDiscovery({
               {item.video ? (
                 <DeferredVideo
                   src={item.video}
-                  poster={item.image}
+                  poster={item.image ? optimizedCloudinaryUrl(item.image, 480) : undefined}
                   label={item.title}
                 />
               ) : item.image ? (
-                <img src={item.image} alt="" loading="lazy" />
+                <img src={optimizedCloudinaryUrl(item.image, 480)} alt="" loading="lazy" decoding="async" />
               ) : (
                 <span className={styles.fallback} aria-hidden="true">
                   {item.title.trim().charAt(0).toUpperCase()}

@@ -212,8 +212,8 @@ function isSafeHttpOrSitePath(value: string): boolean {
   return /^https?:\/\//i.test(value) || value.startsWith('/');
 }
 
-/** Homepage hero carousel. Empty means the storefront uses its built-in
- * fallback hero — never invented slides. */
+/** Homepage hero carousel. Empty means the storefront hides the carousel
+ * rather than inventing slides. */
 function normalizeHeroSlides(raw: string): NormalizeResult {
   const trimmed = raw.trim();
   if (trimmed === '') {
@@ -633,7 +633,7 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
     ownership: 'STORE',
     label: 'Homepage hero slides',
     description:
-      'Images and copy for the homepage banner. Add, replace, or delete slides here. An empty list uses the built-in fallback hero. PNG or JPEG, up to 8 slides.',
+      'Images and copy for the homepage banner. Add, replace, or delete slides here. An empty list hides the carousel. PNG or JPEG, up to 8 slides.',
     kind: 'text',
     default: '',
   },

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ProductImage as ProductImageData } from '@/types/catalog'
-import { isVideoAsset } from '@/features/media/mediaAsset'
+import { isVideoAsset, optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { ProductImagePlaceholder } from './ProductImagePlaceholder'
 import styles from './ProductGallery.module.css'
@@ -43,6 +43,7 @@ export function ProductGallery({
   }
 
   const activeIsVideo = isVideoAsset(active)
+  const stillPoster = usable.find((img) => !isVideoAsset(img))?.url
 
   return (
     <div className={styles.gallery}>
@@ -51,16 +52,18 @@ export function ProductGallery({
           <DeferredVideo
             key={active.id}
             src={active.url}
-            poster={usable.find((img) => !isVideoAsset(img))?.url}
+            poster={stillPoster ? optimizedCloudinaryUrl(stillPoster, 1200) : undefined}
             label={label}
             className={styles.mainImage}
           />
         ) : (
           <img
             key={active.id}
-            src={active.url}
+            src={optimizedCloudinaryUrl(active.url, 1200)}
             alt={label}
             className={styles.mainImage}
+            width={1200}
+            height={1200}
             onError={() => markFailed(active.id)}
           />
         )}
@@ -81,7 +84,7 @@ export function ProductGallery({
                   <span className={styles.thumbImage}>Video</span>
                 ) : (
                   <img
-                    src={img.url}
+                    src={optimizedCloudinaryUrl(img.url, 200)}
                     alt=""
                     className={styles.thumbImage}
                     loading="lazy"

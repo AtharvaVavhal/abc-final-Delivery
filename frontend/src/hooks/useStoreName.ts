@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { fetchStoreName } from '@/services/api/settings'
-import { CATALOG_STALE_TIME_MS } from '@/constants/query'
+import { useStorefrontPublicSettings } from './useStorefrontPublicSettings'
 
 /**
  * The store name is configured by the
@@ -15,11 +13,7 @@ import { CATALOG_STALE_TIME_MS } from '@/constants/query'
 export const STORE_NAME_FALLBACK = 'AB Creations'
 
 export function useStoreName(): string {
-  const { data } = useQuery({
-    queryKey: ['settings', 'storeName'],
-    queryFn: fetchStoreName,
-    staleTime: CATALOG_STALE_TIME_MS,
-  })
-  const resolved = data?.trim()
+  const { data } = useStorefrontPublicSettings()
+  const resolved = data?.storeName?.trim()
   return resolved && resolved.length > 0 ? resolved : STORE_NAME_FALLBACK
 }

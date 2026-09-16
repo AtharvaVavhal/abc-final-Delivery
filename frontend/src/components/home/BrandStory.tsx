@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 import { useStoreName } from '@/hooks/useStoreName'
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import styles from './BrandStory.module.css'
 
 const DEFAULT_STORY =
@@ -21,7 +22,14 @@ export function BrandStory({
       <div className={styles.grid}>
         <div className={styles.media}>
           {imageUrl ? (
-            <img src={imageUrl} alt="" className={styles.image} loading="lazy" />
+            <img
+              src={optimizedCloudinaryUrl(imageUrl, 800)}
+              alt=""
+              className={styles.image}
+              width={800}
+              height={600}
+              loading="lazy"
+            />
           ) : (
             <div className={styles.fallback} aria-hidden="true">
               {storeName}

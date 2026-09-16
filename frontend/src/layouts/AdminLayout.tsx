@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { Menu, Store } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/constants/routes'
 import { LogoutButton } from '@/features/auth/LogoutButton'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
+import { FullPageLoader } from '@/components/ui/FullPageLoader'
 import styles from './AdminLayout.module.css'
 
 const MAIN_ID = 'admin-main-content'
@@ -96,7 +97,9 @@ export function AdminLayout() {
 
         <main id={MAIN_ID} className={styles.main} tabIndex={-1}>
           <div className={styles.container}>
-            <Outlet />
+            <Suspense fallback={<FullPageLoader label="Loading admin page" />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

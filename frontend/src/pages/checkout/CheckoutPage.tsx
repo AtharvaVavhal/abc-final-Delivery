@@ -79,6 +79,7 @@ export function CheckoutPage() {
   // closure holding it, so the second click sees the first click's write
   // immediately, independent of React's render cycle.
   const isRetryingRef = useRef(false)
+  const isCreatingRef = useRef(false)
 
   const { data: cart, isPending: isCartPending, isError: isCartError, error: cartError } = useCart()
   // Profile drives Razorpay email/phone prefill AND the shipping-form
@@ -132,6 +133,8 @@ export function CheckoutPage() {
   }
 
   async function handleSubmitShipping(values: ShippingFormValues) {
+    if (isCreatingRef.current) return
+    isCreatingRef.current = true
     setPaymentError(null)
     try {
       const created = await createOrder.mutateAsync({
@@ -149,6 +152,8 @@ export function CheckoutPage() {
       await startPayment(created)
     } catch {
       // createOrder.isError below renders the message — nothing else to do.
+    } finally {
+      isCreatingRef.current = false
     }
   }
 

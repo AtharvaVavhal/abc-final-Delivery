@@ -1,10 +1,13 @@
+import { lazy, Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Header } from './Header'
-import { Footer } from './Footer'
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar'
 import { ToastProvider } from '@/components/ui/toast/ToastProvider'
 import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
+import { FullPageLoader } from '@/components/ui/FullPageLoader'
 import styles from './RootLayout.module.css'
+
+const Footer = lazy(() => import('./Footer').then((m) => ({ default: m.Footer })))
 
 export function RootLayout() {
   return (
@@ -16,9 +19,13 @@ export function RootLayout() {
         <AnnouncementBar />
         <Header />
         <main id="main-content" className={styles.main} tabIndex={-1}>
-          <Outlet />
+          <Suspense fallback={<FullPageLoader label="Loading page" />}>
+            <Outlet />
+          </Suspense>
         </main>
-        <Footer />
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
         <WhatsAppButton />
       </div>
     </ToastProvider>

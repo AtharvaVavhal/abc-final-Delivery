@@ -52,6 +52,15 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: {
+      proxy: {
+        '/api': {
+          target: env.VITE_PROXY_TARGET || 'http://localhost:4000',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],

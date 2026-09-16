@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
 import { RequirePermission } from '../auth/permissions/require-permission.decorator';
@@ -17,6 +18,8 @@ import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import type { TenantContext } from '../common/tenant/tenant-context';
+import type { RequestWithTenantContext } from '../common/tenant/tenant-context';
+import { StorefrontTenantResolver } from '../common/tenant/storefront-tenant.resolver';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -27,6 +30,8 @@ import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { ListAdminProductsQueryDto } from './dto/list-admin-products-query.dto';
 import { CreateCustomizationFieldDto } from './dto/create-customization-field.dto';
 import { UpdateCustomizationFieldDto } from './dto/update-customization-field.dto';
+
+type RequestWithHostname = RequestWithTenantContext & { hostname: string };
 
 /**
  * Owns (§20): GET /products, GET /products/:slug (Public); admin CRUD for
@@ -41,12 +46,27 @@ import { UpdateCustomizationFieldDto } from './dto/update-customization-field.dt
  */
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly tenantResolver: StorefrontTenantResolver,
+  ) {}
+
+  private resolveTenantId(request: RequestWithHostname): Promise<string> {
+    return this.tenantResolver.resolveActiveTenantId(
+      request.tenantContext,
+      request.hostname,
+    );
+  }
 
   @Public()
   @Get()
-  async list(@Query() query: ListProductsQueryDto) {
+  async list(
+    @Query() query: ListProductsQueryDto,
+    @Req() request: RequestWithHostname,
+  ) {
+    const tenantId = await this.resolveTenantId(request);
     return this.productsService.listProducts(
+      tenantId,
       query.page,
       query.limit,
       query.categoryId,
@@ -90,8 +110,12 @@ export class ProductsController {
 
   @Public()
   @Get(':slug')
-  async getBySlug(@Param('slug') slug: string) {
-    return this.productsService.getProductBySlug(slug);
+  async getBySlug(
+    @Param('slug') slug: string,
+    @Req() request: RequestWithHostname,
+  ) {
+    const tenantId = await this.resolveTenantId(request);
+    return this.productsService.getProductBySlug(tenantId, slug);
   }
 
   @RequirePermission('products:write')

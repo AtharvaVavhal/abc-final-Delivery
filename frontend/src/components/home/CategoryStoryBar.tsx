@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useDeferUntilIdle } from '@/hooks/useDeferUntilIdle'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCategoryTree, fetchProducts } from '@/services/api/catalog'
 import { categoryLeaves, categoryStillImage } from '@/features/catalog/categoryNavOrder'
-import { stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
+import { optimizedCloudinaryUrl, stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
 import { CATALOG_STALE_TIME_MS } from '@/constants/query'
@@ -47,15 +48,17 @@ function CircleMedia({ item }: { item: StoryCategory }) {
         {item.video ? (
           <DeferredVideo
             src={item.video}
-            poster={item.image || undefined}
+            poster={item.image ? optimizedCloudinaryUrl(item.image, 320) : undefined}
             label={`${item.title} category video`}
             className={styles.circleImage}
           />
         ) : item.image ? (
           <img
-            src={item.image}
+            src={optimizedCloudinaryUrl(item.image, 320)}
             alt=""
             className={styles.circleImage}
+            width={320}
+            height={320}
             loading="lazy"
             decoding="async"
           />
@@ -72,6 +75,7 @@ function CircleMedia({ item }: { item: StoryCategory }) {
 export function CategoryCircleCarousel({ stories }: { stories?: StoryCategory[] }) {
   const location = useLocation()
   const live = stories === undefined
+  const allowMedia = useDeferUntilIdle()
   const treeQuery = useQuery({
     queryKey: ['categories', 'tree'],
     queryFn: fetchCategoryTree,
@@ -82,7 +86,7 @@ export function CategoryCircleCarousel({ stories }: { stories?: StoryCategory[] 
     queryKey: ['products', 'list', { limit: 100, sort: 'newest' as const }],
     queryFn: () => fetchProducts({ limit: 100, sort: 'newest' }),
     staleTime: CATALOG_STALE_TIME_MS,
-    enabled: live,
+    enabled: live && allowMedia,
   })
 
   const resolvedStories = useMemo(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isVideoAsset, isVideoUrl, stillImageUrl } from './mediaAsset'
+import { isVideoAsset, isVideoUrl, optimizedCloudinaryUrl, stillImageUrl } from './mediaAsset'
 import type { Product, ProductImage } from '@/types/catalog'
 
 function image(overrides: Partial<ProductImage> = {}): ProductImage {
@@ -32,5 +32,21 @@ describe('mediaAsset', () => {
       ],
     } as Product
     expect(stillImageUrl(product)).toBe('https://cdn/still.jpg')
+  })
+
+  it('inserts Cloudinary transforms on unsigned delivery URLs and leaves others alone', () => {
+    expect(optimizedCloudinaryUrl('https://res.cloudinary.com/demo/image/upload/abc.png', 640)).toBe(
+      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_640/abc.png',
+    )
+    expect(
+      optimizedCloudinaryUrl(
+        'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto/abc.png',
+        640,
+      ),
+    ).toBe('https://res.cloudinary.com/demo/image/upload/f_auto,q_auto/abc.png')
+    expect(
+      optimizedCloudinaryUrl('https://res.cloudinary.com/demo/image/upload/s--abc--/v1/x.png', 640),
+    ).toBe('https://res.cloudinary.com/demo/image/upload/s--abc--/v1/x.png')
+    expect(optimizedCloudinaryUrl('/catalog/logo.png', 640)).toBe('/catalog/logo.png')
   })
 })

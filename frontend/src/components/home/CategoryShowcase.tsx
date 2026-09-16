@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ShowcaseCategory } from '@/services/api/settings'
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import styles from './CategoryShowcase.module.css'
 
 interface CategoryShowcaseProps {
@@ -21,7 +22,16 @@ export function CategoryShowcase({ categories }: CategoryShowcaseProps) {
           <article key={index} className={styles.card}>
             <Link to={`/products?categoryId=${cat.categoryId}`} className={styles.link} aria-label={`Shop ${cat.title}`}>
               <div className={styles.imageWrapper}>
-                {cat.imageUrl && <img src={cat.imageUrl} alt="" className={styles.image} loading="lazy" />}
+                {cat.imageUrl && (
+                  <img
+                    src={optimizedCloudinaryUrl(cat.imageUrl, 640)}
+                    alt=""
+                    className={styles.image}
+                    width={640}
+                    height={640}
+                    loading="lazy"
+                  />
+                )}
               </div>
               <div className={styles.overlay}>
                 <h3 className={styles.title}>{cat.title}</h3>

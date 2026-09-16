@@ -1,14 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { fetchStoreContact, type StoreContact } from '@/services/api/settings'
-import { CATALOG_STALE_TIME_MS } from '@/constants/query'
+import type { StoreContact } from '@/services/api/settings'
+import { useStorefrontPublicSettings } from './useStorefrontPublicSettings'
 
 const EMPTY: StoreContact = { email: '', phone: '', address: '' }
 
 export function useStoreContact(): StoreContact {
-  const { data } = useQuery({
-    queryKey: ['settings', 'storeContact'],
-    queryFn: fetchStoreContact,
-    staleTime: CATALOG_STALE_TIME_MS,
-  })
-  return data ?? EMPTY
+  const { data } = useStorefrontPublicSettings()
+  return data?.contact ?? EMPTY
 }

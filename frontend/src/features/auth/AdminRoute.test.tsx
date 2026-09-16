@@ -57,9 +57,11 @@ describe('AdminRoute', () => {
     expect(screen.getByText('Admin dashboard content')).toBeInTheDocument()
   })
 
-  it('renders nothing while the auth bootstrap is still loading, rather than flash-redirecting', () => {
+  it('shows a loading status while the auth bootstrap is still loading, rather than flash-redirecting', () => {
     renderAdminRouteTree(createMockAuthContext({ status: 'loading' }))
 
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByText(/loading admin/i)).toBeInTheDocument()
     expect(screen.queryByText('Login page')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Not authorised' })).not.toBeInTheDocument()
     expect(screen.queryByText('Admin dashboard content')).not.toBeInTheDocument()

@@ -1,4 +1,5 @@
 import { HorizontalScroller } from '@/components/ui/HorizontalScroller'
+import { optimizedCloudinaryUrl } from '@/features/media/mediaAsset'
 import styles from './FeaturedMediaCarousel.module.css'
 
 export function FeaturedMediaCarousel({ urls }: { urls: string[] }) {
@@ -15,7 +16,7 @@ export function FeaturedMediaCarousel({ urls }: { urls: string[] }) {
       <HorizontalScroller ariaLabel="Featured media" className={styles.scroller}>
         {images.map((url) => (
           <figure key={url} className={styles.frame}>
-            <img src={url} alt="" loading="lazy" />
+            <img src={optimizedCloudinaryUrl(url, 640)} alt="" loading="lazy" decoding="async" />
           </figure>
         ))}
       </HorizontalScroller>

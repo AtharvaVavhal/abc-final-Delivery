@@ -165,7 +165,10 @@ describe('ProductDetailPage', () => {
     renderAtSlug('ceramic-mug')
 
     const img = await screen.findByRole('img', { name: 'Ceramic Mug' })
-    expect(img).toHaveAttribute('src', SAMPLE_IMAGE_URL)
+    expect(img).toHaveAttribute(
+      'src',
+      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_1200/ceramic-mug.png',
+    )
   })
 
   it('falls back to the placeholder when the image fails to load', async () => {

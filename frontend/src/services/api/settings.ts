@@ -22,6 +22,12 @@ export interface ShowcaseCategory {
   title: string
 }
 
+export interface StoreContact {
+  email: string
+  phone: string
+  address: string
+}
+
 export interface HomepageSettings {
   hero_slides?: HeroSlide[]
   banners?: Banner[]
@@ -30,8 +36,18 @@ export interface HomepageSettings {
   featured_media?: string[]
 }
 
-const HOMEPAGE_SETTING_KEYS =
-  'hero_slides,banners,showcase_categories,brand_story,featured_media'
+export interface StorefrontPublicSettings {
+  storeName: string | null
+  storeLogo: string | null
+  whatsappNumber: string | null
+  announcement_text: string
+  contact: StoreContact
+  homepage: HomepageSettings
+}
+
+/** Chrome + homepage keys in one public `GET /settings?keys=` round-trip. */
+export const STOREFRONT_PUBLIC_SETTING_KEYS =
+  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 /**
  * `GET /settings?keys=…` is the one bulk public-settings read. Its wire
@@ -49,22 +65,17 @@ const HOMEPAGE_SETTING_KEYS =
  * for that field — the homepage then falls back to its neutral layout
  * rather than throwing.
  */
-export async function fetchHomepageSettings(): Promise<HomepageSettings> {
-  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
-    params: { keys: HOMEPAGE_SETTING_KEYS },
-  })
-  const raw = res.data.data?.data ?? {}
-
-  const parseList = <T>(value: string | undefined): T[] | undefined => {
-    if (!value) return undefined
-    try {
-      const parsed: unknown = JSON.parse(value)
-      return Array.isArray(parsed) ? (parsed as T[]) : undefined
-    } catch {
-      return undefined
-    }
+function parseList<T>(value: string | undefined): T[] | undefined {
+  if (!value) return undefined
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : undefined
+  } catch {
+    return undefined
   }
+}
 
+function parseHomepageSettings(raw: Record<string, string>): HomepageSettings {
   const featured = parseList<string | { imageUrl?: string }>(raw.featured_media)
   const featuredUrls = featured
     ?.map((item) => (typeof item === 'string' ? item : item.imageUrl ?? ''))
@@ -79,9 +90,37 @@ export async function fetchHomepageSettings(): Promise<HomepageSettings> {
   }
 }
 
+async function fetchPublicSettingsMap(): Promise<Record<string, string>> {
+  const res = await apiClient.get<ApiSuccessResponse<{ data: Record<string, string> }>>('/settings', {
+    params: { keys: STOREFRONT_PUBLIC_SETTING_KEYS },
+  })
+  return res.data.data?.data ?? {}
+}
+
+export async function fetchStorefrontPublicSettings(): Promise<StorefrontPublicSettings> {
+  const raw = await fetchPublicSettingsMap()
+  return {
+    storeName: raw.storeName ?? null,
+    storeLogo: raw.storeLogo ?? null,
+    whatsappNumber: raw.whatsappNumber ?? null,
+    announcement_text: raw.announcement_text?.trim() ?? '',
+    contact: {
+      email: raw.storeContactEmail?.trim() ?? '',
+      phone: raw.storeContactPhone?.trim() ?? '',
+      address: raw.storeAddress?.trim() ?? '',
+    },
+    homepage: parseHomepageSettings(raw),
+  }
+}
+
+export async function fetchHomepageSettings(): Promise<HomepageSettings> {
+  const { homepage } = await fetchStorefrontPublicSettings()
+  return homepage
+}
+
 /** The customer-facing store name shown in the storefront chrome. Read from
  * the public `GET /settings/:key` surface (same one the announcement bar
- * uses). The backend already substitutes the "PrintForge" default when no
+ * uses). The backend already substitutes the "AB Creations" default when no
  * value has been saved; `null` here means the endpoint was unreachable, and
  * the caller falls back on its own. `storeAdminName` is intentionally NOT
  * fetched — it is never public. */
@@ -108,12 +147,6 @@ export async function fetchWhatsappNumber(): Promise<string | null> {
     '/settings/whatsappNumber',
   )
   return res.data.data?.value ?? null
-}
-
-export interface StoreContact {
-  email: string
-  phone: string
-  address: string
 }
 
 export async function fetchStoreContact(): Promise<StoreContact> {

@@ -18,9 +18,11 @@ import { withTenantRlsContext } from './tenant-rls';
  * call sites for this function:
  *   - `TenantLifecycleGuard` (merchant/admin path, runs after
  *     `TenantContextGuard` has resolved `request.tenantContext`)
- *   - `StorefrontTenantResolver.resolveTenantId` (storefront cart/uploads
- *     — a shopper never gets a `TenantContext`, so the guard above never
- *     sees them; this is the actual resolution point for that path)
+ *   - `StorefrontTenantResolver` (storefront cart/uploads/settings —
+ *     a shopper never gets a `TenantContext`, so the guard above never
+ *     sees them; the resolver loads `Tenant.status` in the same bypass
+ *     transaction as host/store lookup, then calls
+ *     `throwIfTenantSuspended` so the ACTIVE/SUSPENDED rule stays here)
  *   - `CheckoutService` (order creation + preview — reads an
  *     already-loaded cart's own `tenantId` directly, bypassing the
  *     resolver entirely, per that resolver's own header comment)
@@ -30,6 +32,15 @@ import { withTenantRlsContext } from './tenant-rls';
  * session's ratified decision), so this function cannot accidentally
  * start enforcing a lifecycle stage W4 was never asked to implement.
  */
+export function throwIfTenantSuspended(
+  status: TenantStatus | string | null | undefined,
+  message: string,
+): void {
+  if (status === TenantStatus.SUSPENDED) {
+    throw new ForbiddenException(message);
+  }
+}
+
 export async function assertTenantActive(
   prisma: PrismaService | Prisma.TransactionClient,
   tenantId: string,
@@ -51,7 +62,5 @@ export async function assertTenantActive(
           select: { status: true },
         });
 
-  if (tenant?.status === TenantStatus.SUSPENDED) {
-    throw new ForbiddenException(message);
-  }
+  throwIfTenantSuspended(tenant?.status, message);
 }

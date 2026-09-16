@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Product } from '@/types/catalog'
 import { formatPrice } from '@/utils/formatPrice'
 import { productDetailPath } from '@/constants/routes'
-import { stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
+import { optimizedCloudinaryUrl, stillImageUrl, videoUrl } from '@/features/media/mediaAsset'
 import { DeferredVideo } from '@/components/media/DeferredVideo'
 import { ProductImage } from '@/features/catalog/ProductImage'
 import styles from './VideoProductCard.module.css'
@@ -18,9 +18,19 @@ export function VideoProductCard({ product }: { product: Product }) {
     <article className={styles.card}>
       <Link to={href} className={styles.media} aria-label={product.name}>
         {clip ? (
-          <DeferredVideo src={clip} poster={poster || undefined} label={product.name} />
+          <DeferredVideo
+            src={clip}
+            poster={poster ? optimizedCloudinaryUrl(poster, 640) : undefined}
+            label={product.name}
+          />
         ) : poster ? (
-          <img src={poster} alt="" className={styles.still} loading="lazy" />
+          <img
+            src={optimizedCloudinaryUrl(poster, 640)}
+            alt=""
+            className={styles.still}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <ProductImage images={product.images} label={product.name} />
         )}

@@ -1,5 +1,23 @@
 import type { Product, ProductImage } from '@/types/catalog'
 
+const CLOUDINARY_UPLOAD =
+  /^(https:\/\/res\.cloudinary\.com\/[^/]+\/(?:image|video)\/upload\/)(.+)$/i
+
+/**
+ * Insert `f_auto,q_auto,c_limit,w_*` after `/upload/` on unsigned Cloudinary
+ * delivery URLs so cards never pull the original asset. Signed URLs and
+ * already-transformed URLs are left untouched.
+ */
+export function optimizedCloudinaryUrl(url: string, width: number): string {
+  if (!url || !Number.isFinite(width) || width <= 0) return url
+  const match = url.match(CLOUDINARY_UPLOAD)
+  if (!match) return url
+  const rest = match[2]
+  if (rest.startsWith('s--')) return url
+  if (/^(?:f_auto|q_auto|c_limit|w_\d+|c_fill|c_fit)/.test(rest)) return url
+  return `${match[1]}f_auto,q_auto,c_limit,w_${Math.round(width)}/${rest}`
+}
+
 export function isVideoAsset(image: Pick<ProductImage, 'resourceType' | 'url'>): boolean {
   if (image.resourceType.toLowerCase() === 'video') return true
   const url = image.url.toLowerCase()

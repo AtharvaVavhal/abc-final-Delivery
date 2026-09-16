@@ -61,14 +61,14 @@ describe('fetchHomepageSettings — real wire contract', () => {
     mock.restore()
   })
 
-  it('requests the three homepage keys from GET /settings', async () => {
+  it('requests chrome and homepage keys from GET /settings', async () => {
     mock.onGet('/settings').reply(200, settingsResponse({}))
 
     await fetchHomepageSettings()
 
     const call = mock.history.get.find((r) => r.url === '/settings')
     expect(call?.params).toEqual({
-      keys: 'hero_slides,banners,showcase_categories,brand_story,featured_media',
+      keys: 'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,hero_slides,banners,showcase_categories,brand_story,featured_media',
     })
   })
 

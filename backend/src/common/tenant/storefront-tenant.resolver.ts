@@ -1,8 +1,38 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TenantContext } from './tenant-context';
-import { assertTenantActive } from './tenant-lifecycle';
+import { throwIfTenantSuspended } from './tenant-lifecycle';
 import { withPlatformRlsBypass } from './tenant-rls';
+import { resolvePrimaryStoreId } from './primary-store';
+import {
+  clearInflightStorefrontRouting,
+  getCachedStorefrontRouting,
+  getInflightStorefrontRouting,
+  rememberStorefrontRouting,
+  setInflightStorefrontRouting,
+  type StorefrontRouting,
+} from './storefront-routing-cache';
+
+export type StorefrontStoreContext = {
+  tenantId: string;
+  storeId: string;
+};
+
+export type { StorefrontRouting };
+
+const STOREFRONT_UNAVAILABLE = 'This store is currently unavailable';
+const STOREFRONT_UNRESOLVED =
+  'Unable to determine which store this request belongs to';
+const STOREFRONT_NO_PRIMARY_STORE =
+  'This tenant has no primary store configured';
+
+/** Remote-Postgres interactive-transaction budget: one lookup, not four. */
+const LOOKUP_TX_TIMEOUT_MS = 20_000;
+const LOOKUP_TX_MAX_WAIT_MS = 10_000;
 
 /**
  * Phase 4 W7 (decision P4-D2's create-path fix). Resolves the tenant a
@@ -45,57 +75,37 @@ import { withPlatformRlsBypass } from './tenant-rls';
  *      per-tenant storefront domains exist) supersedes this step entirely.
  *   3. Otherwise (no `Tenant` row exists at all): throw. There is
  *      genuinely nothing to attribute this request to.
+ *
+ * Host/tenant/status/primary-store used to be four sequential interactive
+ * transactions (each BEGIN + SET LOCAL + query + COMMIT against a remote
+ * Postgres). They now share one `withPlatformRlsBypass` transaction and a
+ * single parameterized SQL statement. `tenantId`+`storeId` (routing only)
+ * may be reused for a short TTL from the in-process host cache; status is
+ * still loaded on every cache miss, and the cache is cleared on
+ * suspend/resume. Never caches customer data or authorization results.
  */
 @Injectable()
 export class StorefrontTenantResolver {
   constructor(private readonly prisma: PrismaService) {}
 
   async resolveTenantId(hostname: string | undefined): Promise<string> {
-    let tenantId: string | undefined;
+    const routing = await this.resolveRouting(hostname);
+    return routing.tenantId;
+  }
 
-    if (hostname) {
-      const domain = await withPlatformRlsBypass(this.prisma, (tx) =>
-        tx.storeDomain.findUnique({
-          where: { hostname },
-          select: { store: { select: { tenantId: true } } },
-        }),
-      );
-      if (domain) {
-        tenantId = domain.store.tenantId;
-      }
+  /**
+   * Same resolution as `resolveTenantId`, plus the tenant's primary
+   * `Store.id`, so public settings can read `StoreSetting` without a
+   * second `resolvePrimaryStoreId` round-trip.
+   */
+  async resolveStorefront(
+    hostname: string | undefined,
+  ): Promise<StorefrontStoreContext> {
+    const routing = await this.resolveRouting(hostname);
+    if (!routing.storeId) {
+      throw new NotFoundException(STOREFRONT_NO_PRIMARY_STORE);
     }
-
-    if (!tenantId) {
-      // Same platform-scoped case as the host lookup above: no tenant is
-      // known yet, so FORCE RLS would hide every Tenant row without the
-      // bypass GUC. The fallback is the single-origin / single-tenant
-      // path this resolver's header already documents.
-      const mostRecent = await withPlatformRlsBypass(this.prisma, (tx) =>
-        tx.tenant.findFirst({
-          select: { id: true },
-          orderBy: { createdAt: 'desc' },
-        }),
-      );
-      tenantId = mostRecent?.id;
-    }
-
-    if (!tenantId) {
-      throw new ConflictException(
-        'Unable to determine which store this request belongs to',
-      );
-    }
-
-    // Phase 5 W4 (SaaS Master Plan §11) — the actual storefront enforcement
-    // point: a shopper never goes through TenantContextGuard's resolution
-    // branches (no TenantMembership), so TenantLifecycleGuard never sees
-    // them either. This is the one place a brand-new cart/upload's tenant
-    // is genuinely resolved from scratch, so it's the one place to block.
-    await assertTenantActive(
-      this.prisma,
-      tenantId,
-      'This store is currently unavailable',
-    );
-    return tenantId;
+    return { tenantId: routing.tenantId, storeId: routing.storeId };
   }
 
   /**
@@ -115,5 +125,112 @@ export class StorefrontTenantResolver {
       return existingContext.tenantId;
     }
     return this.resolveTenantId(hostname);
+  }
+
+  async resolveActiveStorefront(
+    existingContext: TenantContext | undefined,
+    hostname: string | undefined,
+  ): Promise<StorefrontStoreContext> {
+    if (existingContext) {
+      const storeId = await resolvePrimaryStoreId(
+        this.prisma,
+        existingContext.tenantId,
+      );
+      return { tenantId: existingContext.tenantId, storeId };
+    }
+    return this.resolveStorefront(hostname);
+  }
+
+  private async resolveRouting(
+    hostname: string | undefined,
+  ): Promise<StorefrontRouting> {
+    const cached = getCachedStorefrontRouting(hostname);
+    if (cached) {
+      return cached;
+    }
+
+    const pending = getInflightStorefrontRouting(hostname);
+    if (pending) {
+      return pending;
+    }
+
+    const lookup = this.lookupStorefront(hostname)
+      .then((value) => {
+        rememberStorefrontRouting(hostname, value);
+        return value;
+      })
+      .finally(() => {
+        clearInflightStorefrontRouting(hostname);
+      });
+
+    setInflightStorefrontRouting(hostname, lookup);
+    return lookup;
+  }
+
+  private async lookupStorefront(
+    hostname: string | undefined,
+  ): Promise<StorefrontRouting> {
+    const host = hostname ?? '';
+    const row = await withPlatformRlsBypass(
+      this.prisma,
+      async (tx) => {
+        // One statement after SET LOCAL so a remote Postgres does not pay
+        // a round-trip per table. Bypass GUC is already on for this tx;
+        // host is a bound parameter, never interpolated.
+        const rows = await tx.$queryRaw<
+          Array<{
+            tenantId: string;
+            storeId: string | null;
+            status: string | null;
+          }>
+        >`
+          WITH domain_match AS (
+            SELECT
+              s."tenantId" AS "tenantId",
+              CASE WHEN s."isPrimary" THEN s.id ELSE NULL END AS "storeId"
+            FROM store_domains d
+            INNER JOIN stores s ON s.id = d."storeId"
+            WHERE ${host} <> '' AND d.hostname = ${host}
+            LIMIT 1
+          ),
+          fallback_tenant AS (
+            SELECT t.id AS "tenantId"
+            FROM tenants t
+            WHERE NOT EXISTS (SELECT 1 FROM domain_match)
+            ORDER BY t."createdAt" DESC
+            LIMIT 1
+          ),
+          resolved_tenant AS (
+            SELECT "tenantId", "storeId" FROM domain_match
+            UNION ALL
+            SELECT ft."tenantId", NULL::text FROM fallback_tenant ft
+          )
+          SELECT
+            rt."tenantId",
+            COALESCE(
+              rt."storeId",
+              (
+                SELECT s.id
+                FROM stores s
+                WHERE s."tenantId" = rt."tenantId" AND s."isPrimary" = true
+                LIMIT 1
+              )
+            ) AS "storeId",
+            t.status AS status
+          FROM resolved_tenant rt
+          INNER JOIN tenants t ON t.id = rt."tenantId"
+        `;
+        return rows[0] ?? null;
+      },
+      { maxWait: LOOKUP_TX_MAX_WAIT_MS, timeout: LOOKUP_TX_TIMEOUT_MS },
+    );
+
+    if (!row?.tenantId) {
+      throw new ConflictException(STOREFRONT_UNRESOLVED);
+    }
+
+    throwIfTenantSuspended(row.status, STOREFRONT_UNAVAILABLE);
+
+    return { tenantId: row.tenantId, storeId: row.storeId ?? null };
   }
 }

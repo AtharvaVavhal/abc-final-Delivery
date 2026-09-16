@@ -28,17 +28,22 @@ const CUSTOMER = {
 
 describe('Header', () => {
   let mock: MockAdapter
+  let publicSettings: Record<string, string>
 
   beforeEach(() => {
     mock = new MockAdapter(apiClient)
+    publicSettings = {
+      storeName: 'PrintForge',
+      storeLogo: '/catalog/logo.png',
+    }
     mock
       .onGet('/cart')
       .reply(200, { success: true, data: { id: 'cart-1', items: [], itemCount: 0, subtotal: '0.00' } })
     mock.onGet('/categories/tree').reply(200, { success: true, data: [] })
-    // Default: backend serves the "PrintForge" default until an owner
-    // configures a store name.
-    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'PrintForge' } })
-    mock.onGet('/settings/storeLogo').reply(200, { success: true, data: { value: '/catalog/logo.png' } })
+    mock.onGet('/settings').reply(() => [
+      200,
+      { success: true, data: { data: { ...publicSettings } } },
+    ])
   })
 
   afterEach(() => {
@@ -46,7 +51,7 @@ describe('Header', () => {
   })
 
   it('renders the store logo as the brand, labelled with the configured store name', async () => {
-    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'Atharva Prints' } })
+    publicSettings.storeName = 'Atharva Prints'
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
     const brand = await screen.findByRole('link', { name: 'Atharva Prints home' })
@@ -57,9 +62,7 @@ describe('Header', () => {
   })
 
   it('uses the storeLogo setting as the navbar image', async () => {
-    mock
-      .onGet('/settings/storeLogo')
-      .reply(200, { success: true, data: { value: 'https://cdn.example/custom-logo.png' } })
+    publicSettings.storeLogo = 'https://cdn.example/custom-logo.png'
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
     const brand = await screen.findByRole('link', { name: 'AB Creations home' })
@@ -72,7 +75,12 @@ describe('Header', () => {
   })
 
   it('falls back to "AB Creations" as the brand label when the store-name endpoint fails', async () => {
-    mock.onGet('/settings/storeName').reply(500)
+    mock.resetHandlers()
+    mock
+      .onGet('/cart')
+      .reply(200, { success: true, data: { id: 'cart-1', items: [], itemCount: 0, subtotal: '0.00' } })
+    mock.onGet('/categories/tree').reply(200, { success: true, data: [] })
+    mock.onGet('/settings').reply(500)
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
     const brand = await screen.findByRole('link', { name: 'AB Creations home' })
@@ -187,8 +195,10 @@ describe('Header', () => {
   it('keeps the category-nav loading placeholder decorative — no bogus "Loading categories" announcement', async () => {
     mock.resetHandlers()
     mock.onGet('/cart').reply(200, { success: true, data: { id: 'c', items: [], itemCount: 0, subtotal: '0.00' } })
-    mock.onGet('/settings/storeName').reply(200, { success: true, data: { value: 'PrintForge' } })
-    mock.onGet('/settings/storeLogo').reply(200, { success: true, data: { value: '/catalog/logo.png' } })
+    mock.onGet('/settings').reply(200, {
+      success: true,
+      data: { data: { storeName: 'PrintForge', storeLogo: '/catalog/logo.png' } },
+    })
     mock.onGet('/categories/tree').reply(() => new Promise(() => {})) // never settles → stays in the loading branch
 
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
