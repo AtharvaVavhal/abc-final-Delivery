@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchStorefrontPublicSettings } from '@/services/api/settings'
 import { STOREFRONT_PUBLIC_QUERY } from '@/constants/query'
-import { getStorefrontShell } from '@/generated/storefront-shell'
+import { getStorefrontShell, STOREFRONT_SHELL_GENERATED_AT_MS } from '@/generated/storefront-shell'
 
 export const STOREFRONT_PUBLIC_SETTINGS_QUERY_KEY = ['settings', 'storefront-public'] as const
 
@@ -22,6 +22,6 @@ export function useStorefrontPublicSettings() {
     queryFn: fetchStorefrontPublicSettings,
     ...STOREFRONT_PUBLIC_QUERY,
     initialData: snapshot?.settings,
-    initialDataUpdatedAt: snapshot ? Date.now() : undefined,
+    initialDataUpdatedAt: snapshot ? STOREFRONT_SHELL_GENERATED_AT_MS : undefined,
   })
 }

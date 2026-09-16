@@ -16,7 +16,7 @@ const ACTIVITY_EVENTS = [
  * admin panel unlocked after the operator has walked away.
  * Customers never enable this — pass `enabled: false`.
  */
-export function useAdminIdleLogout(enabled: boolean, onIdle: () => void) {
+export function useAdminIdleLogout(enabled: boolean, onIdle: () => void | Promise<void>) {
   useEffect(() => {
     if (!enabled) return
 
@@ -28,7 +28,7 @@ export function useAdminIdleLogout(enabled: boolean, onIdle: () => void) {
       if (signedOut) return
       signedOut = true
       window.clearTimeout(timer)
-      onIdle()
+      void onIdle()
     }
 
     const arm = () => {

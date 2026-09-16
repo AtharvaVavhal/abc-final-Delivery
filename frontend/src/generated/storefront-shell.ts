@@ -41,9 +41,12 @@ export interface StorefrontShellSnapshot {
   categories: CategoryTreeNode[]
 }
 
+/** Snapshot timestamp in ms — computed once at module load, not during render. */
+export const STOREFRONT_SHELL_GENERATED_AT_MS = Date.parse(snapshot.generatedAt)
+
 export function getStorefrontShell(): StorefrontShellSnapshot | null {
   if (import.meta.env.VITEST) {
     return null
   }
-  return snapshot as unknown as StorefrontShellSnapshot
+  return snapshot
 }

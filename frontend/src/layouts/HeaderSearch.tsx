@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { productDetailPath, ROUTES } from '@/constants/routes'
 import { useProductSearchSuggestions } from '@/hooks/useProductSearchSuggestions'
 import {
@@ -61,6 +61,7 @@ export function HeaderSearch({
     register,
     handleSubmit,
     reset,
+    setValue,
     control,
     formState: { errors },
   } = useForm<HeaderSearchFormValues>({
@@ -89,6 +90,13 @@ export function HeaderSearch({
     setDismissed(false)
     setActiveIndex(-1)
   }, [liveQuery])
+
+  function clearQuery() {
+    setValue('query', '', { shouldDirty: true })
+    setDismissed(true)
+    setActiveIndex(-1)
+    inputRef.current?.focus()
+  }
 
   function closeAndReset() {
     reset(EMPTY_HEADER_SEARCH_VALUES)
@@ -145,7 +153,7 @@ export function HeaderSearch({
       onSubmit={(e) => void handleSubmit(onValid)(e)}
       noValidate
     >
-      <div className={styles.searchField}>
+      <div className={cn(styles.searchField, typedQuery.length > 0 && styles.searchFieldHasQuery)}>
         <label htmlFor={inputId} className="srOnly">
           Search products
         </label>
@@ -168,6 +176,16 @@ export function HeaderSearch({
             inputRef.current = element
           }}
         />
+        {typedQuery.length > 0 && (
+          <button
+            type="button"
+            className={styles.searchClear}
+            aria-label="Clear search"
+            onClick={clearQuery}
+          >
+            <X size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        )}
         <button type="submit" className={styles.searchSubmit} aria-label="Search">
           <Search size={18} aria-hidden="true" />
         </button>

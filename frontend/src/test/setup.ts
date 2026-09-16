@@ -27,7 +27,7 @@ if (typeof window !== 'undefined' && !window.IntersectionObserver) {
     takeRecords() {
       return []
     }
-  } as unknown as typeof IntersectionObserver
+  }
 }
 
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
@@ -35,7 +35,7 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
     observe() {}
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver
+  }
 }
 if (typeof window !== 'undefined' && window.HTMLMediaElement) {
   window.HTMLMediaElement.prototype.play = () => Promise.resolve()

@@ -117,13 +117,6 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [])
 
-  useEffect(() => {
-    cancelMenuClose()
-    setMoreOpen(false)
-    setOpenGroupId(null)
-    setSearchOpen(false)
-  }, [location.pathname, location.search])
-
   useEffect(() => () => cancelMenuClose(), [])
 
   return (

@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import { Prisma, TenantStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { isPrismaService, withTenantRlsContext } from './tenant-rls';
 
@@ -33,10 +33,10 @@ import { isPrismaService, withTenantRlsContext } from './tenant-rls';
  * start enforcing a lifecycle stage W4 was never asked to implement.
  */
 export function throwIfTenantSuspended(
-  status: TenantStatus | string | null | undefined,
+  status: string | null | undefined,
   message: string,
 ): void {
-  if (status === TenantStatus.SUSPENDED) {
+  if (status === 'SUSPENDED') {
     throw new ForbiddenException(message);
   }
 }

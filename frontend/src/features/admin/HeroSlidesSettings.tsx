@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -54,13 +54,15 @@ export function HeroSlidesSettings({ setting }: HeroSlidesSettingsProps) {
   const uploadFile = useUploadFile()
   const updateSetting = useUpdateAdminSetting()
   const [slides, setSlides] = useState<HeroSlide[]>(() => parseHeroSlides(setting.value))
+  const [syncedValue, setSyncedValue] = useState(setting.value)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<number | null>(null)
 
-  useEffect(() => {
+  if (setting.value !== syncedValue) {
+    setSyncedValue(setting.value)
     setSlides(parseHeroSlides(setting.value))
-  }, [setting.value])
+  }
 
   const isDirty =
     JSON.stringify(slides) !== JSON.stringify(parseHeroSlides(setting.value))

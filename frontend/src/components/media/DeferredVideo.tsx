@@ -57,19 +57,17 @@ export function DeferredVideo({ src, poster, className, label }: DeferredVideoPr
     setCanPlay(true)
     video.defaultMuted = true
     video.muted = true
-    const play = video.play()
-    if (play) {
-      play
-        .then(() => {
-          if (video.dataset.playing !== '1') {
-            autoplayCount += 1
-            video.dataset.playing = '1'
-          }
-        })
-        .catch(() => {
-          /* autoplay blocked — poster remains */
-        })
-    }
+    void video
+      .play()
+      .then(() => {
+        if (video.dataset.playing !== '1') {
+          autoplayCount += 1
+          video.dataset.playing = '1'
+        }
+      })
+      .catch(() => {
+        /* autoplay blocked — poster remains */
+      })
 
     return () => {
       video.pause()

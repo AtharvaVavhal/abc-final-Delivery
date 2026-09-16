@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '@/hooks/useCart'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -150,6 +150,19 @@ export function CheckoutPage() {
     },
   })
 
+  const restoredUnpaid =
+    !order && unpaidQuery.data && shouldResumeUnpaidOrder(cart, unpaidQuery.data)
+      ? toCheckoutOrderView(unpaidQuery.data)
+      : null
+  const cartChangedFromLocalOrder = Boolean(
+    order && cart && !shouldResumeUnpaidOrder(cart, order),
+  )
+  const payableOrder =
+    order && !cartChangedFromLocalOrder ? order : restoredUnpaid
+  const checkoutIdempotencyKey = cartChangedFromLocalOrder
+    ? `${idempotencyKey}:cart-changed`
+    : idempotencyKey
+
   async function startPayment(target: CheckoutOrderView) {
     if (isRetryingRef.current) return
     isRetryingRef.current = true
@@ -187,7 +200,7 @@ export function CheckoutPage() {
           shippingAddressLine2: values.shippingAddressLine2 || undefined,
           couponCode: couponPreview?.couponCode ?? undefined,
         },
-        idempotencyKey,
+        idempotencyKey: checkoutIdempotencyKey,
       })
       setOrder(created)
       await startPayment(created)
@@ -197,20 +210,6 @@ export function CheckoutPage() {
       isCreatingRef.current = false
     }
   }
-
-  const restoredUnpaid =
-    !order && unpaidQuery.data && shouldResumeUnpaidOrder(cart, unpaidQuery.data)
-      ? toCheckoutOrderView(unpaidQuery.data)
-      : null
-  const payableOrder =
-    order && shouldResumeUnpaidOrder(cart, order) ? order : restoredUnpaid
-
-  useEffect(() => {
-    if (order && cart && !shouldResumeUnpaidOrder(cart, order)) {
-      setOrder(null)
-      setIdempotencyKey(crypto.randomUUID())
-    }
-  }, [order, cart])
 
   function handleRetry() {
     if (payableOrder) {

@@ -119,4 +119,19 @@ describe('HeaderSearch suggestions', () => {
     expect(await screen.findByText('No products match “zzzznope”')).toBeInTheDocument()
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
+
+  it('places a clear control beside the search button and empties the field', async () => {
+    mock.onGet('/products').reply(200, productsReply([SAMPLE_PRODUCT]))
+    renderWithProviders(<HeaderSearch variant="bar" active />)
+
+    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'mug' } })
+    expect(await screen.findByRole('button', { name: 'Clear search' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }))
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
 })

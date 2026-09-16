@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './Header'
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar'
 import { ToastProvider } from '@/components/ui/toast/ToastProvider'
@@ -10,6 +10,7 @@ import styles from './RootLayout.module.css'
 const Footer = lazy(() => import('./Footer').then((m) => ({ default: m.Footer })))
 
 export function RootLayout() {
+  const location = useLocation()
   return (
     <ToastProvider>
       <div className={styles.shell}>
@@ -17,7 +18,7 @@ export function RootLayout() {
           Skip to main content
         </a>
         <AnnouncementBar />
-        <Header />
+        <Header key={`${location.pathname}${location.search}`} />
         <main id="main-content" className={styles.main} tabIndex={-1}>
           <Suspense fallback={<FullPageLoader label="Loading page" />}>
             <Outlet />

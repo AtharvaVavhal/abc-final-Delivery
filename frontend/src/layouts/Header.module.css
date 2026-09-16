@@ -221,6 +221,7 @@
   width: 100%;
   padding: 0.65rem var(--space-3);
   padding-left: calc(var(--space-3) + 22px);
+  padding-right: 3.25rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-bg);
@@ -230,6 +231,23 @@
   transition:
     border-color var(--transition-base) ease,
     box-shadow var(--transition-base) ease;
+}
+
+.searchFieldHasQuery .searchInput {
+  padding-right: 6rem;
+}
+
+.searchInput::-webkit-search-cancel-button,
+.searchInput::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.searchInput::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .searchInput:hover {
@@ -270,10 +288,29 @@
   cursor: pointer;
 }
 
+.searchClear {
+  position: absolute;
+  right: calc(var(--space-2) + 44px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.searchClear:hover,
 .searchSubmit:hover {
   color: var(--color-text-strong);
 }
 
+.searchClear:focus-visible,
 .searchSubmit:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);

@@ -475,7 +475,8 @@ describe('AdminSettingsPage', () => {
     await waitFor(() => expect(mock.history.patch).toHaveLength(1))
     expect(mock.history.patch[0].url).toBe('/admin/settings/hero_slides')
     const saved = JSON.parse(mock.history.patch[0].data as string) as { value: string }
-    expect(JSON.parse(saved.value)[0].headline).toBe('Updated headline')
+    const slides = JSON.parse(saved.value) as Array<{ headline: string }>
+    expect(slides[0]?.headline).toBe('Updated headline')
     expect(await screen.findByText(/hero slides saved/i)).toBeInTheDocument()
   })
 

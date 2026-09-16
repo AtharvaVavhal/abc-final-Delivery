@@ -59,7 +59,7 @@ Set **Root Directory** to `backend`. Render injects `PORT`; set `NODE_ENV=produc
 | Start | `npx prisma migrate deploy && npm run start:prod` |
 | Health check | `GET /api/v1/health` (process up). Optional readiness: `GET /api/v1/health/deep` (Postgres reachable). |
 
-`--include=dev` is required so `@nestjs/cli` (build) is installed even when Render sets `NODE_ENV=production` during `npm ci`. `prisma` is a production dependency so `migrate deploy` works at start. Never use `prisma migrate reset`, `prisma db push`, or `prisma migrate dev` against production. Do not run `prisma:seed` or `prisma:seed:tenant-bootstrap` on Render — bootstrap refuses `NODE_ENV=production`, and the live catalog already exists.
+`--include=dev` remains the documented Render command. `@nestjs/cli`, `typescript`, and `prisma` are production dependencies so a default `npm ci` (when Render sets `NODE_ENV=production` and omits devDependencies) can still `nest build` and `migrate deploy`. Never use `prisma migrate reset`, `prisma db push`, or `prisma migrate dev` against production. Do not run `prisma:seed` or `prisma:seed:tenant-bootstrap` on Render — bootstrap refuses `NODE_ENV=production`, and the live catalog already exists.
 
 ### Not environment-configurable
 
