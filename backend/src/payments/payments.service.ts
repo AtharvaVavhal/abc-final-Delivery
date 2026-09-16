@@ -1315,11 +1315,9 @@ export class PaymentsService {
    *
    * Uses the existing state machine: PENDING_PAYMENT -> PAYMENT_FAILED is a
    * legal transition (the customer can still retry it later, exactly as
-   * after a real payment failure). Not CANCELLED — the frozen §14 state
-   * machine has no PENDING_PAYMENT -> CANCELLED edge, and inventing one is
-   * a destructive policy change out of scope here. No financial/order rows
-   * are deleted. FOR UPDATE-locked + CAS, so it's idempotent and
-   * multi-instance safe.
+   * after a real payment failure). Customer/checkout may separately cancel
+   * an unpaid order (PENDING_PAYMENT/PAYMENT_FAILED -> CANCELLED) when the
+   * cart has changed; reconciliation does not use that edge.
    */
   async failStalePendingOrder(order: Order): Promise<boolean> {
     try {

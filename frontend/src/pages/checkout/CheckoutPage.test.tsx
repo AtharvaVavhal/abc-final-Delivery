@@ -102,7 +102,18 @@ const ORDER_VIEW = {
   shippingState: 'MH',
   shippingPostalCode: '400001',
   shippingCountry: 'India',
-  items: [],
+  items: [
+    {
+      id: 'item-1',
+      productId: 'prod-1',
+      productName: 'Ceramic Mug',
+      variantLabel: null,
+      unitPrice: '150.00',
+      quantity: 2,
+      lineTotal: '300.00',
+      customizations: [],
+    },
+  ],
   createdAt: '2026-01-01T00:00:00.000Z',
 }
 
@@ -595,5 +606,68 @@ describe('CheckoutPage', () => {
     await waitFor(() => expect(razorpayInstances).toHaveLength(1))
     expect(razorpayInstances[0].options.amount).toBe(31900)
     expect(mock.history.post.filter((r) => r.url === '/checkout/orders')).toHaveLength(0)
+  })
+
+  it('does not resume an unpaid order after the cart gains another product', async () => {
+    mock.onGet('/cart').reply(200, {
+      success: true,
+      data: {
+        ...buildCart(),
+        items: [
+          ...buildCart().items,
+          {
+            id: 'item-2',
+            productId: 'prod-2',
+            productName: 'Poster',
+            variantId: null,
+            variantLabel: null,
+            quantity: 1,
+            unitPrice: '80.00',
+            lineTotal: '80.00',
+            isAvailable: true,
+            unavailableReason: null,
+            customizations: [],
+          },
+        ],
+        itemCount: 3,
+        subtotal: '380.00',
+      },
+    })
+    mock.onGet('/orders').reply((config) => {
+      const status = (config.params as { status?: string } | undefined)?.status
+      if (status === 'PENDING_PAYMENT') {
+        return [
+          200,
+          {
+            success: true,
+            data: [
+              {
+                id: ORDER_VIEW.id,
+                orderNumber: ORDER_VIEW.orderNumber,
+                status: ORDER_VIEW.status,
+                total: ORDER_VIEW.total,
+                currency: ORDER_VIEW.currency,
+                itemCount: 1,
+                needsManualRefund: false,
+                createdAt: ORDER_VIEW.createdAt,
+              },
+            ],
+            meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+          },
+        ]
+      }
+      return [
+        200,
+        { success: true, data: [], meta: { page: 1, limit: 1, total: 0, totalPages: 0 } },
+      ]
+    })
+    mock.onGet('/orders/order-1').reply(200, { success: true, data: ORDER_VIEW })
+    mock.onPost('/checkout/validate').reply(200, { success: true, data: BASE_PREVIEW })
+
+    renderCheckout()
+
+    expect(await screen.findByLabelText('Recipient name')).toBeInTheDocument()
+    expect(screen.getByText('Poster')).toBeInTheDocument()
+    expect(screen.queryByText(/awaiting payment/i)).not.toBeInTheDocument()
   })
 })

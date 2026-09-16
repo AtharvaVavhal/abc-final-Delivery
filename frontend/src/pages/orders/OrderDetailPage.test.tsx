@@ -173,6 +173,7 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByText('Payment confirmed')).not.toBeInTheDocument()
     expect(screen.getByText(/confirming your payment/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel order' })).toBeInTheDocument()
   })
 
   it('renders "Payment confirmed" only once the order\'s own status field says PAID, with no retry action', async () => {

@@ -15,8 +15,12 @@ describe('isOrderCancellable', () => {
     expect(isOrderCancellable(OrderStatus.CONFIRMED)).toBe(true);
   });
 
-  it('is NOT cancellable from PENDING_PAYMENT (never paid, nothing to cancel into)', () => {
-    expect(isOrderCancellable(OrderStatus.PENDING_PAYMENT)).toBe(false);
+  it('is cancellable from PENDING_PAYMENT (abandon unpaid checkout)', () => {
+    expect(isOrderCancellable(OrderStatus.PENDING_PAYMENT)).toBe(true);
+  });
+
+  it('is cancellable from PAYMENT_FAILED (abandon unpaid checkout)', () => {
+    expect(isOrderCancellable(OrderStatus.PAYMENT_FAILED)).toBe(true);
   });
 
   it('is NOT cancellable once IN_PRODUCTION', () => {

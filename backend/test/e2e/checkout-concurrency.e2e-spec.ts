@@ -224,6 +224,44 @@ describe('Checkout order-creation races (§27 #3, #13, #14)', () => {
     expect(cartItems).toHaveLength(1)
   })
 
+  it('cancels the unpaid order and creates a new one when the cart gains another product', async () => {
+    const user = await registerUser(app)
+    const { productId: firstProduct } = await createProduct(prisma, {
+      basePrice: '10.00',
+    })
+    const { productId: secondProduct } = await createProduct(prisma, {
+      basePrice: '15.00',
+    })
+    await addCartItem(app, user, { productId: firstProduct, quantity: 1 })
+
+    const first = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `cart-changed-first-${randomUUID()}`)
+      .send(shippingFields())
+      .expect(201)
+
+    await addCartItem(app, user, { productId: secondProduct, quantity: 1 })
+
+    const second = await http(app)
+      .post(apiPath('/checkout/orders'))
+      .set(...authHeader(user))
+      .set('Idempotency-Key', `cart-changed-second-${randomUUID()}`)
+      .send(shippingFields())
+      .expect(201)
+
+    expect(second.body.data.id).not.toBe(first.body.data.id)
+    expect(second.body.data.items).toHaveLength(2)
+
+    const firstPersisted = await prisma.order.findUniqueOrThrow({
+      where: { id: first.body.data.id },
+    })
+    expect(firstPersisted.status).toBe('CANCELLED')
+
+    const allOrders = await prisma.order.findMany({ where: { userId: user.id } })
+    expect(allOrders).toHaveLength(2)
+  })
+
   it('applies a coupon onto an existing unpaid order so the payable total matches the discount', async () => {
     const admin = await registerAdmin(app, prisma)
     await makeTenantCheckoutReady(prisma, admin.tenantId)

@@ -26,7 +26,7 @@ import type { ShippingFormValues } from '@/schemas/checkout.schema'
 import type { CheckoutOrderView } from '@/types/checkout'
 import type { CheckoutPreviewView } from '@/types/coupons'
 import type { UserProfileView } from '@/types/auth'
-import type { OrderDetailView } from '@/types/orders'
+import { shouldResumeUnpaidOrder } from '@/features/checkout/unpaidCartMatch'
 import styles from './CheckoutPage.module.css'
 
 function toCheckoutOrderView(order: OrderDetailView): CheckoutOrderView {
@@ -196,7 +196,9 @@ export function CheckoutPage() {
   }
 
   const restoredUnpaid =
-    !order && unpaidQuery.data?.couponCode ? toCheckoutOrderView(unpaidQuery.data) : null
+    !order && unpaidQuery.data && shouldResumeUnpaidOrder(cart, unpaidQuery.data)
+      ? toCheckoutOrderView(unpaidQuery.data)
+      : null
   const payableOrder = order ?? restoredUnpaid
 
   function handleRetry() {

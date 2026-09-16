@@ -441,6 +441,23 @@ export class CouponsService {
   }
 
   /**
+   * Drops the usage row and decrements usedCount when an unpaid order is
+   * abandoned before capture — otherwise the shopper cannot apply the same
+   * per-user coupon to the replacement checkout.
+   */
+  async releaseUsageForOrder(
+    tx: PrismaOrTx,
+    params: { orderId: string; couponId: string | null },
+  ): Promise<void> {
+    if (!params.couponId) return;
+    await tx.couponUsage.deleteMany({ where: { orderId: params.orderId } });
+    await tx.coupon.updateMany({
+      where: { id: params.couponId, usedCount: { gt: 0 } },
+      data: { usedCount: { decrement: 1 } },
+    });
+  }
+
+  /**
    * Every check except the total-usage-limit CAS — shared by both
    * previewDiscount (read-only) and validateAndClaim (which additionally
    * performs the CAS after this returns). Each failure has its own
