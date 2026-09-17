@@ -50,7 +50,7 @@ export function Footer() {
 
           <nav className={styles.columns} aria-label="Footer">
             {hasContact ? (
-              <div className={styles.column}>
+              <div className={styles.contactColumn}>
                 <h2 className={styles.columnHeading}>Get in touch</h2>
                 <ul className={styles.columnList}>
                   {contact.email ? (
@@ -110,16 +110,12 @@ export function Footer() {
           </nav>
         </div>
 
-        <p className={styles.copyright}>
-          &copy; {new Date().getFullYear()} {storeName}. All rights reserved.
-        </p>
+        <div className={styles.bottom}>
+          <p className={styles.copyright}>
+            &copy; {new Date().getFullYear()} {storeName}. All rights reserved.
+          </p>
 
-        <p className={styles.credit}>
-          <picture>
-            <source
-              media="(max-width: 480px)"
-              srcSet="/brand/forge/FORGE-small-white-on-ink.png"
-            />
+          <p className={styles.credit}>
             <img
               className={styles.creditLogo}
               src="/brand/forge/FORGE-horizontal-white-on-ink.png"
@@ -127,19 +123,19 @@ export function Footer() {
               width={300}
               height={62}
             />
-          </picture>
-          <span className={styles.creditCopy}>
-            Designed &amp; Managed by{' '}
-            <a
-              className={styles.creditLink}
-              href="https://forgebuilds.in"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FORGE Technologies
-            </a>
-          </span>
-        </p>
+            <span className={styles.creditCopy}>
+              Designed &amp; Managed by{' '}
+              <a
+                className={styles.creditLink}
+                href="https://forgebuilds.in"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FORGE Technologies
+              </a>
+            </span>
+          </p>
+        </div>
       </div>
     </footer>
   )
