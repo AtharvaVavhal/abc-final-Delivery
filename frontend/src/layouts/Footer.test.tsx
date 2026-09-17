@@ -99,7 +99,7 @@ describe('Footer', () => {
     expect(credit).toHaveAttribute('rel', 'noopener noreferrer')
     expect(screen.getByRole('img', { name: 'FORGE Technologies' })).toHaveAttribute(
       'src',
-      '/brand/forge/FORGE-horizontal-white-on-ink.png',
+      '/brand/forge/FORGE-horizontal.png',
     )
   })
 })

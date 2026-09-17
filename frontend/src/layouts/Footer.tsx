@@ -116,13 +116,19 @@ export function Footer() {
           </p>
 
           <p className={styles.credit}>
-            <img
-              className={styles.creditLogo}
-              src="/brand/forge/FORGE-horizontal-white-on-ink.png"
-              alt="FORGE Technologies"
-              width={300}
-              height={62}
-            />
+            <picture>
+              <source
+                media="(max-width: 640px)"
+                srcSet="/brand/forge/FORGE-symbol-primary.png"
+              />
+              <img
+                className={styles.creditLogo}
+                src="/brand/forge/FORGE-horizontal.png"
+                alt="FORGE Technologies"
+                width={300}
+                height={62}
+              />
+            </picture>
             <span className={styles.creditCopy}>
               Designed &amp; Managed by{' '}
               <a
