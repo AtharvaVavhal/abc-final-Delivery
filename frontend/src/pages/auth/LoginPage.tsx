@@ -39,6 +39,15 @@ export function LoginPage() {
   return (
     <AuthFormShell
       title="Log in"
+      aside={
+        <>
+          <span className={shellStyles.asideKicker}>{storeName}</span>
+          <p className={shellStyles.asideHeading}>Good to have you back.</p>
+          <p className={shellStyles.asideText}>
+            Track orders, reorder favourites and check out faster with your account.
+          </p>
+        </>
+      }
       subtitle={`Welcome back to ${storeName}.`}
       footer={
         <>

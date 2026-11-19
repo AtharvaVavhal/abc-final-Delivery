@@ -48,5 +48,6 @@ export function getStorefrontShell(): StorefrontShellSnapshot | null {
   if (import.meta.env.VITEST) {
     return null
   }
-  return snapshot
+  // Maintenance is runtime state, never authoritative in a build snapshot.
+  return { ...snapshot, settings: { ...snapshot.settings, maintenance_mode: false } }
 }

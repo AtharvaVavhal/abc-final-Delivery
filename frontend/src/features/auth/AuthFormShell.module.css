@@ -64,3 +64,68 @@
   text-align: center;
   font-size: 0.875rem;
 }
+
+/* ---- Split layout (login) ------------------------------------------ */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-height: calc(100vh - 260px);
+  background: var(--color-bg);
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 3.5rem 3rem;
+  background: var(--color-obsidian);
+  color: var(--color-obsidian-text);
+}
+
+.asideKicker {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-warm);
+}
+
+.asideHeading {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-obsidian-text);
+}
+
+.asideText {
+  max-width: 34ch;
+  color: var(--color-obsidian-muted);
+  line-height: 1.6;
+}
+
+.splitMain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem var(--container-padding);
+}
+
+.splitForm {
+  width: 100%;
+  max-width: 380px;
+}
+
+@media (max-width: 860px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    padding: 1.75rem var(--container-padding);
+  }
+
+  .asideText {
+    display: none;
+  }
+}

@@ -36,6 +36,9 @@ export const PUBLIC_SETTING_KEYS = [
   'sellerLocality',
   'sellerGstin',
   'sellerPaymentProtected',
+  // Maintenance switch. The storefront shows the maintenance page when this
+  // is "true"; checkout also refuses new orders server-side.
+  'maintenance_mode',
 ] as const;
 
 export type PublicSettingKey = (typeof PUBLIC_SETTING_KEYS)[number];
@@ -525,6 +528,7 @@ const NORMALIZERS: Record<string, (raw: string) => NormalizeResult> = {
   sellerLocality: boundedText(MAX_ADDRESS_LENGTH, 'Seller locality'),
   sellerGstin: normalizeGstin,
   sellerPaymentProtected: normalizeBoolean,
+  maintenance_mode: normalizeBoolean,
   brand_story: boundedText(MAX_BRAND_STORY_LENGTH, 'Brand story'),
   featured_media: normalizeFeaturedMedia,
   hero_slides: normalizeHeroSlides,
@@ -655,6 +659,15 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
       'When true, the navbar shows a Payment Protected mark (Razorpay checkout). Set false to hide it.',
     kind: 'boolean',
     default: 'true',
+  },
+  {
+    key: 'maintenance_mode',
+    ownership: 'STORE',
+    label: 'Maintenance mode',
+    description:
+      'When on, customers see a maintenance page and new orders are refused. Admin pages and login stay available so you can switch it back off.',
+    kind: 'boolean',
+    default: 'false',
   },
   {
     key: 'brand_story',

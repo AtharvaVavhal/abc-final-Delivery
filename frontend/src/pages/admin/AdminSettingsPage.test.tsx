@@ -5,6 +5,8 @@ import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from '@/services/api/client'
 import { renderWithProviders } from '@/test/test-utils'
 import { AdminSettingsPage } from './AdminSettingsPage'
+import { createTestQueryClient } from '@/test/test-utils'
+import { STOREFRONT_PUBLIC_SETTINGS_QUERY_KEY } from '@/hooks/useStorefrontPublicSettings'
 
 const SETTINGS_RESPONSE = {
   success: true,
@@ -172,6 +174,31 @@ describe('AdminSettingsPage', () => {
   })
 
   // ─── Preserved behaviour ───────────────────────────────────────────────
+
+  it.each(['true', 'false'])('saves maintenance mode as %s and updates the public cache', async (value) => {
+    const user = userEvent.setup()
+    let setting = {
+      key: 'maintenance_mode', label: 'Maintenance mode',
+      description: 'Pause the storefront while keeping admin and login available.',
+      kind: 'boolean', value: value === 'true' ? 'false' : 'true', default: 'false',
+    }
+    adminSettingsReply = () => [200, { success: true, data: [setting] }]
+    mock.onPatch('/admin/settings/maintenance_mode').reply((config) => {
+      const body = JSON.parse(config.data as string) as { value: string }
+      setting = { ...setting, value: body.value }
+      return [200, { success: true, data: setting }]
+    })
+    const queryClient = createTestQueryClient()
+    renderWithProviders(<AdminSettingsPage />, { queryClient })
+    const field = await screen.findByRole('combobox', { name: 'Maintenance mode' })
+    await user.selectOptions(field, value)
+    await user.click(within(field.closest('form')!).getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(/Saved\./)).toBeInTheDocument()
+    expect(JSON.parse(mock.history.patch[0].data as string)).toEqual({ value })
+    expect(queryClient.getQueryData(STOREFRONT_PUBLIC_SETTINGS_QUERY_KEY)).toMatchObject({
+      maintenance_mode: value === 'true',
+    })
+  })
 
   it('renders a form per configurable setting', async () => {
     renderWithProviders(<AdminSettingsPage />)

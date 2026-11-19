@@ -3,6 +3,7 @@ import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from './client'
 import {
   fetchHomepageSettings,
+  fetchStorefrontPublicSettings,
   fetchStoreLogo,
   fetchStoreName,
   type Banner,
@@ -68,8 +69,17 @@ describe('fetchHomepageSettings — real wire contract', () => {
 
     const call = mock.history.get.find((r) => r.url === '/settings')
     expect(call?.params).toEqual({
-      keys: 'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media',
+      keys: 'maintenance_mode,storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media',
     })
+  })
+
+  it.each([
+    [{ maintenance_mode: 'true' }, true],
+    [{ maintenance_mode: 'false' }, false],
+    [{}, false],
+  ] as const)('reads maintenance mode from %j as %s', async (raw, expected) => {
+    mock.onGet('/settings').reply(200, settingsResponse(raw))
+    expect((await fetchStorefrontPublicSettings()).maintenance_mode).toBe(expected)
   })
 
   // A — valid hero_slides

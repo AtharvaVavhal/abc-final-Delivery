@@ -3,6 +3,7 @@ import { applyAdminSettingToStorefront } from './applyAdminSettingToStorefront'
 import type { AdminSettingView, StorefrontPublicSettings } from '@/services/api/settings'
 
 const current: StorefrontPublicSettings = {
+  maintenance_mode: false,
   storeName: 'AB Creations',
   storeLogo: 'https://cdn.example/old-logo.png',
   whatsappNumber: null,
@@ -29,6 +30,12 @@ function view(key: string, value: string): AdminSettingView {
 }
 
 describe('applyAdminSettingToStorefront', () => {
+  it('applies saved maintenance changes to the shared cache in both directions', () => {
+    const enabled = applyAdminSettingToStorefront(current, view('maintenance_mode', 'true'))
+    expect(enabled.maintenance_mode).toBe(true)
+    expect(applyAdminSettingToStorefront(enabled, view('maintenance_mode', 'false')).maintenance_mode).toBe(false)
+  })
+
   it('replaces the cached storefront logo URL', () => {
     const next = applyAdminSettingToStorefront(
       current,

@@ -9,6 +9,7 @@ import { RootLayout } from '@/layouts/RootLayout'
 import { HomePage } from '@/pages/home/HomePage'
 import { FullPageLoader } from '@/components/ui/FullPageLoader'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
+import { MaintenanceGate } from '@/components/layout/MaintenanceGate'
 import { ROUTES } from '@/constants/routes'
 
 function lazyNamed<T extends Record<string, ComponentType>>(
@@ -86,61 +87,63 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <ScrollToTop />
-          <Routes>
-            <Route element={<RootLayout />}>
-              {/* Public routes */}
-              <Route path={ROUTES.HOME} element={<HomePage />} />
-              <Route path={ROUTES.ABOUT} element={<AboutPage />} />
-              <Route path={ROUTES.CONTACT} element={<ContactPage />} />
-              <Route path={ROUTES.PRIVACY} element={<PrivacyPage />} />
-              <Route path={ROUTES.TERMS} element={<TermsPage />} />
-              <Route path={ROUTES.REFUND_POLICY} element={<RefundPolicyPage />} />
-              <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-              <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-              <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
-              <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
-              <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
-              <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
+          <MaintenanceGate>
+            <Routes>
+              <Route element={<RootLayout />}>
+                {/* Public routes */}
+                <Route path={ROUTES.HOME} element={<HomePage />} />
+                <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+                <Route path={ROUTES.CONTACT} element={<ContactPage />} />
+                <Route path={ROUTES.PRIVACY} element={<PrivacyPage />} />
+                <Route path={ROUTES.TERMS} element={<TermsPage />} />
+                <Route path={ROUTES.REFUND_POLICY} element={<RefundPolicyPage />} />
+                <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+                <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+                <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+                <Route path={ROUTES.PRODUCTS} element={<ProductListPage />} />
+                <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetailPage />} />
+                <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
 
-              {/* Protected routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path={ROUTES.CART} element={<CartPage />} />
-                <Route path={ROUTES.ACCOUNT} element={<AccountPage />} />
-                <Route path={ROUTES.ORDERS} element={<OrdersPage />} />
-                <Route path={ROUTES.ORDER_DETAIL} element={<OrderDetailPage />} />
-                <Route path={ROUTES.ORDER_INVOICE} element={<InvoicePage />} />
-                <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path={ROUTES.CART} element={<CartPage />} />
+                  <Route path={ROUTES.ACCOUNT} element={<AccountPage />} />
+                  <Route path={ROUTES.ORDERS} element={<OrdersPage />} />
+                  <Route path={ROUTES.ORDER_DETAIL} element={<OrderDetailPage />} />
+                  <Route path={ROUTES.ORDER_INVOICE} element={<InvoicePage />} />
+                  <Route path={ROUTES.CHECKOUT} element={<CheckoutPage />} />
+                </Route>
+
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
 
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-
-            {/* Admin — authentication AND role === 'ADMIN' (AdminRoute, a
-                strict superset of ProtectedRoute's check), then the
-                dedicated admin shell (AdminLayout). Same routes as before,
-                just relocated out of the storefront RootLayout. */}
-            <Route element={<AdminRoute />}>
-              <Route
-                element={
-                  <Suspense fallback={<RouteFallback label="Loading admin" />}>
-                    <AdminLayout />
-                  </Suspense>
-                }
-              >
-                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-                <Route path={ROUTES.ADMIN_ORDERS} element={<AdminOrdersPage />} />
-                <Route path={ROUTES.ADMIN_ORDER_DETAIL} element={<AdminOrderDetailPage />} />
-                <Route path={ROUTES.ADMIN_CUSTOMERS} element={<AdminCustomersPage />} />
-                <Route path={ROUTES.ADMIN_CUSTOMER_DETAIL} element={<AdminCustomerDetailPage />} />
-                <Route path={ROUTES.ADMIN_PRODUCTS} element={<AdminProductsPage />} />
-                <Route path={ROUTES.ADMIN_PRODUCT_DETAIL} element={<AdminProductDetailPage />} />
-                <Route path={ROUTES.ADMIN_CATEGORIES} element={<AdminCategoriesPage />} />
-                <Route path={ROUTES.ADMIN_COUPONS} element={<AdminCouponsPage />} />
-                <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminSettingsPage />} />
+              {/* Admin — authentication AND role === 'ADMIN' (AdminRoute, a
+                  strict superset of ProtectedRoute's check), then the
+                  dedicated admin shell (AdminLayout). Same routes as before,
+                  just relocated out of the storefront RootLayout. */}
+              <Route element={<AdminRoute />}>
+                <Route
+                  element={
+                    <Suspense fallback={<RouteFallback label="Loading admin" />}>
+                      <AdminLayout />
+                    </Suspense>
+                  }
+                >
+                  <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                  <Route path={ROUTES.ADMIN_ORDERS} element={<AdminOrdersPage />} />
+                  <Route path={ROUTES.ADMIN_ORDER_DETAIL} element={<AdminOrderDetailPage />} />
+                  <Route path={ROUTES.ADMIN_CUSTOMERS} element={<AdminCustomersPage />} />
+                  <Route path={ROUTES.ADMIN_CUSTOMER_DETAIL} element={<AdminCustomerDetailPage />} />
+                  <Route path={ROUTES.ADMIN_PRODUCTS} element={<AdminProductsPage />} />
+                  <Route path={ROUTES.ADMIN_PRODUCT_DETAIL} element={<AdminProductDetailPage />} />
+                  <Route path={ROUTES.ADMIN_CATEGORIES} element={<AdminCategoriesPage />} />
+                  <Route path={ROUTES.ADMIN_COUPONS} element={<AdminCouponsPage />} />
+                  <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminSettingsPage />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
+          </MaintenanceGate>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

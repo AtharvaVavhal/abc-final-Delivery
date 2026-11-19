@@ -24,12 +24,13 @@ export const STOREFRONT_SETTINGS_QUERY = {
  * `initialData` is the build-time public snapshot so the first viewport
  * can render real AB Creations chrome without waiting on Postgres.
  */
-export function useStorefrontPublicSettings() {
+export function useStorefrontPublicSettings(options: { refetchInterval?: number } = {}) {
   const snapshot = getStorefrontShell()
   return useQuery({
     queryKey: STOREFRONT_PUBLIC_SETTINGS_QUERY_KEY,
     queryFn: fetchStorefrontPublicSettings,
     ...STOREFRONT_SETTINGS_QUERY,
+    refetchInterval: options.refetchInterval,
     initialData: snapshot?.settings,
     initialDataUpdatedAt: snapshot ? STOREFRONT_SHELL_GENERATED_AT_MS : undefined,
   })

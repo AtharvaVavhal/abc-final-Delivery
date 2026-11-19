@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>Superadmin · AB Creations</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header><a href="/" class="brand">AB <span>Creations</span></a><span class="badge">Superadmin</span></header>
+    <main>
+      <p id="loading" role="status">Checking your session…</p>
+      <section id="login-panel" class="login panel" hidden>
+        <p class="eyebrow">Platform administration</p>
+        <h1>Sign in to Superadmin</h1>
+        <p class="muted">Manage your platform with your authorized administrator account.</p>
+        <form id="login-form">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="username" required />
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+          <p id="login-error" role="alert" hidden></p>
+          <button id="login-button" type="submit">Sign in</button>
+        </form>
+        <p class="small muted">Access is restricted to platform superadmins.</p>
+      </section>
+      <section id="console" hidden>
+        <div class="heading"><div><p class="eyebrow">Platform overview</p><h1>Tenants</h1><p id="identity" class="muted"></p></div><button id="logout" class="secondary">Sign out</button></div>
+        <div class="panel">
+          <div class="heading"><h2>Registered businesses</h2><button id="reload" class="secondary">Refresh</button></div>
+          <p id="data-error" role="alert" hidden></p>
+          <p id="empty" class="muted" hidden>No tenants registered yet.</p>
+          <div class="table-scroll"><table><thead><tr><th scope="col">Tenant</th><th scope="col">Status</th><th scope="col">Stores</th><th scope="col">Created</th></tr></thead><tbody id="tenants"></tbody></table></div>
+          <div class="pagination"><button id="previous" class="secondary">Previous</button><span id="page-label" role="status"></span><button id="next" class="secondary">Next</button></div>
+        </div>
+      </section>
+      <noscript>Enable JavaScript to sign in to Superadmin.</noscript>
+    </main>
+    <footer>AB Creations · Platform administration</footer>
+  </body>
+</html>

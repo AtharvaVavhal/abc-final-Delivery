@@ -1,6 +1,7 @@
 import type { AdminSettingView, StorefrontPublicSettings } from '@/services/api/settings'
 
 const EMPTY_STOREFRONT_SETTINGS: StorefrontPublicSettings = {
+  maintenance_mode: false,
   storeName: null,
   storeLogo: null,
   whatsappNumber: null,
@@ -37,6 +38,8 @@ export function applyAdminSettingToStorefront(
   const homepage = base.homepage ?? {}
 
   switch (updated.key) {
+    case 'maintenance_mode':
+      return { ...base, maintenance_mode: updated.value === 'true' }
     case 'storeLogo':
       return { ...base, storeLogo: updated.value }
     case 'storeName':

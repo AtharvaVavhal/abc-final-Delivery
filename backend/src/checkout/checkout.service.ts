@@ -309,6 +309,16 @@ export class CheckoutService {
       // path ever mutates `Store.isPrimary`, so there is nothing for this
       // read to race against.
       const storeId = await resolvePrimaryStoreId(this.prisma, cart.tenantId);
+      // Maintenance mode: refuse new orders server-side, not just in the UI.
+      const maintenance = await tx.storeSetting.findUnique({
+        where: { storeId_key: { storeId, key: 'maintenance_mode' } },
+        select: { value: true },
+      });
+      if (maintenance?.value === 'true') {
+        throw new ServiceUnavailableException(
+          'The store is under maintenance. Please try again shortly.',
+        );
+      }
       const shippingFeePaise = await this.getShippingFeePaise(tx, storeId);
       const linePricing = cart.items.map((item) => ({
         item,

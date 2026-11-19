@@ -50,6 +50,7 @@ export interface StorefrontSellerIdentity {
 }
 
 export interface StorefrontPublicSettings {
+  maintenance_mode: boolean
   storeName: string | null
   storeLogo: string | null
   whatsappNumber: string | null
@@ -61,7 +62,7 @@ export interface StorefrontPublicSettings {
 
 /** Chrome + homepage keys in one public `GET /settings?keys=` round-trip. */
 export const STOREFRONT_PUBLIC_SETTING_KEYS =
-  'storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media'
+  'maintenance_mode,storeName,storeLogo,whatsappNumber,announcement_text,storeContactEmail,storeContactPhone,storeAddress,sellerLegalName,sellerLocality,sellerGstin,sellerPaymentProtected,hero_slides,banners,showcase_categories,brand_story,featured_media'
 
 /**
  * `GET /settings?keys=…` is the one bulk public-settings read. Its wire
@@ -139,6 +140,7 @@ async function fetchPublicSettingsMap(): Promise<Record<string, string>> {
 export async function fetchStorefrontPublicSettings(): Promise<StorefrontPublicSettings> {
   const raw = await fetchPublicSettingsMap()
   return {
+    maintenance_mode: raw.maintenance_mode === 'true',
     storeName: raw.storeName ?? null,
     storeLogo: raw.storeLogo ?? null,
     whatsappNumber: raw.whatsappNumber ?? null,
