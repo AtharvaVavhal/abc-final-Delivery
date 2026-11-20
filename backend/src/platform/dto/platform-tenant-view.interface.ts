@@ -17,6 +17,8 @@ export interface PlatformTenantSummaryView {
   status: TenantStatus;
   createdAt: Date;
   storeCount: number;
+  /** Primary store's maintenance_mode setting (false when never set). */
+  maintenance: boolean;
 }
 
 /** A store's platform-visible metadata, nested in the tenant detail view —

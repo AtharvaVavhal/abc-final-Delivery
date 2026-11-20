@@ -55,13 +55,37 @@ async function refresh() {
   return refreshPromise
 }
 
-async function platformRequest(path) {
-  try { return await request(path) }
+async function platformRequest(path, options) {
+  try { return await request(path, options) }
   catch (error) {
     if (error.status !== 401) throw error
     await refresh()
     if (!accessToken) throw new ApiError(401)
-    return request(path)
+    return request(path, options)
+  }
+}
+
+async function toggleMaintenance(tenant, button) {
+  const enable = !tenant.maintenance
+  const question = enable
+    ? `Turn ON maintenance for "${tenant.slug}"? Customers will see the maintenance page and cannot place orders until you turn it off.`
+    : `Turn OFF maintenance for "${tenant.slug}" and reopen the storefront?`
+  if (!window.confirm(question)) return
+  button.disabled = true
+  byId('data-error').hidden = true
+  try {
+    await platformRequest(`/platform/tenants/${tenant.id}/maintenance`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled: enable }),
+    })
+    await loadTenants(page)
+  } catch (error) {
+    if (error.status === 401) showLogin('Your session has expired. Please sign in again.')
+    else {
+      byId('data-error').textContent = 'Could not change maintenance mode. Please try again.'
+      byId('data-error').hidden = false
+      button.disabled = false
+    }
   }
 }
 
@@ -83,6 +107,15 @@ async function loadTenants(targetPage = page) {
         cell.textContent = String(value)
         row.append(cell)
       }
+      const cell = document.createElement('td')
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'secondary'
+      button.textContent = tenant.maintenance ? 'On — turn off' : 'Off — turn on'
+      button.setAttribute('aria-pressed', String(Boolean(tenant.maintenance)))
+      button.addEventListener('click', () => { void toggleMaintenance(tenant, button) })
+      cell.append(button)
+      row.append(cell)
       return row
     }))
     byId('empty').hidden = result.data.length !== 0

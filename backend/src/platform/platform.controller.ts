@@ -15,6 +15,7 @@ import type { AuthenticatedUser } from '../common/decorators/current-user.decora
 import { PlatformOnly } from '../common/decorators/platform-only.decorator';
 import { ListPlatformAuditQueryDto } from './dto/list-platform-audit-query.dto';
 import { ListPlatformTenantsQueryDto } from './dto/list-platform-tenants-query.dto';
+import { SetMaintenanceDto } from './dto/set-maintenance.dto';
 import { ResumeTenantDto } from './dto/resume-tenant.dto';
 import { SuspendTenantDto } from './dto/suspend-tenant.dto';
 import { PlatformService } from './platform.service';
@@ -71,6 +72,23 @@ export class PlatformController {
     @Ip() ip: string,
   ) {
     return this.platformService.resumeTenant(actor, id, dto.justification, ip);
+  }
+
+  @Post('tenants/:id/maintenance')
+  @HttpCode(HttpStatus.OK)
+  async setMaintenance(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetMaintenanceDto,
+    @Ip() ip: string,
+  ) {
+    return this.platformService.setMaintenance(
+      actor,
+      id,
+      dto.enabled,
+      dto.justification,
+      ip,
+    );
   }
 
   @Get('audit')

@@ -305,6 +305,63 @@ describe('PlatformService', () => {
     });
   });
 
+  describe('setMaintenance', () => {
+    const actor = { id: 'sa-1' } as never;
+
+    function build(store: { id: string } | null) {
+      const tx = {
+        store: { findFirst: jest.fn().mockResolvedValue(store) },
+        storeSetting: { upsert: jest.fn().mockResolvedValue({}) },
+      };
+      const prisma = {
+        $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
+      };
+      const audit = makeAudit();
+      const service = new PlatformService(
+        prisma as never,
+        audit as unknown as AuditService,
+      );
+      return { service, tx, audit };
+    }
+
+    it('writes maintenance_mode on the primary store and audits it', async () => {
+      const { service, tx, audit } = build({ id: 'store-1' });
+      const result = await service.setMaintenance(
+        actor,
+        'tenant-a',
+        true,
+        undefined,
+        '1.2.3.4',
+      );
+      expect(result).toEqual({ id: 'tenant-a', maintenance: true });
+      expect(tx.storeSetting.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            storeId_key: { storeId: 'store-1', key: 'maintenance_mode' },
+          },
+          update: { value: 'true' },
+        }),
+      );
+      expect(audit.logPlatformAction).toHaveBeenCalledWith(
+        tx,
+        expect.objectContaining({
+          action: 'tenant.maintenance',
+          tenantId: 'tenant-a',
+          metadata: { maintenance: true },
+        }),
+      );
+    });
+
+    it('throws NotFound and writes nothing when there is no primary store', async () => {
+      const { service, tx, audit } = build(null);
+      await expect(
+        service.setMaintenance(actor, 'tenant-a', false, undefined, 'ip'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(tx.storeSetting.upsert).not.toHaveBeenCalled();
+      expect(audit.logPlatformAction).not.toHaveBeenCalled();
+    });
+  });
+
   describe('listTenants', () => {
     it('assembles only the frozen safe summary fields and computes pagination meta', async () => {
       const prisma = {
@@ -313,6 +370,13 @@ describe('PlatformService', () => {
             .fn()
             .mockResolvedValue([{ ...activeTenant, _count: { stores: 2 } }]),
           count: jest.fn().mockResolvedValue(1),
+        },
+        storeSetting: {
+          findMany: jest
+            .fn()
+            .mockResolvedValue([
+              { value: 'true', store: { tenantId: 'tenant-a' } },
+            ]),
         },
       };
       const service = new PlatformService(
@@ -327,6 +391,7 @@ describe('PlatformService', () => {
           status: TenantStatus.ACTIVE,
           createdAt: activeTenant.createdAt,
           storeCount: 2,
+          maintenance: true,
         },
       ]);
       expect(result.meta).toEqual({

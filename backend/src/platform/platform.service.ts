@@ -83,8 +83,14 @@ export class PlatformService {
       this.prisma.tenant.count({ where }),
     ]);
 
+    const maintenanceByTenant = await this.loadMaintenanceFlags(
+      rows.map((row) => row.id),
+    );
+
     return {
-      items: rows.map((row) => this.toSummaryView(row)),
+      items: rows.map((row) =>
+        this.toSummaryView(row, maintenanceByTenant.get(row.id) ?? false),
+      ),
       meta: {
         page: query.page,
         limit: query.limit,
@@ -222,6 +228,71 @@ export class PlatformService {
     return result;
   }
 
+  // ─── POST /platform/tenants/:id/maintenance ────────────────────────────
+
+  /** Maintenance flag per tenant = its primary store's `maintenance_mode`
+   * StoreSetting. Missing row means off. */
+  private async loadMaintenanceFlags(
+    tenantIds: string[],
+  ): Promise<Map<string, boolean>> {
+    if (tenantIds.length === 0) return new Map();
+    const rows = await this.prisma.storeSetting.findMany({
+      where: {
+        key: 'maintenance_mode',
+        store: { tenantId: { in: tenantIds }, isPrimary: true },
+      },
+      select: { value: true, store: { select: { tenantId: true } } },
+    });
+    return new Map(rows.map((r) => [r.store.tenantId, r.value === 'true']));
+  }
+
+  /**
+   * Switches the storefront maintenance page on/off for a tenant's primary
+   * store. Same setting the tenant admin toggle writes, so the storefront
+   * gate and checkout block need no extra wiring. Audited in the same
+   * transaction as the write.
+   */
+  async setMaintenance(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    enabled: boolean,
+    justification: string | undefined,
+    ip: string,
+  ): Promise<{ id: string; maintenance: boolean }> {
+    await this.prisma.$transaction(async (tx) => {
+      const store = await tx.store.findFirst({
+        where: { tenantId, isPrimary: true },
+        select: { id: true },
+      });
+      if (!store) {
+        throw new NotFoundException('Tenant or primary store not found');
+      }
+      const value = enabled ? 'true' : 'false';
+      await tx.storeSetting.upsert({
+        where: { storeId_key: { storeId: store.id, key: 'maintenance_mode' } },
+        update: { value },
+        create: {
+          tenantId,
+          storeId: store.id,
+          key: 'maintenance_mode',
+          value,
+        },
+      });
+      await this.auditService.logPlatformAction(tx, {
+        actorUserId: actor.id,
+        action: 'tenant.maintenance',
+        targetType: 'Tenant',
+        targetId: tenantId,
+        tenantId,
+        justification:
+          justification?.trim() || 'Maintenance toggled from superadmin console',
+        metadata: { maintenance: enabled },
+        ip,
+      });
+    });
+    return { id: tenantId, maintenance: enabled };
+  }
+
   // ─── GET /platform/audit ────────────────────────────────────────────────
   // Reads PlatformAuditLog ONLY — TenantAuditLog is never referenced
   // anywhere in this file, let alone exposed here (decision P5-D3: the two
@@ -268,8 +339,12 @@ export class PlatformService {
 
   // ─── View assembly (field-by-field — never a spread) ───────────────────
 
-  private toSummaryView(tenant: TenantSummaryRow): PlatformTenantSummaryView {
+  private toSummaryView(
+    tenant: TenantSummaryRow,
+    maintenance: boolean,
+  ): PlatformTenantSummaryView {
     return {
+      maintenance,
       id: tenant.id,
       slug: tenant.slug,
       status: tenant.status,
