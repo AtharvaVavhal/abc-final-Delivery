@@ -143,6 +143,10 @@
   min-width: 0;
 }
 
+.creditMore {
+  color: var(--color-text-subtle);
+}
+
 .creditLink {
   color: var(--color-text);
   text-decoration: none;

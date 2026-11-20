@@ -139,6 +139,10 @@ export function Footer() {
               >
                 FORGE Technologies
               </a>
+              <span className={styles.creditMore}>
+                {' '}
+                &middot; Also from FORGE: Nook, bed-level inventory for buildings.
+              </span>
             </span>
           </p>
         </div>
