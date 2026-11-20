@@ -71,6 +71,27 @@ export function IllosMaintenancePage({
           <a className={styles.adminLink} href="/login">
             Store admin sign in
           </a>
+          <p className={styles.credit}>
+            <img
+              className={styles.creditLogo}
+              src="/brand/forge/FORGE-horizontal.png"
+              alt="FORGE Technologies"
+              width={300}
+              height={62}
+            />
+            <span>
+              Designed &amp; Managed by{' '}
+              <a
+                className={styles.creditLink}
+                href="https://forgebuilds.in"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                FORGE Technologies
+              </a>
+              . Also from FORGE: Nook, bed-level inventory for buildings.
+            </span>
+          </p>
         </div>
       </div>
     </main>

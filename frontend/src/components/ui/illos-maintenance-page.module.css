@@ -178,3 +178,33 @@
     margin-bottom: 0.5rem;
   }
 }
+
+.credit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-6, 1.5rem) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.creditLogo {
+  display: block;
+  height: 16px;
+  width: auto;
+  max-width: 6.5rem;
+  flex-shrink: 0;
+}
+
+.creditLink {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.creditLink:hover,
+.creditLink:focus-visible {
+  color: var(--color-text-strong);
+  text-decoration: underline;
+}
