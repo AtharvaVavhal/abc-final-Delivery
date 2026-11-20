@@ -141,7 +141,9 @@ export function Footer() {
               </a>
               <span className={styles.creditMore}>
                 {' '}
-                &middot; Also from FORGE: Nook, bed-level inventory for buildings.
+                &middot; Also from FORGE:{' '}
+                <img className={styles.nookLogo} src="/brand/nook/nook-logo.svg" alt="Nook" width={394} height={142} />
+                {' '}bed-level inventory for buildings.
               </span>
             </span>
           </p>

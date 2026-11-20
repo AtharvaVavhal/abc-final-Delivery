@@ -208,3 +208,10 @@
   color: var(--color-text-strong);
   text-decoration: underline;
 }
+
+.nookLogo {
+  display: inline-block;
+  height: 14px;
+  width: auto;
+  vertical-align: -2px;
+}

@@ -89,7 +89,9 @@ export function IllosMaintenancePage({
               >
                 FORGE Technologies
               </a>
-              . Also from FORGE: Nook, bed-level inventory for buildings.
+              . Also from FORGE:{' '}
+              <img className={styles.nookLogo} src="/brand/nook/nook-logo.svg" alt="Nook" width={394} height={142} />
+              {' '}bed-level inventory for buildings.
             </span>
           </p>
         </div>

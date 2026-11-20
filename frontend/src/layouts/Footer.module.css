@@ -214,3 +214,10 @@
     max-width: 16px;
   }
 }
+
+.nookLogo {
+  display: inline-block;
+  height: 14px;
+  width: auto;
+  vertical-align: -2px;
+}
