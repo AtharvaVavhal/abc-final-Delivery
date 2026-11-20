@@ -7,13 +7,68 @@
   color: var(--color-text-strong);
 }
 
+.layout {
+  display: grid;
+  align-items: center;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 72rem;
+}
+
+.well {
+  --tone: var(--color-warning-solid);
+  /* Illustration colour roles: surfaces and ink from the theme, one amber accent. */
+  --illos-dark: 0;
+  --illos-ground: var(--color-bg);
+  --illos-ink: var(--color-text-strong);
+  --illos-accent: var(--color-warning-solid);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0.75rem;
+  border-radius: 20px;
+  background:
+    radial-gradient(80% 60% at 8% 0%, color-mix(in srgb, var(--tone) 22%, transparent), transparent 72%),
+    radial-gradient(70% 70% at 100% 100%, color-mix(in srgb, var(--tone) 14%, transparent), transparent 72%),
+    linear-gradient(160deg, color-mix(in srgb, var(--tone) 7%, var(--color-bg)), var(--color-surface));
+}
+
+.art {
+  flex-shrink: 0;
+  width: 114%;
+  margin-left: -14%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.art > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2.25rem;
   width: 100%;
-  max-width: 36rem;
+  max-width: 34rem;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 4rem;
+  }
+  .well {
+    order: 2;
+    align-self: stretch;
+    min-height: 520px;
+    padding: 1.5rem;
+  }
 }
 
 .brand {
@@ -45,6 +100,16 @@
   height: 0.5rem;
   border-radius: 50%;
   background: var(--color-warning-solid);
+  animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning-solid) 55%, transparent); }
+  75%, 100% { box-shadow: 0 0 0 8px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot { animation: none; }
 }
 
 .title {

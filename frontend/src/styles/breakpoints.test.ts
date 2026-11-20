@@ -107,6 +107,7 @@ describe('UX-16 — canonical responsive breakpoints', () => {
       '/src/components/home/Hero.tsx',
       '/src/components/layout/AnnouncementBar.tsx',
       '/src/components/ui/HorizontalScroller.tsx',
+      '/src/components/ui/illos-maintenance-page.tsx', // prefers-reduced-motion only
       '/src/features/media/mediaAsset.ts',
     ])
     const offenders = Object.entries(tsFiles)

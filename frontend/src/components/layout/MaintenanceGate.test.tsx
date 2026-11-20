@@ -97,7 +97,7 @@ describe('MaintenanceGate', () => {
     expect(screen.getByText('Checking store availability')).toBeInTheDocument()
     expect(screen.queryByText('Requested route')).not.toBeInTheDocument()
     await waitFor(() => expect(finish).toBeTypeOf('function'))
-    await act(() => {
+    act(() => {
       finish([200, response(true)])
     })
     expect(
