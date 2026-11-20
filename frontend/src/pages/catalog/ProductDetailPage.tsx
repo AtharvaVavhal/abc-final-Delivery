@@ -180,7 +180,7 @@ export function ProductDetailPage() {
           </div>
           <div className={styles.studioTrustItem}>
             <Truck size={16} className={styles.studioTrustIcon} aria-hidden="true" />
-            <span>Handcrafted & made to order (48–72h dispatch)</span>
+            <span>Made to order — typically 3–5 working days after we receive your files</span>
           </div>
         </div>
       </div>

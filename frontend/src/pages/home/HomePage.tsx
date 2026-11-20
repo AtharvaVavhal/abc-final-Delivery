@@ -147,7 +147,7 @@ export function HomePage() {
       )}
 
       <BelowFold>
-        <BrandStory story={settings?.brand_story} />
+        <BrandStory story={settings?.brand_story} imageUrl="/catalog/about.jpg" />
       </BelowFold>
 
       <BelowFold>

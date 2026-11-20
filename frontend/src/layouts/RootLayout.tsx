@@ -16,9 +16,11 @@ const SIDEBAR_COLLAPSED_KEY = 'storefront-sidebar-collapsed'
 
 function getInitialSidebarCollapsed() {
   try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+    // Collapsed by default: the header already carries the category menu, so
+    // the sidebar only opens when the visitor asked for it.
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 
