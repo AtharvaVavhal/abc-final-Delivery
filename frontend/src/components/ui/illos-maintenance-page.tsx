@@ -1,18 +1,18 @@
-import { useEffect, useId, useRef, type CSSProperties } from 'react'
+import { useId } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Button } from './Button'
 import { cn } from '@/utils/cn'
-import { MIGRATION_SVG } from './illos-migration-art'
+import { STORE_LOGO_FALLBACK } from '@/hooks/useStoreLogo'
 import styles from './illos-maintenance-page.module.css'
 
-/** CSS-module adaptation of the Illos maintenance page layout (MIT), with the
- * Illos "Database migration" illustration (Illos free license, see
- * illos-migration-art.ts). Deliberately no simulated progress, time estimates
- * or email collection: the backend has no end time or notify endpoint, so
- * showing them would be made-up.
+/** Maintenance page in the store's own branding: store logo, workshop photo and
+ * the FORGE credit. Deliberately no simulated progress, time estimates or email
+ * collection: the backend has no end time or notify endpoint, so showing them
+ * would be made-up.
  */
 export interface IllosMaintenancePageProps {
   storeName?: string | null
+  logoUrl?: string | null
   status?: string
   title?: string
   description?: string
@@ -24,6 +24,7 @@ export interface IllosMaintenancePageProps {
 
 export function IllosMaintenancePage({
   storeName,
+  logoUrl,
   status = 'Maintenance in progress',
   title = 'We’re taking a short break.',
   description = 'The store is temporarily unavailable while we carry out maintenance. Please check back later.',
@@ -38,10 +39,21 @@ export function IllosMaintenancePage({
     <main className={cn(styles.page, className)} aria-labelledby={titleId}>
       <div className={styles.layout}>
         <div className={styles.well}>
-          <IsoArt svg={MIGRATION_SVG} className={styles.art} />
+          <img
+            className={styles.photo}
+            src="/catalog/about.jpg"
+            alt=""
+            aria-hidden="true"
+            width={1200}
+            height={800}
+          />
         </div>
         <div className={styles.content}>
-          <p className={styles.brand}>{storeName?.trim() || 'AB Creations'}</p>
+          <img
+            className={styles.brandLogo}
+            src={logoUrl?.trim() || STORE_LOGO_FALLBACK}
+            alt={storeName?.trim() || 'AB Creations'}
+          />
           <div className={styles.message}>
             <p className={styles.status}>
               <span className={styles.dot} aria-hidden="true" />
@@ -97,40 +109,6 @@ export function IllosMaintenancePage({
         </div>
       </div>
     </main>
-  )
-}
-
-/** The illustration, inline. Decorative: the page text says what is happening. */
-function IsoArt({ svg, className }: { svg: string; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const host = ref.current
-    if (!host) return
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    if (typeof IntersectionObserver === 'undefined') {
-      host.style.setProperty('--illos-play', 'running')
-      return
-    }
-    // Plays while a quarter is in view, pauses off screen.
-    const io = new IntersectionObserver(
-      (entries) =>
-        host.style.setProperty(
-          '--illos-play',
-          entries.some((e) => e.isIntersecting) ? 'running' : 'paused',
-        ),
-      { threshold: 0.25 },
-    )
-    io.observe(host)
-    return () => io.disconnect()
-  }, [])
-  return (
-    <div
-      ref={ref}
-      aria-hidden="true"
-      className={className}
-      style={{ '--illos-play': 'paused' } as CSSProperties}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
   )
 }
 

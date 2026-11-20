@@ -34,6 +34,7 @@ function StorefrontAvailability({ children }: { children: ReactNode }) {
         />
         <IllosMaintenancePage
           storeName={settings.data?.storeName}
+          logoUrl={settings.data?.storeLogo}
           status={maintenance ? undefined : 'Store availability unavailable'}
           title={maintenance ? undefined : 'We couldn’t reach the store.'}
           description={

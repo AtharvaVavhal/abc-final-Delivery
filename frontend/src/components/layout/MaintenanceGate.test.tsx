@@ -53,7 +53,7 @@ describe('MaintenanceGate', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Requested route')).not.toBeInTheDocument()
-    expect(screen.getByText('Test store')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Test store' })).toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(
