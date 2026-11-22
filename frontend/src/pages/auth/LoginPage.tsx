@@ -1,6 +1,11 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useApiError } from '@/hooks/useApiError'
 import { useStoreName } from '@/hooks/useStoreName'
@@ -9,6 +14,7 @@ import { ROUTES } from '@/constants/routes'
 import { postAuthDestination } from '@/features/auth/postAuthDestination'
 import { AuthFormShell } from '@/features/auth/AuthFormShell'
 import { OtpSignIn } from '@/features/auth/OtpSignIn'
+import { OtpLoginShell } from '@/features/auth/OtpLoginShell'
 import { OTP_LOGIN_ENABLED } from '@/features/auth/otpEnabled'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
@@ -28,20 +34,8 @@ export function LoginPage() {
 
 function OtpLoginPage() {
   const location = useLocation()
-  const storeName = useStoreName()
   return (
-    <AuthFormShell
-      title="Log in or sign up"
-      aside={
-        <>
-          <span className={shellStyles.asideKicker}>{storeName}</span>
-          <p className={shellStyles.asideHeading}>Good to have you here.</p>
-          <p className={shellStyles.asideText}>
-            Track orders, reorder favourites and check out faster — just with your mobile number.
-          </p>
-        </>
-      }
-      subtitle={`Continue to ${storeName} with a one-time code.`}
+    <OtpLoginShell
       footer={
         <Link to="/login?method=password" state={location.state as unknown}>
           Staff sign in
@@ -49,7 +43,7 @@ function OtpLoginPage() {
       }
     >
       <OtpSignIn />
-    </AuthFormShell>
+    </OtpLoginShell>
   )
 }
 
@@ -84,7 +78,8 @@ function PasswordLoginPage() {
           <span className={shellStyles.asideKicker}>{storeName}</span>
           <p className={shellStyles.asideHeading}>Good to have you back.</p>
           <p className={shellStyles.asideText}>
-            Track orders, reorder favourites and check out faster with your account.
+            Track orders, reorder favourites and check out faster with your
+            account.
           </p>
         </>
       }
@@ -105,7 +100,11 @@ function PasswordLoginPage() {
         </>
       }
     >
-      <form className={shellStyles.form} onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+      <form
+        className={shellStyles.form}
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+        noValidate
+      >
         {formError && <Alert variant="error">{formError}</Alert>}
 
         <TextField
@@ -126,7 +125,11 @@ function PasswordLoginPage() {
           {...register('password')}
         />
 
-        <Button type="submit" isLoading={isSubmitting} className={shellStyles.submit}>
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          className={shellStyles.submit}
+        >
           Log in
         </Button>
       </form>

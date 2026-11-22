@@ -15,7 +15,12 @@ interface LocationState {
  */
 export function postAuthDestination(location: Location): string {
   const from = (location.state as LocationState | null)?.from
-  if (from?.pathname) {
+  if (
+    typeof from?.pathname === 'string' &&
+    from.pathname.startsWith('/') &&
+    !from.pathname.startsWith('//') &&
+    !/[\\\s]/.test(from.pathname)
+  ) {
     return `${from.pathname}${from.search ?? ''}`
   }
   return ROUTES.HOME

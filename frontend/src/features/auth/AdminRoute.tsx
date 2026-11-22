@@ -25,7 +25,7 @@ export function AdminRoute() {
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />
+    return <Navigate to={`${ROUTES.LOGIN}?method=password`} replace state={{ from: location }} />
   }
 
   if (user?.role !== 'ADMIN') {

@@ -1,0 +1,159 @@
+.page {
+  --login-muted: #a3a3a3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100dvh;
+  background: #000;
+  color: #fff;
+  color-scheme: dark;
+}
+.hero {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+.hero picture {
+  display: block;
+  height: 100%;
+}
+.heroImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 65% 0 0;
+  background: linear-gradient(transparent, rgb(0 0 0 / 65%));
+  pointer-events: none;
+}
+.tagline {
+  position: absolute;
+  z-index: 1;
+  bottom: clamp(24px, 5vh, 56px);
+  left: clamp(24px, 3.4vw, 56px);
+  margin: 0;
+  font-size: clamp(26px, 2.7vw, 46px);
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+}
+.tagline span {
+  color: var(--color-amber-primary);
+}
+.auth {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 52px 28px;
+  min-width: 0;
+}
+.card {
+  width: 396px;
+  max-width: 100%;
+  padding: 40px 32px 32px;
+  background: #141414;
+  border: 1px solid #303030;
+  border-radius: 16px;
+}
+.logoLink {
+  display: block;
+  width: 278px;
+  max-width: 100%;
+  margin: 0 auto 44px;
+}
+.logo {
+  width: 100%;
+  height: auto;
+}
+.legal {
+  margin: 26px 0 0;
+  color: var(--login-muted);
+  font-size: 0.75rem;
+  line-height: 1.8;
+  text-align: center;
+}
+.legal a {
+  color: #d4d4d4;
+  text-decoration-color: #737373;
+  text-underline-offset: 3px;
+}
+.legal a:hover {
+  color: #fff;
+}
+.footer {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+.footer a {
+  color: var(--login-muted);
+}
+.page a:focus-visible {
+  outline: 2px solid var(--color-amber-primary);
+  outline-offset: 5px;
+  box-shadow: none;
+}
+@media (max-height: 720px) and (width > 768px) {
+  .heroImage {
+    object-fit: contain;
+  }
+  .hero {
+    background: #44362a;
+  }
+  .tagline {
+    font-size: clamp(22px, 2.4vw, 32px);
+    bottom: 18px;
+  }
+  .auth {
+    padding-block: 42px;
+  }
+  .card {
+    padding-top: 28px;
+    padding-bottom: 24px;
+  }
+  .logoLink {
+    margin-bottom: 28px;
+  }
+  .footer {
+    bottom: 12px;
+  }
+}
+@media (max-width: 768px) {
+  .page {
+    display: block;
+  }
+  .hero {
+    display: none;
+  }
+  .auth {
+    min-height: 100dvh;
+    padding: max(48px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right))
+      max(72px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+  }
+  .card {
+    padding: 36px 28px 28px;
+  }
+  .footer {
+    bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 480px) {
+  .auth {
+    padding-inline: 16px;
+  }
+  .card {
+    padding-inline: 22px;
+  }
+  .legalBreak {
+    display: none;
+  }
+}
