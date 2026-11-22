@@ -1,236 +1,181 @@
+/* Self-contained dark page: the storefront theme is light-only, so this page
+ * carries its own palette. Amber is the brand token. */
 .page {
-  display: grid;
-  min-height: 100svh;
-  place-items: center;
-  padding: clamp(1.5rem, 6vw, 5rem);
-  background: var(--color-bg);
-  color: var(--color-text-strong);
-}
-
-.layout {
-  display: grid;
-  align-items: center;
-  gap: 2.5rem;
-  width: 100%;
-  max-width: 72rem;
-}
-
-.well {
-  --tone: var(--color-warning-solid);
-  /* Illustration colour roles: surfaces and ink from the theme, one amber accent. */
-  --illos-dark: 0;
-  --illos-ground: var(--color-bg);
-  --illos-ink: var(--color-text-strong);
-  --illos-accent: var(--color-warning-solid);
-  position: relative;
-  isolation: isolate;
+  --mt-text: #f5f5f7;
+  --mt-text-soft: #e4e7ec;
+  --mt-muted: #8b93a1;
+  --mt-amber: var(--color-amber-primary, #f59e0b);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  overflow: hidden;
-  padding: 0.75rem;
-  border-radius: 20px;
-  background:
-    radial-gradient(80% 60% at 8% 0%, color-mix(in srgb, var(--tone) 22%, transparent), transparent 72%),
-    radial-gradient(70% 70% at 100% 100%, color-mix(in srgb, var(--tone) 14%, transparent), transparent 72%),
-    linear-gradient(160deg, color-mix(in srgb, var(--tone) 7%, var(--color-bg)), var(--color-surface));
+  min-height: 100svh;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse 62% 52% at 50% 33%, #0b1626 0%, #04070c 58%, #000 100%);
+  color: var(--mt-text);
+  font-family: var(--font-sans);
 }
 
-.art {
-  flex-shrink: 0;
-  width: 114%;
-  margin-left: -14%;
-  pointer-events: none;
-  user-select: none;
-}
-
-.art > svg {
-  display: block;
+.center {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 100%;
+  padding: 3.5rem 1.5rem 1.5rem;
+  text-align: center;
+}
+
+.mark {
+  display: block;
+  width: clamp(300px, 34vw, 500px);
+  max-width: 100%;
   height: auto;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2.25rem;
-  width: 100%;
-  max-width: 34rem;
-}
-
-@media (min-width: 1024px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    gap: 4rem;
-  }
-  .well {
-    order: 2;
-    align-self: stretch;
-    min-height: 520px;
-    padding: 1.5rem;
-  }
-}
-
-.brand {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.message {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
-.dot {
-  flex-shrink: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--color-warning-solid);
-  animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes ping {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning-solid) 55%, transparent); }
-  75%, 100% { box-shadow: 0 0 0 8px transparent; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dot { animation: none; }
-}
-
 .title {
-  margin: 0;
-  font-size: clamp(2.5rem, 6vw, 3.5rem);
-  font-weight: 600;
+  margin: 0.5rem 0 0;
+  font-size: clamp(2.5rem, 5.2vw, 4.5rem);
+  font-weight: 700;
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
+  color: var(--mt-text);
   text-wrap: balance;
 }
 
 .description {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 1rem;
-  line-height: 1.7;
-  text-wrap: pretty;
+  margin: 1.5rem 0 0;
+  max-width: 40rem;
+  font-size: clamp(1.0625rem, 1.6vw, 1.375rem);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--mt-text-soft);
+  text-wrap: balance;
 }
 
 .actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.875rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.75rem;
 }
 
-.buttonLabel {
+.retry {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mt-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.hint {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.5;
+.retry:hover:not(:disabled) {
+  background: rgb(255 255 255 / 8%);
+}
+
+.retry:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 44px;
+  color: var(--mt-amber);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.contact:hover {
+  text-decoration: underline;
+}
+
+.retry:focus-visible,
+.contact:focus-visible,
+.credit:focus-visible,
+.adminLink:focus-visible {
+  outline: 2px solid var(--mt-amber);
+  outline-offset: 4px;
 }
 
 .error {
-  margin: 0;
-  color: var(--color-danger);
+  margin: 1rem 0 0;
+  color: #fca5a5;
   font-size: 1rem;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 1.5rem 1.25rem;
+  text-align: center;
+}
+
+.location {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mt-muted);
+  text-wrap: balance;
+}
+
+.credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 44px;
+  color: var(--mt-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+/* The supplied white-on-ink asset has its own ink background: round the box so
+ * it reads as a deliberate badge on the near-black page. Asset is unmodified. */
+.creditLogo {
+  display: block;
+  height: 18px;
+  width: auto;
+  border-radius: 4px;
+  outline: 1px solid rgb(243 239 231 / 14%);
 }
 
 .adminLink {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
+  color: var(--mt-muted);
+  font-size: 0.8125rem;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-.adminLink:focus-visible {
-  outline: 2px solid var(--color-text-strong);
-  outline-offset: 4px;
+.adminLink:hover {
+  color: var(--mt-text-soft);
 }
 
 @media (max-width: 640px) {
-  .content {
-    gap: 1.75rem;
+  .location {
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
   }
-  .brand {
-    margin-bottom: 0.5rem;
-  }
-}
-
-.credit {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-6, 1.5rem) 0 0;
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-.creditLogo {
-  display: block;
-  height: 16px;
-  width: auto;
-  max-width: 6.5rem;
-  flex-shrink: 0;
-}
-
-.creditLink {
-  color: var(--color-text);
-  font-weight: var(--font-weight-medium);
-  text-decoration: none;
-}
-
-.creditLink:hover,
-.creditLink:focus-visible {
-  color: var(--color-text-strong);
-  text-decoration: underline;
-}
-
-.nookLogo {
-  display: inline-block;
-  height: 14px;
-  width: auto;
-  vertical-align: -2px;
-}
-
-.photo {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 16rem;
-  object-fit: cover;
-  border-radius: 14px;
-  pointer-events: none;
-  user-select: none;
-}
-
-.brandLogo {
-  display: block;
-  height: 44px;
-  width: auto;
-  max-width: 14rem;
-  object-fit: contain;
 }
