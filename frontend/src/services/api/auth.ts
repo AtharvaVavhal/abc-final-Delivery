@@ -31,6 +31,23 @@ export async function loginRequest(
   return res.data.data
 }
 
+/** POST /auth/otp/request — sends an SMS code. 204, no body. Backend returns
+ * 404 while the OTP feature flag is off, 400 for a malformed number and 429
+ * when a rate limit is hit. */
+export async function requestOtpRequest(phone: string): Promise<void> {
+  await apiClient.post('/auth/otp/request', { phone })
+}
+
+/** POST /auth/otp/verify — verifies the code and starts a customer session
+ * (same shape and refresh cookie as password login). */
+export async function verifyOtpRequest(phone: string, code: string): Promise<AuthTokenResult> {
+  const res = await apiClient.post<ApiSuccessResponse<AuthTokenResult>>('/auth/otp/verify', {
+    phone,
+    code,
+  })
+  return res.data.data
+}
+
 export async function logoutRequest(): Promise<void> {
   await apiClient.post('/auth/logout')
 }

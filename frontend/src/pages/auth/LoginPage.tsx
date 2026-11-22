@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useApiError } from '@/hooks/useApiError'
 import { useStoreName } from '@/hooks/useStoreName'
@@ -8,12 +8,52 @@ import { loginSchema, type LoginFormValues } from '@/schemas/auth.schema'
 import { ROUTES } from '@/constants/routes'
 import { postAuthDestination } from '@/features/auth/postAuthDestination'
 import { AuthFormShell } from '@/features/auth/AuthFormShell'
+import { OtpSignIn } from '@/features/auth/OtpSignIn'
+import { OTP_LOGIN_ENABLED } from '@/features/auth/otpEnabled'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import shellStyles from '@/features/auth/AuthFormShell.module.css'
 
+/** Customers sign in by phone OTP when VITE_AUTH_OTP_ENABLED is on; staff
+ * (admin) reach the email + password form via `?method=password`. With the
+ * flag off this is exactly the original email + password page. */
 export function LoginPage() {
+  const [params] = useSearchParams()
+  if (OTP_LOGIN_ENABLED && params.get('method') !== 'password') {
+    return <OtpLoginPage />
+  }
+  return <PasswordLoginPage />
+}
+
+function OtpLoginPage() {
+  const location = useLocation()
+  const storeName = useStoreName()
+  return (
+    <AuthFormShell
+      title="Log in or sign up"
+      aside={
+        <>
+          <span className={shellStyles.asideKicker}>{storeName}</span>
+          <p className={shellStyles.asideHeading}>Good to have you here.</p>
+          <p className={shellStyles.asideText}>
+            Track orders, reorder favourites and check out faster — just with your mobile number.
+          </p>
+        </>
+      }
+      subtitle={`Continue to ${storeName} with a one-time code.`}
+      footer={
+        <Link to="/login?method=password" state={location.state as unknown}>
+          Staff sign in
+        </Link>
+      }
+    >
+      <OtpSignIn />
+    </AuthFormShell>
+  )
+}
+
+function PasswordLoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

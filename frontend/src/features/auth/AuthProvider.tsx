@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import { clearAuth, getAuthState, setAuthenticated, subscribeAuthState } from '@/services/api/authStore'
 import { refreshSession } from '@/services/api/client'
-import { loginRequest, logoutRequest, registerRequest } from '@/services/api/auth'
+import {
+  loginRequest,
+  logoutRequest,
+  registerRequest,
+  requestOtpRequest,
+  verifyOtpRequest,
+} from '@/services/api/auth'
 import { isAdminSessionRole } from './adminSession'
 import { useAdminIdleLogout } from './useAdminIdleLogout'
 import { AuthContext, type AuthContextValue } from './authContext'
@@ -39,6 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthenticated(result.user, result.accessToken)
   }, [])
 
+  const requestOtp = useCallback(async (phone: string) => {
+    await requestOtpRequest(phone)
+  }, [])
+
+  const loginWithOtp = useCallback(async (phone: string, code: string) => {
+    const result = await verifyOtpRequest(phone, code)
+    setAuthenticated(result.user, result.accessToken)
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await logoutRequest()
@@ -53,8 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user: state.user, status: state.status, login, register, logout }),
-    [state.user, state.status, login, register, logout],
+    () => ({
+      user: state.user,
+      status: state.status,
+      login,
+      register,
+      loginWithOtp,
+      requestOtp,
+      logout,
+    }),
+    [state.user, state.status, login, register, loginWithOtp, requestOtp, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

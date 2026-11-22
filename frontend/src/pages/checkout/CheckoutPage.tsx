@@ -176,7 +176,7 @@ export function CheckoutPage() {
         {
           name: target.shippingRecipientName,
           contact: target.shippingPhone,
-          email: profileQuery.data?.email,
+          email: profileQuery.data?.email ?? undefined,
         },
       )
     } catch (err) {

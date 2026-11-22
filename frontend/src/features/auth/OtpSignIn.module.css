@@ -1,0 +1,52 @@
+.phoneRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.prefix {
+  display: inline-flex;
+  align-items: center;
+  height: 2.75rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+.phoneField {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, var(--color-text));
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  color: var(--color-text-muted, var(--color-text));
+  text-decoration: none;
+  cursor: default;
+}

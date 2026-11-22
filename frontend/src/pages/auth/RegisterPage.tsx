@@ -1,12 +1,13 @@
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useApiError } from '@/hooks/useApiError'
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth.schema'
 import { ROUTES } from '@/constants/routes'
 import { postAuthDestination } from '@/features/auth/postAuthDestination'
 import { AuthFormShell } from '@/features/auth/AuthFormShell'
+import { OTP_LOGIN_ENABLED } from '@/features/auth/otpEnabled'
 import { TextField } from '@/components/ui/TextField'
 import { PasswordRequirements } from '@/components/ui/PasswordRequirements'
 import { Button } from '@/components/ui/Button'
@@ -15,7 +16,18 @@ import shellStyles from '@/features/auth/AuthFormShell.module.css'
 
 const PASSWORD_REQUIREMENTS_ID = 'register-password-requirements'
 
+/** With phone-OTP login on there is no separate sign-up: a verified number
+ * with no account creates one, so /register sends people to the one login
+ * page (keeping the router state so they return to where they were headed). */
 export function RegisterPage() {
+  const location = useLocation()
+  if (OTP_LOGIN_ENABLED) {
+    return <Navigate to={ROUTES.LOGIN} state={location.state as unknown} replace />
+  }
+  return <PasswordRegisterPage />
+}
+
+function PasswordRegisterPage() {
   const { register: registerAccount } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
