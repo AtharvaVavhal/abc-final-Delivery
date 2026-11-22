@@ -17,10 +17,10 @@ import { SmsProvider } from './sms-provider';
  *     design). Over HTTPS, but they will appear in Renflair's server logs. We
  *     therefore NEVER log the URL, the key, the number or the code, and refuse
  *     redirects so the key can't be forwarded elsewhere.
- *   - The response shape is NOT documented (their sample ignores it). Failure
- *     is assumed for a non-2xx status, a non-JSON body, or JSON whose
- *     `status`/`success`/`error` fields say so. Confirm with a real response
- *     (scripts/send-test-otp.ts) and tighten this.
+ *   - The response is not documented; the success shape was observed on a real
+ *     send (scripts/send-test-otp.ts): {"message":"Message Successfully
+ *     Delivered","status":"SUCCESS"}. Failure shapes are NOT observed, so
+ *     anything other than status=SUCCESS is treated as a failure.
  *   - Renflair is a non-DLT reseller: confirm on a real phone what sender and
  *     wording customers will see.
  */
@@ -74,22 +74,22 @@ export class RenflairProvider extends SmsProvider {
     }
   }
 
-  /** True for a non-JSON body or a JSON body that reports failure. */
+  /**
+   * Fail closed: only an explicit `{"status":"SUCCESS"}` (the shape Renflair
+   * returned on a real send: {"message":"Message Successfully Delivered",
+   * "status":"SUCCESS"}) counts as delivered. Anything else — non-JSON, a
+   * missing or different status, an error body — is a failure.
+   */
   private static isFailure(body: string): boolean {
-    let json: unknown;
     try {
-      json = JSON.parse(body);
+      const json: unknown = JSON.parse(body);
+      if (json === null || typeof json !== 'object') return true;
+      const status = (json as Record<string, unknown>).status;
+      return !(
+        typeof status === 'string' && status.trim().toLowerCase() === 'success'
+      );
     } catch {
       return true;
     }
-    if (json === null || typeof json !== 'object') return true;
-    const o = json as Record<string, unknown>;
-    const bad = new Set(['error', 'fail', 'failed', 'failure', 'false', '0']);
-    for (const key of ['status', 'success', 'ok']) {
-      const v = o[key];
-      if (v === false || v === 0) return true;
-      if (typeof v === 'string' && bad.has(v.trim().toLowerCase())) return true;
-    }
-    return typeof o.error === 'string' && o.error.length > 0;
   }
 }

@@ -24,7 +24,10 @@ describe('RenflairProvider', () => {
   });
 
   it('GETs V1.php with API, 10-digit PHONE, OTP and COUNTRY=91', async () => {
-    const fetchMock = mockFetch(200, '{"status":"success"}');
+    const fetchMock = mockFetch(
+      200,
+      '{"message":"Message Successfully Delivered","status":"SUCCESS"}',
+    );
     await provider().sendOtp('+919876543210', '123456');
 
     const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
@@ -38,13 +41,19 @@ describe('RenflairProvider', () => {
   });
 
   it.each([
-    ['non-2xx', 500, '{"status":"success"}'],
+    [
+      'non-2xx',
+      500,
+      '{"message":"Message Successfully Delivered","status":"SUCCESS"}',
+    ],
     ['non-JSON body', 200, '<html>login</html>'],
     ['status=error', 200, '{"status":"error"}'],
     ['status=failed', 200, '{"status":"Failed"}'],
     ['success=false', 200, '{"success":false}'],
     ['error message', 200, '{"error":"Insufficient balance"}'],
     ['empty body', 200, ''],
+    ['JSON without a status', 200, '{"message":"queued"}'],
+    ['a different status word', 200, '{"status":"PENDING"}'],
   ])('treats %s as a failure', async (_n, status, body) => {
     mockFetch(status, body);
     await expect(provider().sendOtp('+919876543210', '123456')).rejects.toThrow(
@@ -52,11 +61,10 @@ describe('RenflairProvider', () => {
     );
   });
 
-  it('accepts a JSON success body in common shapes', async () => {
+  it('accepts only the observed success shape (status SUCCESS, any case)', async () => {
     for (const body of [
+      '{"message":"Message Successfully Delivered","status":"SUCCESS"}',
       '{"status":"success"}',
-      '{"success":true}',
-      '{"message":"sent"}',
     ]) {
       mockFetch(200, body);
       await expect(
