@@ -7,10 +7,10 @@ import { createTestQueryClient, renderWithProviders } from '@/test/test-utils'
 import { STOREFRONT_PUBLIC_SETTINGS_QUERY_KEY } from '@/hooks/useStorefrontPublicSettings'
 import { MaintenanceGate } from './MaintenanceGate'
 
-const response = (enabled: boolean) => ({
+const response = (enabled: boolean, extra: Record<string, string> = {}) => ({
   success: true,
   data: {
-    data: { maintenance_mode: String(enabled), storeName: 'Test store' },
+    data: { maintenance_mode: String(enabled), storeName: 'Test store', ...extra },
   },
 })
 
@@ -49,7 +49,7 @@ describe('MaintenanceGate', () => {
     renderGate(path)
     expect(
       await screen.findByRole('heading', {
-        name: 'We’re taking a short break.',
+        name: 'We’ll be right back.',
       }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Requested route')).not.toBeInTheDocument()
@@ -59,6 +59,39 @@ describe('MaintenanceGate', () => {
     expect(
       screen.getByRole('link', { name: 'Store admin sign in' }),
     ).toHaveAttribute('href', '/login')
+  })
+
+  it('offers Contact us only through channels the store has published', async () => {
+    mock.onGet('/settings').replyOnce(
+      200,
+      response(true, { whatsappNumber: '+91 98765 43210', storeContactEmail: 'hi@example.com' }),
+    )
+    const first = renderGate()
+    expect(await screen.findByRole('link', { name: 'Contact us' })).toHaveAttribute(
+      'href',
+      'https://wa.me/919876543210',
+    )
+    first.unmount()
+
+    mock.onGet('/settings').replyOnce(200, response(true, { storeContactEmail: 'hi@example.com' }))
+    const second = renderGate()
+    expect(await screen.findByRole('link', { name: 'Contact us' })).toHaveAttribute(
+      'href',
+      'mailto:hi@example.com',
+    )
+    second.unmount()
+
+    mock.onGet('/settings').replyOnce(200, response(true))
+    renderGate()
+    await screen.findByRole('heading', { name: 'We’ll be right back.' })
+    expect(screen.queryByRole('link', { name: 'Contact us' })).not.toBeInTheDocument()
+  })
+
+  it('credits FORGE and links to its site', async () => {
+    mock.onGet('/settings').reply(200, response(true))
+    renderGate()
+    const credit = await screen.findByRole('link', { name: /A product of\s*FORGE/ })
+    expect(credit).toHaveAttribute('href', 'https://forgebuilds.in')
   })
 
   it.each([
@@ -101,7 +134,7 @@ describe('MaintenanceGate', () => {
       finish([200, response(true)])
     })
     expect(
-      await screen.findByText('We’re taking a short break.'),
+      await screen.findByText('We’ll be right back.'),
     ).toBeInTheDocument()
   })
 
@@ -124,7 +157,7 @@ describe('MaintenanceGate', () => {
     mock.onGet('/settings').networkErrorOnce()
     mock.onGet('/settings').reply(200, response(false))
     renderGate('/checkout')
-    await screen.findByText('We’re taking a short break.')
+    await screen.findByText('We’ll be right back.')
     await user.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'We couldn’t check for updates',
@@ -147,7 +180,7 @@ describe('MaintenanceGate', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_001)
     })
-    expect(screen.getByText('We’re taking a short break.')).toBeInTheDocument()
+    expect(screen.getByText('We’ll be right back.')).toBeInTheDocument()
     enabled = false
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_001)

@@ -31,13 +31,20 @@ live React gate does not use that snapshot to determine availability.
   tree. Keep shared UI here so imports and future component tooling agree.
 - React, TypeScript, React Router, TanStack Query and lucide-react are already
   installed. No new dependencies or context providers are needed.
-- The supplied layout is adapted to the established CSS modules and brand
-  tokens. It has responsive type/spacing, a full viewport minimum height,
-  keyboard-accessible controls and no decorative animation.
-- The gate supplies the store name, retry callback, loading state and errors.
-  The component also accepts custom status/title/description and className.
-- Illos artwork, fake progress/countdowns, placeholder status links and email
-  collection are omitted per the handoff. No external image assets are needed.
+- Dark, self-contained page (the storefront theme is light-only) built around
+  the AB monogram in `src/components/ui/AbGlowMark.tsx`. The glow pulses
+  slowly and stops under `prefers-reduced-motion`. Responsive type, full
+  viewport height, keyboard-accessible controls. Text uses the app's
+  `--font-sans`; no new fonts or dependencies.
+- The gate supplies the store name, retry callback, loading state, errors and a
+  "Contact us" link built only from what the store has published: WhatsApp,
+  else email, else phone. If none is published the link is not rendered.
+- Footer: location line, "A product of FORGE" using the exact
+  `public/brand/forge/FORGE-horizontal-white-on-ink.png` asset (unmodified) linked
+  to forgebuilds.in, and the "Store admin sign in" link (`/login` stays reachable).
+- Illos artwork, workshop photo, fake progress/countdowns, placeholder status
+  links and email collection are omitted: the backend has no end time or notify
+  endpoint. The component also accepts custom title/description and className.
 
 ```tsx
 import { IllosMaintenancePage } from '@/components/ui/illos-maintenance-page'

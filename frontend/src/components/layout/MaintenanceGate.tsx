@@ -3,7 +3,20 @@ import { matchPath, useLocation } from 'react-router-dom'
 import { useStorefrontPublicSettings } from '@/hooks/useStorefrontPublicSettings'
 import { FullPageLoader } from '@/components/ui/FullPageLoader'
 import { IllosMaintenancePage } from '@/components/ui/illos-maintenance-page'
+import type { StorefrontPublicSettings } from '@/services/api/settings'
 import { Seo } from '@/seo/Seo'
+
+/** Only the contact channels the store has actually published: WhatsApp first,
+ * then email, then phone. Nothing published means no link is shown. */
+function contactHref(data: StorefrontPublicSettings | undefined): string | undefined {
+  const whatsapp = data?.whatsappNumber?.replace(/[^0-9]/g, '')
+  if (whatsapp) return `https://wa.me/${whatsapp}`
+  const email = data?.contact.email.trim()
+  if (email) return `mailto:${email}`
+  const phone = data?.contact.phone.replace(/\s/g, '')
+  if (phone) return `tel:${phone}`
+  return undefined
+}
 
 export function MaintenanceGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
@@ -34,8 +47,7 @@ function StorefrontAvailability({ children }: { children: ReactNode }) {
         />
         <IllosMaintenancePage
           storeName={settings.data?.storeName}
-          logoUrl={settings.data?.storeLogo}
-          status={maintenance ? undefined : 'Store availability unavailable'}
+          contactHref={contactHref(settings.data)}
           title={maintenance ? undefined : 'We couldn’t reach the store.'}
           description={
             maintenance
