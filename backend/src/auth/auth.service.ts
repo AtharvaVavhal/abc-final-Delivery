@@ -17,6 +17,7 @@ import {
 import { AppConfig } from '../common/config/configuration';
 import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
+import { OtpService } from './otp/otp.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { refreshCookieBaseOptions } from '../common/http/refresh-cookie-options';
 import { refreshTtlMsForUser } from './refresh-ttl';
@@ -45,7 +46,7 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
 
 export interface PublicUser {
   id: string;
-  email: string;
+  email: string | null;
   role: string;
   createdAt: Date;
 }
@@ -68,6 +69,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
     configService: ConfigService<AppConfig, true>,
   ) {
     const authConfig = configService.get('auth', { infer: true });
@@ -160,7 +162,10 @@ export class AuthService {
       await this.sleep(delayMs);
     }
 
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+    // Phone-only (OTP) accounts have no password — they can never pass here.
+    const passwordValid = user.passwordHash
+      ? await bcrypt.compare(password, user.passwordHash)
+      : (await bcrypt.compare(password, DUMMY_PASSWORD_HASH), false);
     if (!passwordValid) {
       await this.prisma.user.update({
         where: { id: user.id },
@@ -190,6 +195,87 @@ export class AuthService {
       },
     });
 
+    this.setRefreshCookie(res, rawRefreshToken, refreshTokenExpiresAt);
+    return {
+      accessToken: this.signAccessToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
+  // ─── Phone OTP (docs/architecture/PHONE-OTP-AUTH-DESIGN.md) ────────
+
+  async requestOtp(phone: string, ip: string | undefined): Promise<void> {
+    await this.otpService.requestCode(phone, ip);
+  }
+
+  /**
+   * Verifies the SMS code, finds or creates the CUSTOMER account for that
+   * verified number, and issues the same access token + rotating refresh
+   * cookie as password login. Staff (admin / platform) accounts can never
+   * sign in this way.
+   *
+   * NOTE (claim flow): today the only way an account gets a `phoneE164` is
+   * this very flow, which creates phone-only CUSTOMER accounts with no email
+   * — and team invites are by email — so none can hold a tenant membership.
+   * When the existing-account claim flow is built (design §8) it MUST also
+   * refuse accounts with a tenant membership; that check belongs in a file on
+   * the tenant-data-access allowlist (tenant-data-access-guard.spec.ts).
+   */
+  async verifyOtpAndLogin(
+    phone: string,
+    code: string,
+    res: Response,
+  ): Promise<AuthTokenResult> {
+    const phoneE164 = await this.otpService.verifyCode(phone, code);
+
+    let user = await this.prisma.user.findUnique({
+      where: { phoneE164 },
+    });
+    if (!user) {
+      try {
+        user = await this.prisma.user.create({
+          data: { phoneE164, phoneVerifiedAt: new Date() },
+        });
+      } catch (err) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          // Lost a race with a concurrent verify for the same number.
+          user = await this.prisma.user.findUnique({
+            where: { phoneE164 },
+          });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (
+      !user ||
+      !user.isActive ||
+      user.role !== 'CUSTOMER' ||
+      user.platformRole !== null
+    ) {
+      throw new UnauthorizedException('Invalid or expired code');
+    }
+
+    if (!user.phoneVerifiedAt) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { phoneVerifiedAt: new Date() },
+      });
+    }
+
+    const rawRefreshToken = generateOpaqueToken();
+    const refreshTokenExpiresAt = this.refreshExpiryFor(user);
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashRefreshToken(rawRefreshToken, this.refreshTokenSecret),
+        expiresAt: refreshTokenExpiresAt,
+      },
+    });
     this.setRefreshCookie(res, rawRefreshToken, refreshTokenExpiresAt);
     return {
       accessToken: this.signAccessToken(user),

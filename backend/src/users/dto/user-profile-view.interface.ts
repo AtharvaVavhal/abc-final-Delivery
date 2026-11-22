@@ -10,7 +10,7 @@ import { Role } from '@prisma/client';
  */
 export interface UserProfileView {
   id: string;
-  email: string;
+  email: string | null;
   addressLine1: string | null;
   addressLine2: string | null;
   city: string | null;

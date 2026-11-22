@@ -95,6 +95,43 @@ describe('validateEnv', () => {
     ).toThrow(/RESEND_API_KEY is required in production/);
   });
 
+  describe('phone-OTP settings', () => {
+    const prod = { ...BASE, NODE_ENV: 'production', ...PROD_INTEGRATION };
+
+    it('needs no OTP keys while the flag is off', () => {
+      expect(() => validateEnv({ ...prod })).not.toThrow();
+    });
+
+    it('requires the HMAC secret and MSG91 keys once the flag is on', () => {
+      expect(() => validateEnv({ ...prod, AUTH_OTP_ENABLED: 'true' })).toThrow(
+        /OTP_HMAC_SECRET is required[\s\S]*MSG91_AUTH_KEY is required[\s\S]*MSG91_OTP_TEMPLATE_ID is required/,
+      );
+    });
+
+    it('refuses the console provider in production', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'console',
+        }),
+      ).toThrow(/OTP_SMS_PROVIDER=console is not allowed in production/);
+    });
+
+    it('accepts a fully-configured OTP production boot', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          MSG91_AUTH_KEY: 'k',
+          MSG91_OTP_TEMPLATE_ID: 't',
+        }),
+      ).not.toThrow();
+    });
+  });
+
   it('accepts a fully-configured production boot', () => {
     expect(() =>
       validateEnv({ ...BASE, NODE_ENV: 'production', ...PROD_INTEGRATION }),

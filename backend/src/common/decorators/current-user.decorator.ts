@@ -27,7 +27,7 @@ export interface AuthenticatedMembership {
  */
 export interface AuthenticatedUser {
   id: string;
-  email: string;
+  email: string | null;
   role: string;
   platformRole: PlatformRole | null;
   memberships: AuthenticatedMembership[];

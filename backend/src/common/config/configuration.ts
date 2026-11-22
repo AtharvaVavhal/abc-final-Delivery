@@ -53,6 +53,22 @@ export interface AppConfig {
     apiKey: string;
     emailFromAddress: string;
   };
+  /** Phone-OTP customer login (docs/architecture/PHONE-OTP-AUTH-DESIGN.md). */
+  otp: {
+    /** Feature flag — defaults to off; the OTP routes 404 while false. */
+    enabled: boolean;
+    /** 'msg91' sends real SMS; 'console' logs the code (never in production). */
+    provider: 'msg91' | 'console';
+    /** Keyed-hash secret for stored codes (HMAC-SHA256). */
+    hmacSecret: string;
+    /** Global ceiling on SMS sends per UTC day (SMS-pumping / bill defence). */
+    dailySendCap: number;
+    msg91: {
+      authKey: string;
+      templateId: string;
+      baseUrl: string;
+    };
+  };
   cloudinary: {
     cloudName: string;
     apiKey: string;
@@ -168,6 +184,18 @@ export default (): AppConfig => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY ?? '',
     emailFromAddress: process.env.EMAIL_FROM_ADDRESS ?? '',
+  },
+  otp: {
+    enabled: process.env.AUTH_OTP_ENABLED === 'true',
+    provider: process.env.OTP_SMS_PROVIDER === 'console' ? 'console' : 'msg91',
+    hmacSecret: process.env.OTP_HMAC_SECRET ?? '',
+    dailySendCap:
+      Number.parseInt(process.env.OTP_DAILY_SEND_CAP ?? '500', 10) || 500,
+    msg91: {
+      authKey: process.env.MSG91_AUTH_KEY ?? '',
+      templateId: process.env.MSG91_OTP_TEMPLATE_ID ?? '',
+      baseUrl: process.env.MSG91_BASE_URL ?? 'https://control.msg91.com',
+    },
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',

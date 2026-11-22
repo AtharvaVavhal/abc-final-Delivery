@@ -122,6 +122,37 @@ function invalidProductionMasterKey(config: Record<string, unknown>): string[] {
   }
 }
 
+/**
+ * Phone-OTP keys are required in production only when the feature flag is on,
+ * so the flag can ship off without MSG91 credentials. The console provider
+ * (which logs codes) is refused in production outright.
+ */
+function otpProductionProblems(config: Record<string, unknown>): string[] {
+  if (config['AUTH_OTP_ENABLED'] !== 'true') return [];
+  const blank = (key: string): boolean => {
+    const v = config[key];
+    return typeof v !== 'string' || v.trim() === '';
+  };
+  const problems: string[] = [];
+  if (blank('OTP_HMAC_SECRET')) {
+    problems.push(
+      'OTP_HMAC_SECRET is required in production when AUTH_OTP_ENABLED=true',
+    );
+  }
+  if (config['OTP_SMS_PROVIDER'] === 'console') {
+    problems.push('OTP_SMS_PROVIDER=console is not allowed in production');
+  } else {
+    for (const key of ['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID']) {
+      if (blank(key)) {
+        problems.push(
+          `${key} is required in production when AUTH_OTP_ENABLED=true`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
 export function validateEnv(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
@@ -140,6 +171,7 @@ export function validateEnv(
     messages.push(
       ...missingProductionKeys(config),
       ...invalidProductionMasterKey(config),
+      ...otpProductionProblems(config),
     );
   }
 

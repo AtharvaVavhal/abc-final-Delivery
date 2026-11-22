@@ -152,8 +152,16 @@ enum OutboxEventStatus {
 // is RESTRICT). tokenVersion only ever increments (§23).
 model User {
   id           String @id @default(uuid())
-  email        String @unique
-  passwordHash String
+  // Nullable since phone-OTP login (docs/architecture/PHONE-OTP-AUTH-DESIGN.md):
+  // customers sign in by SMS code and may have no email. Staff accounts always
+  // have both email and passwordHash (enforced in application logic).
+  email        String? @unique
+  passwordHash String?
+  // Verified mobile number in E.164 ("+91XXXXXXXXXX"). Separate from the
+  // legacy free-text `phone` profile field below, which is unverified and may
+  // hold duplicates — never used for login.
+  phoneE164       String?   @unique
+  phoneVerifiedAt DateTime?
 
   role         Role          @default(CUSTOMER)
   // SaaS Identity (Phase 2a) — platform super-admin axis. Nullable, NO default:
@@ -240,6 +248,23 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@map("refresh_tokens")
+}
+
+// One row per SMS code sent. Only a keyed hash of the code is stored. Short
+// lived — consumed, expired or exhausted rows are purged by a scheduled job.
+model OtpChallenge {
+  id         String    @id @default(uuid())
+  phoneE164  String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  requestIp  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([phoneE164, createdAt])
+  @@index([createdAt])
+  @@map("otp_challenges")
 }
 
 // ─── Catalog ────────────────────────────────────────────────────────────

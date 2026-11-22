@@ -12,6 +12,9 @@ import { PrismaClient } from '@prisma/client';
 const ALL_TABLES = [
   'users',
   'refresh_tokens',
+  // Phone-OTP login challenges — no FK to users, so TRUNCATE users CASCADE
+  // would NOT empty it; it must be listed.
+  'otp_challenges',
   'categories',
   'products',
   'product_images',

@@ -16,6 +16,8 @@ import { REFRESH_TOKEN_COOKIE_NAME } from '../common/constants/app.constants';
 import { AuthService, AuthTokenResult } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { OtpRequestDto } from './dto/otp-request.dto';
+import { OtpVerifyDto } from './dto/otp-verify.dto';
 import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
 
@@ -46,6 +48,30 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthTokenResult> {
     return this.authService.register(dto.email, dto.password, res);
+  }
+
+  /** Phone-OTP step 1 — sends an SMS code. 404 while the feature flag is off. */
+  @Public()
+  @ThrottleAuth()
+  @Post('otp/request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async requestOtp(
+    @Body() dto: OtpRequestDto,
+    @Req() req: Request,
+  ): Promise<void> {
+    await this.authService.requestOtp(dto.phone, req.ip);
+  }
+
+  /** Phone-OTP step 2 — verifies the code and starts a customer session. */
+  @Public()
+  @ThrottleAuth()
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body() dto: OtpVerifyDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthTokenResult> {
+    return this.authService.verifyOtpAndLogin(dto.phone, dto.code, res);
   }
 
   @Public()

@@ -136,6 +136,8 @@ async function main(): Promise<void> {
   });
   let customersCreated = 0;
   for (const u of customersUsers) {
+    // Phone-only (OTP) users have no email/password to copy into a Customer.
+    if (!u.email || !u.passwordHash) continue;
     const existing = await prisma.customer.findUnique({
       where: { storeId_email: { storeId: store.id, email: u.email } },
     });

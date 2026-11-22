@@ -11,7 +11,7 @@ import type { MembershipStatus, TenantRole } from '@prisma/client';
 export interface TeamMemberView {
   id: string;
   userId: string;
-  email: string;
+  email: string | null;
   role: TenantRole;
   status: MembershipStatus;
   invitedByUserId: string | null;
