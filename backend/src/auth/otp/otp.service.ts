@@ -113,7 +113,7 @@ export class OtpService {
         `OTP daily send cap (${this.dailySendCap}) reached — refusing sends`,
       );
       throw new ServiceUnavailableException(
-        'Sign-in by SMS is temporarily unavailable',
+        'Sign-in by one-time code is temporarily unavailable',
       );
     }
     if (

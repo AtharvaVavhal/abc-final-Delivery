@@ -119,6 +119,35 @@ describe('validateEnv', () => {
       ).toThrow(/OTP_SMS_PROVIDER=console is not allowed in production/);
     });
 
+    it('requires the WhatsApp keys when the WhatsApp provider is selected', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91-whatsapp',
+          MSG91_AUTH_KEY: 'k',
+        }),
+      ).toThrow(
+        /MSG91_WHATSAPP_INTEGRATED_NUMBER is required[\s\S]*MSG91_WHATSAPP_TEMPLATE_NAME is required[\s\S]*MSG91_WHATSAPP_TEMPLATE_NAMESPACE is required/,
+      );
+    });
+
+    it('accepts a fully-configured WhatsApp OTP production boot (no SMS template id needed)', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91-whatsapp',
+          MSG91_AUTH_KEY: 'k',
+          MSG91_WHATSAPP_INTEGRATED_NUMBER: '919999999999',
+          MSG91_WHATSAPP_TEMPLATE_NAME: 'login_otp',
+          MSG91_WHATSAPP_TEMPLATE_NAMESPACE: 'ns',
+        }),
+      ).not.toThrow();
+    });
+
     it('accepts a fully-configured OTP production boot', () => {
       expect(() =>
         validateEnv({

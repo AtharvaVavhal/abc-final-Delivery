@@ -57,8 +57,9 @@ export interface AppConfig {
   otp: {
     /** Feature flag — defaults to off; the OTP routes 404 while false. */
     enabled: boolean;
-    /** 'msg91' sends real SMS; 'console' logs the code (never in production). */
-    provider: 'msg91' | 'console';
+    /** 'msg91' = SMS; 'msg91-whatsapp' = WhatsApp authentication template;
+     * 'console' logs the code (never in production). */
+    provider: 'msg91' | 'msg91-whatsapp' | 'console';
     /** Keyed-hash secret for stored codes (HMAC-SHA256). */
     hmacSecret: string;
     /** Global ceiling on SMS sends per UTC day (SMS-pumping / bill defence). */
@@ -67,6 +68,14 @@ export interface AppConfig {
       authKey: string;
       templateId: string;
       baseUrl: string;
+      whatsapp: {
+        integratedNumber: string;
+        templateName: string;
+        templateNamespace: string;
+        languageCode: string;
+        /** Authentication templates carry a copy-code button; its value is the OTP. */
+        includeButton: boolean;
+      };
     };
   };
   cloudinary: {
@@ -187,7 +196,12 @@ export default (): AppConfig => ({
   },
   otp: {
     enabled: process.env.AUTH_OTP_ENABLED === 'true',
-    provider: process.env.OTP_SMS_PROVIDER === 'console' ? 'console' : 'msg91',
+    provider:
+      process.env.OTP_SMS_PROVIDER === 'console'
+        ? 'console'
+        : process.env.OTP_SMS_PROVIDER === 'msg91-whatsapp'
+          ? 'msg91-whatsapp'
+          : 'msg91',
     hmacSecret: process.env.OTP_HMAC_SECRET ?? '',
     dailySendCap:
       Number.parseInt(process.env.OTP_DAILY_SEND_CAP ?? '500', 10) || 500,
@@ -195,6 +209,13 @@ export default (): AppConfig => ({
       authKey: process.env.MSG91_AUTH_KEY ?? '',
       templateId: process.env.MSG91_OTP_TEMPLATE_ID ?? '',
       baseUrl: process.env.MSG91_BASE_URL ?? 'https://control.msg91.com',
+      whatsapp: {
+        integratedNumber: process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER ?? '',
+        templateName: process.env.MSG91_WHATSAPP_TEMPLATE_NAME ?? '',
+        templateNamespace: process.env.MSG91_WHATSAPP_TEMPLATE_NAMESPACE ?? '',
+        languageCode: process.env.MSG91_WHATSAPP_LANGUAGE ?? 'en',
+        includeButton: process.env.MSG91_WHATSAPP_INCLUDE_BUTTON !== 'false',
+      },
     },
   },
   cloudinary: {

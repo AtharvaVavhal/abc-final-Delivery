@@ -141,6 +141,19 @@ function otpProductionProblems(config: Record<string, unknown>): string[] {
   }
   if (config['OTP_SMS_PROVIDER'] === 'console') {
     problems.push('OTP_SMS_PROVIDER=console is not allowed in production');
+  } else if (config['OTP_SMS_PROVIDER'] === 'msg91-whatsapp') {
+    for (const key of [
+      'MSG91_AUTH_KEY',
+      'MSG91_WHATSAPP_INTEGRATED_NUMBER',
+      'MSG91_WHATSAPP_TEMPLATE_NAME',
+      'MSG91_WHATSAPP_TEMPLATE_NAMESPACE',
+    ]) {
+      if (blank(key)) {
+        problems.push(
+          `${key} is required in production when AUTH_OTP_ENABLED=true and OTP_SMS_PROVIDER=msg91-whatsapp`,
+        );
+      }
+    }
   } else {
     for (const key of ['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID']) {
       if (blank(key)) {

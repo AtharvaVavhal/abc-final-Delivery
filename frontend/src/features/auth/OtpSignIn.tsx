@@ -15,7 +15,7 @@ import { OTP_RESEND_SECONDS, isValidIndianMobile } from './otpPhone'
 
 function describeError(err: unknown): string {
   if (axios.isAxiosError(err) && err.response?.status === 404) {
-    return 'Sign-in by SMS is not available right now. Please try again later.'
+    return 'Sign-in by one-time code is not available right now. Please try again later.'
   }
   return getApiErrorMessage(err)
 }
@@ -77,7 +77,7 @@ export function OtpSignIn() {
     e.preventDefault()
     clearError()
     if (!/^\d{6}$/.test(code)) {
-      setCustomError('Enter the 6-digit code from the SMS')
+      setCustomError('Enter the 6-digit code we sent you')
       return
     }
     setBusy(true)
@@ -118,7 +118,7 @@ export function OtpSignIn() {
             onChange={(e) => setPhone(e.target.value)}
           />
         </div>
-        <p className={styles.hint}>We&apos;ll text you a 6-digit code. No password needed.</p>
+        <p className={styles.hint}>We&apos;ll send you a 6-digit code. No password needed.</p>
         <Button type="submit" isLoading={busy} className={shellStyles.submit}>
           Send code
         </Button>
@@ -130,10 +130,10 @@ export function OtpSignIn() {
     <form className={shellStyles.form} onSubmit={(e) => void handleCodeSubmit(e)} noValidate>
       {formError && <Alert variant="error">{formError}</Alert>}
       <p className={styles.hint} data-testid="otp-sent-to">
-        Enter the 6-digit code sent to <strong>{phone}</strong>.
+        Enter the 6-digit code we sent to <strong>{phone}</strong>.
       </p>
       <TextField
-        label="SMS code"
+        label="Verification code"
         name="code"
         type="text"
         inputMode="numeric"

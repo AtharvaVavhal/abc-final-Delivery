@@ -50,7 +50,7 @@ describe('OtpSignIn', () => {
     expect(await screen.findByTestId('otp-sent-to')).toHaveTextContent('98765 43210')
     expect(requestOtp).toHaveBeenCalledWith('98765 43210')
 
-    await user.type(screen.getByLabelText(/SMS code/), '123456')
+    await user.type(screen.getByLabelText(/Verification code/), '123456')
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }))
 
     await waitFor(() => expect(loginWithOtp).toHaveBeenCalledWith('98765 43210', '123456'))
@@ -63,12 +63,12 @@ describe('OtpSignIn', () => {
     await user.type(screen.getByLabelText(/Mobile number/), '9876543210')
     await user.click(screen.getByRole('button', { name: 'Send code' }))
 
-    const input = await screen.findByLabelText(/SMS code/)
+    const input = await screen.findByLabelText(/Verification code/)
     await user.type(input, '12ab3')
     expect(input).toHaveValue('123')
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }))
 
-    expect(await screen.findByText('Enter the 6-digit code from the SMS')).toBeInTheDocument()
+    expect(await screen.findByText('Enter the 6-digit code we sent you')).toBeInTheDocument()
     expect(loginWithOtp).not.toHaveBeenCalled()
   })
 
@@ -78,11 +78,11 @@ describe('OtpSignIn', () => {
     renderWithProviders(<OtpSignIn />, { authValue: createMockAuthContext({ loginWithOtp }) })
     await user.type(screen.getByLabelText(/Mobile number/), '9876543210')
     await user.click(screen.getByRole('button', { name: 'Send code' }))
-    await user.type(await screen.findByLabelText(/SMS code/), '000000')
+    await user.type(await screen.findByLabelText(/Verification code/), '000000')
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }))
 
     expect(await screen.findByText('Invalid or expired code')).toBeInTheDocument()
-    expect(screen.getByLabelText(/SMS code/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Verification code/)).toBeInTheDocument()
   })
 
   it('shows the app-wide rate-limit message and stays on the phone step', async () => {
