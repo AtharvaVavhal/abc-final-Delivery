@@ -1,0 +1,32 @@
+/* Mobile only: hidden above the shared "aside" collapse (720px). */
+.bar {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    /* Right padding leaves room for the floating WhatsApp button (58px + 24px
+       offset, z-index 1000) so it never covers the bar's button. */
+    padding: 0.75rem calc(58px + 24px + 0.75rem) 0.75rem var(--container-padding);
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 0.08);
+  }
+
+  .price {
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-strong);
+    letter-spacing: -0.02em;
+  }
+}

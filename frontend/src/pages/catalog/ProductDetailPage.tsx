@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ShieldCheck, Truck } from 'lucide-react'
 import { useProduct } from '@/hooks/useProduct'
@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Breadcrumbs, type Crumb } from '@/components/ui/Breadcrumbs'
 import { ProductGallery } from '@/features/catalog/ProductGallery'
 import { RelatedProducts } from '@/features/catalog/RelatedProducts'
+import { AskAboutProduct } from '@/features/catalog/AskAboutProduct'
+import { StickyBuyBar } from '@/features/catalog/StickyBuyBar'
 import { findCategoryPath } from '@/features/catalog/categoryTree'
 import { visibleSpecEntries } from '@/utils/visibleSpecifications'
 import { Seo } from '@/seo/Seo'
@@ -44,6 +46,7 @@ export function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const { data: product, isPending, isError, error } = useProduct(slug)
   const { data: categoryTree = [] } = useCategoryTree()
+  const controlsRef = useRef<HTMLDivElement>(null)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
   const [customization, setCustomization] = useState<CustomizationFormState>(
     EMPTY_CUSTOMIZATION_STATE,
@@ -154,10 +157,17 @@ export function ProductDetailPage() {
           onChange={handleCustomizationChange}
         />
 
-        <AddToCartControls
-          product={product}
-          selectedVariantId={selectedVariantId}
-          customization={customization}
+        <div ref={controlsRef}>
+          <AddToCartControls
+            product={product}
+            selectedVariantId={selectedVariantId}
+            customization={customization}
+          />
+        </div>
+
+        <AskAboutProduct
+          productName={product.name}
+          productUrl={`${window.location.origin}${canonicalPath}`}
         />
 
         {visibleSpecs.length > 0 && (
@@ -193,6 +203,8 @@ export function ProductDetailPage() {
       <div className={styles.related}>
         <RelatedProducts categoryId={product.categoryId} currentProductId={product.id} />
       </div>
+
+      <StickyBuyBar targetRef={controlsRef} price={total} />
     </section>
   )
 }
