@@ -59,11 +59,16 @@ export interface AppConfig {
     enabled: boolean;
     /** 'msg91' = SMS; 'msg91-whatsapp' = WhatsApp authentication template;
      * 'console' logs the code (never in production). */
-    provider: 'msg91' | 'msg91-whatsapp' | 'console';
+    provider: 'msg91' | 'msg91-whatsapp' | 'renflair' | 'console';
     /** Keyed-hash secret for stored codes (HMAC-SHA256). */
     hmacSecret: string;
     /** Global ceiling on SMS sends per UTC day (SMS-pumping / bill defence). */
     dailySendCap: number;
+    /** Renflair WhatsApp OTP (GET https://whatsapp.renflair.in/V1.php). */
+    renflair: {
+      apiKey: string;
+      baseUrl: string;
+    };
     msg91: {
       authKey: string;
       templateId: string;
@@ -201,10 +206,16 @@ export default (): AppConfig => ({
         ? 'console'
         : process.env.OTP_SMS_PROVIDER === 'msg91-whatsapp'
           ? 'msg91-whatsapp'
-          : 'msg91',
+          : process.env.OTP_SMS_PROVIDER === 'renflair'
+            ? 'renflair'
+            : 'msg91',
     hmacSecret: process.env.OTP_HMAC_SECRET ?? '',
     dailySendCap:
       Number.parseInt(process.env.OTP_DAILY_SEND_CAP ?? '500', 10) || 500,
+    renflair: {
+      apiKey: process.env.RENFLAIR_API_KEY ?? '',
+      baseUrl: process.env.RENFLAIR_BASE_URL ?? 'https://whatsapp.renflair.in',
+    },
     msg91: {
       authKey: process.env.MSG91_AUTH_KEY ?? '',
       templateId: process.env.MSG91_OTP_TEMPLATE_ID ?? '',

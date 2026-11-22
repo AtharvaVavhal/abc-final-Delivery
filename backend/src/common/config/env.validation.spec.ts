@@ -148,6 +148,26 @@ describe('validateEnv', () => {
       ).not.toThrow();
     });
 
+    it('requires RENFLAIR_API_KEY when the Renflair provider is selected', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'renflair',
+        }),
+      ).toThrow(/RENFLAIR_API_KEY is required/);
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'renflair',
+          RENFLAIR_API_KEY: 'k',
+        }),
+      ).not.toThrow();
+    });
+
     it('accepts a fully-configured OTP production boot', () => {
       expect(() =>
         validateEnv({

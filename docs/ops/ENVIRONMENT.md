@@ -40,7 +40,7 @@ each is required.
 | `OTP_HMAC_SECRET` | ⬜ | ⬜ | ✅ (if OTP on) | Keyed-hash secret for stored SMS codes. Long random string; never reuse another secret. | random 32+ bytes | Railway service env (secret) |
 | `MSG91_AUTH_KEY` | ⬜ | ⬜ | ✅ (if OTP on) | MSG91 API auth key. | secret | Railway service env (secret) |
 | `MSG91_OTP_TEMPLATE_ID` | ⬜ | ⬜ | ✅ (if OTP on) | DLT-approved MSG91 OTP template id. | string | Railway service env |
-| `OTP_SMS_PROVIDER` | ⬜ | ⬜ | ⬜ | `msg91` (SMS, default), `msg91-whatsapp` (WhatsApp authentication template) or `console` (dev only — logs codes; refused in production). | `msg91` | Railway service env |
+| `OTP_SMS_PROVIDER` | ⬜ | ⬜ | ⬜ | `msg91` (SMS, default), `msg91-whatsapp` (WhatsApp authentication template), `renflair` (Renflair WhatsApp OTP) or `console` (dev only — logs codes; refused in production). | `msg91` | Railway service env |
 | `OTP_DAILY_SEND_CAP` | ⬜ | ⬜ | ⬜ | Global SMS sends per UTC day before OTP refuses (default 500; warns at 80%). | `500` | Railway service env |
 | `MSG91_BASE_URL` | ⬜ | ⬜ | ⬜ | Override MSG91 host (default `https://control.msg91.com`). | URL | Railway service env |
 | `MSG91_WHATSAPP_INTEGRATED_NUMBER` | ⬜ | ⬜ | ✅ (if `OTP_SMS_PROVIDER=msg91-whatsapp`) | Your WhatsApp Business number connected in MSG91 (digits with country code). | `919XXXXXXXXX` | Railway service env |
@@ -48,6 +48,8 @@ each is required.
 | `MSG91_WHATSAPP_TEMPLATE_NAMESPACE` | ⬜ | ⬜ | ✅ (WhatsApp) | Template namespace shown in MSG91. | string | Railway service env |
 | `MSG91_WHATSAPP_LANGUAGE` | ⬜ | ⬜ | ⬜ | Template language code (default `en`). | `en` | Railway service env |
 | `MSG91_WHATSAPP_INCLUDE_BUTTON` | ⬜ | ⬜ | ⬜ | `false` if the approved template has no copy-code button (default: included). | `false` | Railway service env |
+| `RENFLAIR_API_KEY` | ⬜ | ⬜ | ✅ (if `OTP_SMS_PROVIDER=renflair`) | Renflair WhatsApp OTP API key. Sent as a URL query parameter by Renflair's design — never log request URLs. | secret | Railway service env (secret) |
+| `RENFLAIR_BASE_URL` | ⬜ | ⬜ | ⬜ | Override host (default `https://whatsapp.renflair.in`). | URL | Railway service env |
 | `EMAIL_FROM_ADDRESS` | ⬜ | ⬜ | ✅ | `From:` address for all transactional email. Must be on a Resend-verified domain in production. | `no-reply@printforge.in` | Render service env |
 | `CLOUDINARY_CLOUD_NAME` | ⬜ | ⬜ | ✅ | Cloudinary account cloud name (product image storage/delivery). | `printforge` | Render service env |
 | `CLOUDINARY_API_KEY` | ⬜ | ⬜ | ✅ | Cloudinary API key. | numeric string | Render service env |

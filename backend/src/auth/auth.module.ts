@@ -13,6 +13,7 @@ import { SmsProvider } from './otp/sms/sms-provider';
 import { Msg91SmsProvider } from './otp/sms/msg91-sms.provider';
 import { ConsoleSmsProvider } from './otp/sms/console-sms.provider';
 import { Msg91WhatsAppProvider } from './otp/sms/msg91-whatsapp.provider';
+import { RenflairProvider } from './otp/sms/renflair.provider';
 
 /**
  * Depends on: users (credential lookup), notifications
@@ -62,6 +63,9 @@ import { Msg91WhatsAppProvider } from './otp/sms/msg91-whatsapp.provider';
             );
           }
           return new ConsoleSmsProvider();
+        }
+        if (provider === 'renflair') {
+          return new RenflairProvider(configService);
         }
         if (provider === 'msg91-whatsapp') {
           return new Msg91WhatsAppProvider(configService);
