@@ -11,6 +11,7 @@ import { Page } from '@/components/ui/Page'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Breadcrumbs, type Crumb } from '@/components/ui/Breadcrumbs'
 import { ProductGallery } from '@/features/catalog/ProductGallery'
+import { RelatedProducts } from '@/features/catalog/RelatedProducts'
 import { findCategoryPath } from '@/features/catalog/categoryTree'
 import { visibleSpecEntries } from '@/utils/visibleSpecifications'
 import { Seo } from '@/seo/Seo'
@@ -187,6 +188,10 @@ export function ProductDetailPage() {
 
       <div className={styles.reviews}>
         <ReviewList productId={product.id} />
+      </div>
+
+      <div className={styles.related}>
+        <RelatedProducts categoryId={product.categoryId} currentProductId={product.id} />
       </div>
     </section>
   )
