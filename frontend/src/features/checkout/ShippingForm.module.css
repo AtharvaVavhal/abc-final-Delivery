@@ -68,3 +68,9 @@
 .locationNote[data-variant='error'] {
   color: var(--color-danger);
 }
+
+.pinAddressNote {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}

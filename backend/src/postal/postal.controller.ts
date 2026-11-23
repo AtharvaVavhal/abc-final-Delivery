@@ -1,11 +1,6 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseFloatPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseFloatPipe, Query } from '@nestjs/common';
 import { ThrottleCheckout } from '../common/throttling/throttle.decorators';
+import { AddressSuggestion } from './address-suggestion.util';
 import { PostalLookupView } from './dto/postal-lookup-view.interface';
 import { ParsePinCodePipe } from './pipes/pin-code.pipe';
 import { PostalLookupService } from './postal.service';
@@ -38,7 +33,7 @@ export class PostalController {
   reverse(
     @Query('lat', ParseFloatPipe) lat: number,
     @Query('lng', ParseFloatPipe) lng: number,
-  ): Promise<{ postalCode: string }> {
+  ): Promise<{ postalCode: string } & AddressSuggestion> {
     return this.postalLookup.reverseLookup(lat, lng);
   }
 

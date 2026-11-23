@@ -8,6 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../common/config/configuration';
 import { PIN_CODE_REGEX } from '../common/validation/indian-address.util';
+import {
+  AddressSuggestion,
+  suggestAddressLines,
+} from './address-suggestion.util';
 import { PostalLookupView } from './dto/postal-lookup-view.interface';
 import {
   COORDINATE_DECIMALS,
@@ -110,7 +114,7 @@ export class PostalLookupService {
   async reverseLookup(
     lat: number,
     lng: number,
-  ): Promise<{ postalCode: string }> {
+  ): Promise<{ postalCode: string } & AddressSuggestion> {
     if (
       !Number.isFinite(lat) ||
       !Number.isFinite(lng) ||
@@ -143,9 +147,7 @@ export class PostalLookupService {
         signal: AbortSignal.timeout(POSTAL_PROVIDER_TIMEOUT_MS),
       });
     } catch (err) {
-      this.logger.warn(
-        `Reverse geocoder unreachable: ${this.errName(err)}`,
-      );
+      this.logger.warn(`Reverse geocoder unreachable: ${this.errName(err)}`);
       throw new ServiceUnavailableException(LOCATION_PIN_NOT_FOUND_MESSAGE);
     }
 
@@ -168,7 +170,7 @@ export class PostalLookupService {
     if (countryCode !== 'in' || !PIN_CODE_REGEX.test(postalCode)) {
       throw new NotFoundException(LOCATION_PIN_NOT_FOUND_MESSAGE);
     }
-    return { postalCode };
+    return { postalCode, ...suggestAddressLines(address) };
   }
 
   /**

@@ -50,7 +50,10 @@ export function PrivacyPage() {
             <strong>Finding your PIN code.</strong> To fill in your PIN code,
             city and state, your approximate position is sent to our servers and
             to an OpenStreetMap geocoding service, rounded to within about 11
-            metres. We use it once and do not store it.
+            metres. We use it once and do not store it. When you drop a delivery
+            pin, the pin&apos;s position is sent the same way to suggest your
+            street and area; those suggestions are only filled into the form
+            for you to check, and are not stored separately.
           </li>
           <li>
             <strong>Delivery pin (optional).</strong> If you choose to drop a

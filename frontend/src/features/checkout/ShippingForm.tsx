@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { shippingSchema, type ShippingFormValues } from '@/schemas/checkout.schema'
 import { usePostalLookup } from '@/hooks/usePostalLookup'
 import { canUseGeolocation, useAutoLocate, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
+import { reverseLookupPostalCode } from '@/services/api/postal'
 import { DeliveryPinPicker } from './delivery-pin/DeliveryPinPicker'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
@@ -110,6 +111,49 @@ export function ShippingForm({
   const deliveryPin =
     pinLat !== undefined && pinLng !== undefined ? { latitude: pinLat, longitude: pinLng } : null
 
+  // What the location / the pin has filled in so far. A field is only ever
+  // (re)filled while it is empty or still holds exactly that value — once the
+  // customer edits it, it is theirs and is never touched again.
+  const autoFilled = useRef<Partial<Record<'shippingAddressLine1' | 'shippingAddressLine2' | 'shippingPostalCode', string>>>({})
+  const [addressFromPin, setAddressFromPin] = useState(false)
+
+  // After the pin settles (short pause, so dragging or nudging doesn't fire a
+  // request per step), suggest the street, area and PIN at that spot.
+  useEffect(() => {
+    if (pinLat === undefined || pinLng === undefined) return
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      reverseLookupPostalCode(pinLat, pinLng, controller.signal)
+        .then((suggestion) => {
+          let changed = false
+          const fill = (
+            field: 'shippingAddressLine1' | 'shippingAddressLine2' | 'shippingPostalCode',
+            value: string | null,
+          ) => {
+            if (!value) return
+            const current = (getValues(field) ?? '').trim()
+            if (current !== '' && current !== autoFilled.current[field]) return
+            if (current !== value) {
+              setValue(field, value, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
+              changed = true
+            }
+            autoFilled.current[field] = value
+          }
+          fill('shippingAddressLine1', suggestion.addressLine1)
+          fill('shippingAddressLine2', suggestion.addressLine2)
+          fill('shippingPostalCode', suggestion.postalCode)
+          if (changed) setAddressFromPin(true)
+        })
+        .catch(() => {
+          // Advisory only: the customer can always type the address.
+        })
+    }, 700)
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [pinLat, pinLng, getValues, setValue])
+
   // "Use my location": asked for only on tap. Only the resulting PIN is
   // written into the form; the normal PIN lookup above then fills City /
   // State / Country, exactly as if the customer had typed it.
@@ -120,6 +164,7 @@ export function ShippingForm({
     // An automatic attempt must never overwrite a PIN the customer typed
     // while it was working; a tap on the button always may.
     if (auto && getValues('shippingPostalCode').trim() !== '') return
+    autoFilled.current.shippingPostalCode = pin
     setValue('shippingPostalCode', pin, {
       shouldValidate: true,
       shouldDirty: true,
@@ -245,8 +290,14 @@ export function ShippingForm({
         onChange={(pin) => {
           setValue('shippingLatitude', pin?.latitude, { shouldDirty: true })
           setValue('shippingLongitude', pin?.longitude, { shouldDirty: true })
+          if (!pin) setAddressFromPin(false)
         }}
       />
+      {addressFromPin && deliveryPin && (
+        <p className={styles.pinAddressNote} role="status">
+          We filled in your address from the pin. Please check it and edit anything that’s not right.
+        </p>
+      )}
 
       <Button
         type="submit"

@@ -444,6 +444,100 @@ describe('ShippingForm', () => {
       await screen.findByText(/Matched Pune, Maharashtra/)
     }
 
+    const SPOT_A = {
+      postalCode: '411046',
+      addressLine1: '7 Kondhwa Main Road',
+      addressLine2: 'Kondhwa Budruk',
+    }
+    const SPOT_B = { postalCode: '411046', addressLine1: '9 Other Road', addressLine2: 'Camp' }
+
+    /** The reverse geocoder answers by position: the first fix is spot A,
+     * anything nudged north of it is spot B. */
+    function mockReverseByPosition() {
+      mock.onGet('/postal-codes/reverse').reply((config) => {
+        const lat = (config.params as { lat: number }).lat
+        return [200, { success: true, data: lat > 18.45751 ? SPOT_B : SPOT_A }]
+      })
+    }
+
+    function stubFix() {
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition: vi.fn((ok: PositionCallback) =>
+            ok({ coords: { latitude: 18.4575, longitude: 73.8508, accuracy: 10 } } as GeolocationPosition),
+          ),
+        },
+      })
+    }
+
+    const SLOW = { timeout: 4000 }
+
+    it('fills the street and area from the pin once it is placed, and says so', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mockReverseByPosition()
+      renderForm()
+
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+
+      await waitFor(() => expect(screen.getByLabelText('Address line 1')).toHaveValue('7 Kondhwa Main Road'), SLOW)
+      expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('Kondhwa Budruk')
+      expect(await screen.findByText(/We filled in your address from the pin/)).toBeInTheDocument()
+    })
+
+    it('never overwrites an address line the customer already typed', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mockReverseByPosition()
+      renderForm()
+
+      await user.type(screen.getByLabelText('Address line 1'), 'Flat 4, My Building')
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+
+      await waitFor(() => expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('Kondhwa Budruk'), SLOW)
+      expect(screen.getByLabelText('Address line 1')).toHaveValue('Flat 4, My Building')
+    })
+
+    it('follows the pin when it is moved, but stops once the customer edits what it filled', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mockReverseByPosition()
+      renderForm()
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 1')).toHaveValue('7 Kondhwa Main Road'), SLOW)
+
+      // Moving the pin updates what was filled automatically.
+      await user.click(screen.getByRole('button', { name: 'Move pin north' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 1')).toHaveValue('9 Other Road'), SLOW)
+      expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('Camp')
+
+      // Once the customer changes a line it is theirs for good.
+      const line1 = screen.getByLabelText('Address line 1')
+      await user.clear(line1)
+      await user.type(line1, 'Plot 7, Shahunagar')
+      await user.click(screen.getByRole('button', { name: 'Move pin south' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('Kondhwa Budruk'), SLOW)
+      expect(screen.getByLabelText('Address line 1')).toHaveValue('Plot 7, Shahunagar')
+    })
+
+    it('leaves the form alone when the spot has no usable address', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mock.onGet('/postal-codes/reverse').reply(200, {
+        success: true,
+        data: { postalCode: '411046', addressLine1: null, addressLine2: null },
+      })
+      renderForm()
+
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+      await screen.findByText('pin map at 18.4575,73.8508')
+      await new Promise((resolve) => setTimeout(resolve, 900))
+
+      expect(screen.getByLabelText('Address line 1')).toHaveValue('')
+      expect(screen.queryByText(/We filled in your address from the pin/)).not.toBeInTheDocument()
+    })
+
     it('sends no coordinates unless the customer placed a pin', async () => {
       const user = userEvent.setup()
       const onSubmit = vi.fn()
