@@ -127,18 +127,27 @@ export function SalesOverview() {
               delta={pointsDelta(data.current.repeatCustomerRate, data.previous.repeatCustomerRate)}
             />
           </div>
-          <SalesChart
-            current={data.current.daily}
-            previous={data.previous.daily}
-            summary={`Net sales per day over the last ${data.days} days: ${formatPrice(
-              data.current.netSales,
-            )}, against ${formatPrice(data.previous.netSales)} in the previous ${data.days} days.`}
-          />
-          <p className={styles.legend}>
-            <span className={styles.keyCurrent} aria-hidden="true" /> This period
-            <span className={styles.keyPrevious} aria-hidden="true" /> Previous {data.days} days
-            <span className={styles.basis}>Net sales = paid orders and later. Days are India time.</span>
-          </p>
+          {data.current.orders === 0 && data.previous.orders === 0 ? (
+            <p className={styles.empty}>
+              No paid orders in the last {data.days * 2} days yet. Sales will appear here once
+              customers check out and pay.
+            </p>
+          ) : (
+            <>
+              <SalesChart
+                current={data.current.daily}
+                previous={data.previous.daily}
+                summary={`Net sales per day over the last ${data.days} days: ${formatPrice(
+                  data.current.netSales,
+                )}, against ${formatPrice(data.previous.netSales)} in the previous ${data.days} days.`}
+              />
+              <p className={styles.legend}>
+                <span className={styles.keyCurrent} aria-hidden="true" /> This period
+                <span className={styles.keyPrevious} aria-hidden="true" /> Previous {data.days} days
+                <span className={styles.basis}>Net sales = paid orders and later. Days are India time.</span>
+              </p>
+            </>
+          )}
         </div>
       )}
     </AdminCard>

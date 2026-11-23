@@ -90,6 +90,17 @@ describe('SalesOverview', () => {
     expect(await screen.findByText('Sales trends are unavailable right now.')).toBeInTheDocument()
   })
 
+  it('shows a plain empty state, not a flat zero chart, before the first paid order', async () => {
+    mock.onGet('/admin/dashboard/overview').reply(
+      200,
+      overview(30, { orders: 0, netSales: '0.00', averageOrderValue: '0.00', buyers: 0, repeatBuyers: 0, repeatCustomerRate: null }, { orders: 0, netSales: '0.00', averageOrderValue: '0.00', repeatCustomerRate: null }),
+    )
+    renderWithProviders(<SalesOverview />)
+
+    expect(await screen.findByText(/No paid orders in the last 60 days yet/)).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /Net sales per day/ })).not.toBeInTheDocument()
+  })
+
   it('shows "—" for repeat customers when there were no buyers', async () => {
     mock.onGet('/admin/dashboard/overview').reply(
       200,
