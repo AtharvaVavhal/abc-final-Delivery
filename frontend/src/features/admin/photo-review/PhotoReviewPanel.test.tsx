@@ -158,6 +158,18 @@ describe('PhotoReviewPanel', () => {
     expect(screen.getByText('New photo needed')).toBeInTheDocument()
   })
 
+  it.each(['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CANCELLED', 'REFUNDED'])(
+    'does not call the photo "To review" on a %s order, and offers no decisions',
+    async (status) => {
+      renderWithProviders(<PhotoReviewPanel order={order({ status })} />)
+
+      await screen.findByRole('img', { name: /Customer photo/ })
+      expect(screen.getByText('Not under review')).toBeInTheDocument()
+      expect(screen.queryByText('To review')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Approve/ })).not.toBeInTheDocument()
+    },
+  )
+
   it('renders nothing for an order without photos', () => {
     const noPhoto = order()
     noPhoto.items[0].customizations = noPhoto.items[0].customizations.filter((c) => c.uploadedFileId === null)

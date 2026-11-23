@@ -894,6 +894,7 @@ export class OrdersService {
         order.items.flatMap((item) =>
           item.customizations.map((c) => c.reviewStatus),
         ),
+        order.status,
       ),
       createdAt: order.createdAt,
     };
@@ -964,6 +965,7 @@ export class OrdersService {
             .filter((c) => c.uploadedFileId !== null)
             .map((c) => c.reviewStatus),
         ),
+        order.status,
       ),
       shippingRecipientName: order.shippingRecipientName,
       shippingPhone: order.shippingPhone,
