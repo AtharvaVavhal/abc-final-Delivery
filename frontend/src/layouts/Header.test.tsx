@@ -50,13 +50,13 @@ describe('Header', () => {
     mock.restore()
   })
 
-  it('shows Identica seller identity, GSTIN, and Payment Protected in the navbar', async () => {
+  it('shows AB Creations seller identity, GSTIN, and Payment Protected in the navbar', async () => {
     renderWithProviders(<Header />, { authValue: createMockAuthContext({ status: 'unauthenticated' }) })
 
     const trust = await screen.findByRole('region', { name: 'Seller identity' })
-    expect(trust).toHaveTextContent('Identica')
-    expect(trust).toHaveTextContent('Sakinaka, Mumbai, Maharashtra')
-    expect(trust).toHaveTextContent('GST No. 27ARLPM5978P1ZL')
+    expect(trust).toHaveTextContent('AB CREATIONS GWL')
+    expect(trust).toHaveTextContent('Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India')
+    expect(trust).toHaveTextContent('GST No. 23EQZPS2886B1Z7')
     expect(trust).toHaveTextContent('Payment Protected')
   })
 
