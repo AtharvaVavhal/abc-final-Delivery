@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminDashboard } from '@/hooks/useAdminDashboard'
 import { getApiErrorMessage } from '@/utils/apiError'
@@ -24,6 +25,20 @@ const ATTENTION_STAGES: { status: OrderStatus; action: string }[] = [
 ]
 const OPEN_STAGES: OrderStatus[] = ['PENDING_PAYMENT', 'PAID', 'CONFIRMED', 'IN_PRODUCTION', 'SHIPPED']
 const ordersFor = (status: OrderStatus) => `${ROUTES.ADMIN_ORDERS}?status=${status}`
+
+/** A compact headline figure. Still a named region with an h2, so it reads
+ * the same to assistive tech as the card it replaces. */
+function StatTile({ title, value }: { title: string; value: string | number }) {
+  const headingId = useId()
+  return (
+    <section className={styles.statTile} aria-labelledby={headingId}>
+      <h2 id={headingId} className={styles.statLabel}>
+        {title}
+      </h2>
+      <p className={styles.statValue}>{value}</p>
+    </section>
+  )
+}
 
 /**
  * Behind AdminRoute (App.tsx). Minimal by design — GET /admin/dashboard is
@@ -57,12 +72,8 @@ export function AdminDashboardPage() {
       ) : data ? (
         <>
           <div className={styles.statGrid}>
-            <AdminCard as="section" title="Total orders">
-              <p className={styles.statValue}>{data.totalOrders}</p>
-            </AdminCard>
-            <AdminCard as="section" title="Revenue (paid or later)">
-              <p className={styles.statValue}>{formatPrice(data.totalRevenue)}</p>
-            </AdminCard>
+            <StatTile title="Total orders" value={data.totalOrders} />
+            <StatTile title="Revenue (paid or later)" value={formatPrice(data.totalRevenue)} />
           </div>
 
           <SalesOverview />
@@ -121,8 +132,8 @@ export function AdminDashboardPage() {
                 <AdminTable.Head>
                   <AdminTable.Row>
                     <AdminTable.HeaderCell>Order</AdminTable.HeaderCell>
-                    <AdminTable.HeaderCell>Date</AdminTable.HeaderCell>
-                    <AdminTable.HeaderCell align="center">Items</AdminTable.HeaderCell>
+                    <AdminTable.HeaderCell className={styles.hideMobile}>Date</AdminTable.HeaderCell>
+                    <AdminTable.HeaderCell align="center" className={styles.hideMobile}>Items</AdminTable.HeaderCell>
                     <AdminTable.HeaderCell>Status</AdminTable.HeaderCell>
                     <AdminTable.HeaderCell align="end">Total</AdminTable.HeaderCell>
                   </AdminTable.Row>
@@ -135,8 +146,8 @@ export function AdminDashboardPage() {
                           {order.orderNumber}
                         </Link>
                       </AdminTable.Cell>
-                      <AdminTable.Cell><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
-                      <AdminTable.Cell align="center">{order.itemCount}</AdminTable.Cell>
+                      <AdminTable.Cell className={styles.hideMobile}><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
+                      <AdminTable.Cell align="center" className={styles.hideMobile}>{order.itemCount}</AdminTable.Cell>
                       <AdminTable.Cell>
                         <span className={styles.statusCell}>
                           <OrderStatusBadge status={order.status} />

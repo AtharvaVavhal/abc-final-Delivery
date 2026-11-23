@@ -80,3 +80,10 @@
   height: 0.9rem;
   width: 100%;
 }
+
+@media (max-width: 600px) {
+  .th,
+  .td {
+    padding: var(--space-3) var(--space-2);
+  }
+}
