@@ -1,6 +1,6 @@
 # Admin photo review — design proposal
 
-Status: **proposal. Phase 1 (backend) is implemented on branch `feat/photo-review-backend`; phases 2–3 are not built.**
+Status: **phases 1–3 are implemented on branch `feat/photo-review-backend`** (backend, admin UI, customer notification + replace). Later ideas (WhatsApp, reminders) are not built.
 Scope: let an admin approve a customer's uploaded photo before production, or ask for a better one.
 
 ## 1. Problem
@@ -70,7 +70,16 @@ Unpaid, cancelled, refunded and failed orders stay `NULL`.
 
 ## 7. Notifications
 
-New outbox event `ORDER_PHOTO_CHANGES_REQUESTED` and an email template: order number, the admin's note, and a link to the order page to upload a new photo. Email only in v1 (open question 3 covers WhatsApp, which the OTP login already uses).
+Built: when an admin asks for a new photo, the customer is emailed the admin's note with a link to their order — **if they have an email address**.
+
+**Limitation found while building:** the notification system is email-only, and customers who sign in by phone OTP often have no email (the same gap already affects the existing "order paid" and "status changed" emails — they fail in the outbox poller for those customers). So:
+
+- Customers **with** an email: emailed (escaped, staff-typed note), and they also see the request on their order page.
+- Customers **without** an email: nothing is sent. The admin panel says so and shows the order's shipping phone number to contact them on; the customer still sees the request on their order page the next time they sign in.
+
+No migration: a dedicated outbox event type would need `ALTER TYPE ... ADD VALUE`, which the additive-only migration guard (G-10) does not allow, so the email rides on `ORDER_STATUS_CHANGED` with `payload.kind = 'PHOTO_CHANGES_REQUESTED'`.
+
+A real fix for phone-only customers is WhatsApp (the OTP login already uses a WhatsApp provider), but that provider is template-based and would need a new approved message template. Not built (open question 3).
 
 ## 8. Admin UI
 
@@ -79,7 +88,7 @@ New outbox event `ORDER_PHOTO_CHANGES_REQUESTED` and an email template: order nu
 - **Overview:** a "Photos awaiting review" tile in Needs attention, linking to the filtered list.
 - Resolution/size are shown as facts, not as pass/fail: judging whether a face is in frame or the background is busy stays a human decision. The concept's "Looks fine" style checks are **not** automated in v1.
 
-## 9. Customer UI
+## 9. Customer UI (built)
 
 The order page shows each photo's state. In `CHANGES_REQUESTED` it shows the admin's note and an **Upload a new photo** control that reuses the existing upload field. After approval it shows "Photo approved".
 
@@ -95,7 +104,7 @@ The order page shows each photo's state. In `CHANGES_REQUESTED` it shows the adm
 
 1. **Backend (built):** migration, review endpoint, flagged production gate, list/detail fields and `?photoReview=` filter, dashboard count, audit log, tests. The customer is not yet notified (phase 3).
 2. **Admin UI:** list pill/column/tab, review panel, Overview tile.
-3. **Customer flow:** replace endpoint, order-page state, email template + outbox event.
+3. **Customer flow (built):** `POST /orders/:id/customizations/:cid/replace-photo`, order-page state and upload control, the email for customers who have one, and the admin panel's "emailed / no email — call them" notice.
 4. **Later (optional):** WhatsApp message, reminders, richer checks.
 
 Each phase is deployable on its own **provided the production gate stays off until phase 2**: phase 1 then only records review state and exposes it in the API, and changes nothing about how orders move.

@@ -54,6 +54,9 @@ export interface ReviewPhotoResult {
   reviewStatus: PhotoReviewStatus
   reviewNote: string | null
   reviewedAt: string
+  /** True when an email to the customer was queued. False for an approval,
+   * or when the customer has no email (phone-only sign-in). */
+  notified: boolean
 }
 
 export interface UpdateOrderStatusPayload {

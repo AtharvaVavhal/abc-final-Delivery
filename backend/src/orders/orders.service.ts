@@ -405,6 +405,10 @@ export class OrdersService {
     reviewStatus: PhotoReviewStatus;
     reviewNote: string | null;
     reviewedAt: Date;
+    /** True when an email to the customer was queued. False when there was
+     * nothing to send to (a phone-only customer has no email) or the
+     * decision was an approval. */
+    notified: boolean;
   }> {
     const order = await this.findOrderOrThrow(orderId);
     assertObjectInTenant(order, tenantContext.tenantId);
@@ -446,10 +450,12 @@ export class OrdersService {
         reviewStatus: target,
         reviewNote: note,
         reviewedAt: customization.reviewedAt,
+        notified: false,
       };
     }
 
     const reviewedAt = new Date();
+    let notified = false;
     await this.prisma.$transaction(async (tx) => {
       await tx.orderItemCustomization.update({
         where: { id: customization.id },
@@ -477,6 +483,35 @@ export class OrdersService {
           toStatus: target,
         },
       });
+
+      if (target === PhotoReviewStatus.CHANGES_REQUESTED && note) {
+        // Email only when the customer has an address: phone-only (OTP)
+        // customers have none, and queuing for them would just fail in the
+        // poller. They still see the request on their order page.
+        const customer = await tx.user.findUnique({
+          where: { id: order.userId },
+          select: { email: true },
+        });
+        if (customer?.email) {
+          const base = process.env.FRONTEND_URL?.replace(/\/+$/, '');
+          await this.notificationsService.enqueueOutboxEvent(tx, {
+            eventType: 'ORDER_STATUS_CHANGED',
+            aggregateType: 'Order',
+            aggregateId: order.id,
+            eventKey: `PHOTO_CHANGES_REQUESTED:${customization.id}:${reviewedAt.toISOString()}`,
+            payload: {
+              kind: 'PHOTO_CHANGES_REQUESTED',
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              userId: order.userId,
+              email: customer.email,
+              note,
+              ...(base ? { orderLink: `${base}/orders/${order.id}` } : {}),
+            },
+          });
+          notified = true;
+        }
+      }
     });
 
     return {
@@ -484,7 +519,74 @@ export class OrdersService {
       reviewStatus: target,
       reviewNote: note,
       reviewedAt,
+      notified,
     };
+  }
+
+  /**
+   * The customer's answer to "we need a new photo": swap in a freshly
+   * uploaded file and put the photo back in the review queue. Owner only;
+   * only while the admin has asked for a change and the order has not gone
+   * into production. The new file must be one this customer uploaded for
+   * this store.
+   */
+  async replaceCustomizationPhoto(
+    userId: string,
+    orderId: string,
+    customizationId: string,
+    uploadedFileId: string,
+  ): Promise<{ id: string; reviewStatus: PhotoReviewStatus }> {
+    const order = await this.findOrderOrThrow(orderId);
+    this.assertOwnedBy(order, userId);
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.CONFIRMED
+    ) {
+      throw new ConflictException(
+        'The photo can no longer be changed for this order.',
+      );
+    }
+
+    const customization = await this.prisma.orderItemCustomization.findFirst({
+      where: {
+        id: customizationId,
+        tenantId: order.tenantId,
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+      },
+    });
+    if (!customization) {
+      throw new NotFoundException('Photo not found on this order');
+    }
+    if (customization.reviewStatus !== PhotoReviewStatus.CHANGES_REQUESTED) {
+      throw new ConflictException(
+        'A new photo has not been requested for this order.',
+      );
+    }
+
+    const file = await this.prisma.uploadedFile.findFirst({
+      where: {
+        id: uploadedFileId,
+        uploadedByUserId: userId,
+        tenantId: order.tenantId,
+      },
+      select: { id: true },
+    });
+    if (!file) {
+      throw new NotFoundException('Uploaded file not found');
+    }
+
+    await this.prisma.orderItemCustomization.update({
+      where: { id: customization.id },
+      data: {
+        uploadedFileId: file.id,
+        reviewStatus: PhotoReviewStatus.PENDING,
+        reviewNote: null,
+        reviewedAt: null,
+        reviewedByUserId: null,
+      },
+    });
+    return { id: customization.id, reviewStatus: PhotoReviewStatus.PENDING };
   }
 
   // ─── Cancellation + manual-refund flagging ─────────────────────────────

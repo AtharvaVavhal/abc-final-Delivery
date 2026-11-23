@@ -105,6 +105,28 @@ describe('PhotoReviewPanel', () => {
     })
   })
 
+  async function askForNewPhoto(notified: boolean) {
+    const user = userEvent.setup()
+    mock.onPatch('/admin/orders/order-1/customizations/c-photo/review').reply(200, {
+      success: true,
+      data: { id: 'c-photo', reviewStatus: 'CHANGES_REQUESTED', reviewNote: 'Too dark', reviewedAt: '2026-11-23T10:05:00.000Z', notified },
+    })
+    renderWithProviders(<PhotoReviewPanel order={order({ shippingPhone: '9876543210' })} />)
+    await user.click(await screen.findByRole('button', { name: 'Ask for a new photo' }))
+    await user.type(screen.getByLabelText('What should the customer fix?'), 'Too dark')
+    await user.click(screen.getByRole('button', { name: 'Send request' }))
+  }
+
+  it('tells you the customer was emailed', async () => {
+    await askForNewPhoto(true)
+    expect(await screen.findByText('We emailed the customer your request.')).toBeInTheDocument()
+  })
+
+  it('tells you to phone a customer who has no email, with their number', async () => {
+    await askForNewPhoto(false)
+    expect(await screen.findByText(/no email on file.*Contact them on 9876543210/)).toBeInTheDocument()
+  })
+
   it('shows the server message when a decision is refused', async () => {
     const user = userEvent.setup()
     mock.onPatch('/admin/orders/order-1/customizations/c-photo/review').reply(409, {

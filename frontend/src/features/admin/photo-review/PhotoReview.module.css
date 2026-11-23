@@ -196,3 +196,13 @@
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
+
+.notice {
+  margin: 0;
+  padding: var(--space-3);
+  border-left: 2px solid var(--admin-mark, #e8a317);
+  background: var(--color-surface);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}

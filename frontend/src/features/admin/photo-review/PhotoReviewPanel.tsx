@@ -19,9 +19,11 @@ interface PhotoCardProps {
   item: OrderItemView
   photo: OrderItemCustomizationView
   reviewable: boolean
+  /** The order's shipping phone — shown when the customer can't be emailed. */
+  contactPhone: string
 }
 
-function PhotoCard({ orderId, item, photo, reviewable }: PhotoCardProps) {
+function PhotoCard({ orderId, item, photo, reviewable, contactPhone }: PhotoCardProps) {
   const file = useUploadedFile(photo.uploadedFileId)
   const review = useReviewOrderPhoto(orderId)
   const [asking, setAsking] = useState(false)
@@ -125,6 +127,14 @@ function PhotoCard({ orderId, item, photo, reviewable }: PhotoCardProps) {
 
         {review.isError && <Alert variant="error">{getApiErrorMessage(review.error)}</Alert>}
 
+        {review.isSuccess && review.data.reviewStatus === 'CHANGES_REQUESTED' && (
+          <p role="status" className={styles.notice}>
+            {review.data.notified
+              ? 'We emailed the customer your request.'
+              : `This customer has no email on file, so nothing was sent. Contact them on ${contactPhone}.`}
+          </p>
+        )}
+
         {reviewable && status && (
           <div className={styles.actions}>
             {asking ? (
@@ -204,7 +214,14 @@ export function PhotoReviewPanel({ order }: { order: OrderDetailView }) {
       )}
       <div className={styles.list}>
         {photos.map(({ item, photo }) => (
-          <PhotoCard key={photo.id} orderId={order.id} item={item} photo={photo} reviewable={reviewable} />
+          <PhotoCard
+            key={photo.id}
+            orderId={order.id}
+            item={item}
+            photo={photo}
+            reviewable={reviewable}
+            contactPhone={order.shippingPhone}
+          />
         ))}
       </div>
     </AdminCard>

@@ -22,18 +22,34 @@ function build(opts: {
   orderStatus?: OrderStatus;
   customization?: Record<string, unknown> | null;
   openPhotos?: number;
+  customerEmail?: string | null;
+  ownFile?: boolean;
 }) {
   const tx = {
     orderItemCustomization: { update: jest.fn().mockResolvedValue({}) },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({
+        email:
+          opts.customerEmail === undefined
+            ? 'riya@example.test'
+            : opts.customerEmail,
+      }),
+    },
   };
   const prisma = {
     order: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'order-1',
+        orderNumber: 'PF-000042',
         userId: 'user-1',
         tenantId: 'tenant-a',
         status: opts.orderStatus ?? OrderStatus.PAID,
       }),
+    },
+    uploadedFile: {
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(opts.ownFile === false ? null : { id: 'file-2' }),
     },
     orderItemCustomization: {
       findFirst: jest.fn().mockResolvedValue(
@@ -51,12 +67,13 @@ function build(opts: {
     $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const audit = { logTenantAction: jest.fn() };
+  const notifications = { enqueueOutboxEvent: jest.fn() };
   const service = new OrdersService(
     prisma as never,
-    {} as never,
+    notifications as never,
     audit as never,
   );
-  return { service, prisma, tx, audit };
+  return { service, prisma, tx, audit, notifications };
 }
 
 // resolveTenantAuditActor reads the actor's membership; keep it simple.
@@ -110,6 +127,62 @@ describe('OrdersService.adminReviewPhoto', () => {
     expect(result.reviewStatus).toBe(PhotoReviewStatus.CHANGES_REQUESTED);
     expect(result.reviewNote).toBe('Photo is too dark');
     expect(tx.orderItemCustomization.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues an email to the customer when asking for a new photo', async () => {
+    const { service, notifications, tx } = build({});
+    const result = await service.adminReviewPhoto(
+      tenantContext,
+      admin,
+      'order-1',
+      CUSTOMIZATION_ID,
+      { decision: 'REQUEST_CHANGES', note: 'Photo is too dark' },
+    );
+
+    expect(result.notified).toBe(true);
+    expect(notifications.enqueueOutboxEvent).toHaveBeenCalledTimes(1);
+    const [txArg, event] = notifications.enqueueOutboxEvent.mock.calls[0];
+    expect(txArg).toBe(tx); // same transaction as the decision
+    expect(event).toMatchObject({
+      eventType: 'ORDER_STATUS_CHANGED',
+      aggregateId: 'order-1',
+      payload: {
+        kind: 'PHOTO_CHANGES_REQUESTED',
+        orderNumber: 'PF-000042',
+        email: 'riya@example.test',
+        note: 'Photo is too dark',
+      },
+    });
+    expect(event.eventKey).toContain(
+      `PHOTO_CHANGES_REQUESTED:${CUSTOMIZATION_ID}`,
+    );
+  });
+
+  it('does not queue anything for a phone-only customer (no email) and says so', async () => {
+    const { service, notifications } = build({ customerEmail: null });
+    const result = await service.adminReviewPhoto(
+      tenantContext,
+      admin,
+      'order-1',
+      CUSTOMIZATION_ID,
+      { decision: 'REQUEST_CHANGES', note: 'Photo is too dark' },
+    );
+    expect(result.reviewStatus).toBe(PhotoReviewStatus.CHANGES_REQUESTED);
+    expect(result.notified).toBe(false);
+    expect(notifications.enqueueOutboxEvent).not.toHaveBeenCalled();
+  });
+
+  it('never emails on an approval', async () => {
+    const { service, notifications } = build({});
+    const result = await service.adminReviewPhoto(
+      tenantContext,
+      admin,
+      'order-1',
+      CUSTOMIZATION_ID,
+      { decision: 'APPROVE' },
+    );
+    expect(result.notified).toBe(false);
+    expect(notifications.enqueueOutboxEvent).not.toHaveBeenCalled();
   });
 
   it('is a no-op when the same decision is repeated (double click)', async () => {
@@ -259,5 +332,96 @@ describe('production gate (PHOTO_REVIEW_GATE)', () => {
         }
       ).assertPhotosReadyForProduction('order-1'),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('OrdersService.replaceCustomizationPhoto (customer)', () => {
+  const requested = {
+    id: CUSTOMIZATION_ID,
+    reviewStatus: PhotoReviewStatus.CHANGES_REQUESTED,
+    reviewNote: 'Too dark',
+    reviewedAt: new Date('2026-11-23T10:00:00Z'),
+  };
+
+  it('swaps in the new file and sends the photo back to review', async () => {
+    const { service, prisma } = build({ customization: requested });
+    prisma.orderItemCustomization.update = jest.fn().mockResolvedValue({});
+
+    const result = await service.replaceCustomizationPhoto(
+      'user-1',
+      'order-1',
+      CUSTOMIZATION_ID,
+      'file-2',
+    );
+
+    expect(result.reviewStatus).toBe(PhotoReviewStatus.PENDING);
+    expect(prisma.orderItemCustomization.update).toHaveBeenCalledWith({
+      where: { id: CUSTOMIZATION_ID },
+      data: {
+        uploadedFileId: 'file-2',
+        reviewStatus: PhotoReviewStatus.PENDING,
+        reviewNote: null,
+        reviewedAt: null,
+        reviewedByUserId: null,
+      },
+    });
+    // The file must be one this customer uploaded, in this store.
+    expect(prisma.uploadedFile.findFirst).toHaveBeenCalledWith({
+      where: { id: 'file-2', uploadedByUserId: 'user-1', tenantId: 'tenant-a' },
+      select: { id: true },
+    });
+  });
+
+  it("refuses someone else's order", async () => {
+    const { service } = build({ customization: requested });
+    await expect(
+      service.replaceCustomizationPhoto(
+        'someone-else',
+        'order-1',
+        CUSTOMIZATION_ID,
+        'file-2',
+      ),
+    ).rejects.toThrow(/do not have access/);
+  });
+
+  it('refuses unless a new photo was actually requested', async () => {
+    const { service } = build({
+      customization: { ...requested, reviewStatus: PhotoReviewStatus.PENDING },
+    });
+    await expect(
+      service.replaceCustomizationPhoto(
+        'user-1',
+        'order-1',
+        CUSTOMIZATION_ID,
+        'file-2',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('refuses once production has started', async () => {
+    const { service } = build({
+      orderStatus: OrderStatus.IN_PRODUCTION,
+      customization: requested,
+    });
+    await expect(
+      service.replaceCustomizationPhoto(
+        'user-1',
+        'order-1',
+        CUSTOMIZATION_ID,
+        'file-2',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("refuses a file that is not the customer's own upload", async () => {
+    const { service } = build({ customization: requested, ownFile: false });
+    await expect(
+      service.replaceCustomizationPhoto(
+        'user-1',
+        'order-1',
+        CUSTOMIZATION_ID,
+        'file-2',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

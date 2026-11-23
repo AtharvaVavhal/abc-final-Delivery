@@ -24,6 +24,21 @@ export async function fetchOrder(orderId: string): Promise<OrderDetailView> {
   return res.data.data
 }
 
+/** POST /orders/:id/customizations/:cid/replace-photo — the customer's
+ * answer to "we need a new photo". `uploadedFileId` is the id returned by
+ * POST /uploads; the photo goes back into the admin's review queue. */
+export async function replaceOrderPhoto(
+  orderId: string,
+  customizationId: string,
+  uploadedFileId: string,
+): Promise<{ id: string; reviewStatus: string }> {
+  const res = await apiClient.post<ApiSuccessResponse<{ id: string; reviewStatus: string }>>(
+    `/orders/${orderId}/customizations/${customizationId}/replace-photo`,
+    { uploadedFileId },
+  )
+  return res.data.data
+}
+
 /** POST /orders/:id/cancel — customer-initiated cancellation, allowed only
  * from PAID/CONFIRMED (orders.service.ts's state machine); a 409 from an
  * illegal-transition attempt surfaces via getApiErrorMessage like any
