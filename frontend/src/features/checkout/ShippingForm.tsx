@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { shippingSchema, type ShippingFormValues } from '@/schemas/checkout.schema'
 import { usePostalLookup } from '@/hooks/usePostalLookup'
 import { canUseGeolocation, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
+import { DeliveryPinPicker } from './delivery-pin/DeliveryPinPicker'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
 import styles from './ShippingForm.module.css'
@@ -100,6 +101,13 @@ export function ShippingForm({
   }, [postalCodeValue])
 
   const pinStatus = describePinStatus(lookup)
+
+  // Optional delivery pin: lives in the form values (so it is submitted with
+  // the address) but has no input of its own.
+  const pinLat = useWatch({ control, name: 'shippingLatitude' })
+  const pinLng = useWatch({ control, name: 'shippingLongitude' })
+  const deliveryPin =
+    pinLat !== undefined && pinLng !== undefined ? { latitude: pinLat, longitude: pinLng } : null
 
   // "Use my location": asked for only on tap. Only the resulting PIN is
   // written into the form; the normal PIN lookup above then fills City /
@@ -222,6 +230,15 @@ export function ShippingForm({
           disabled={isSubmitting}
         />
       </div>
+
+      <DeliveryPinPicker
+        value={deliveryPin}
+        disabled={isSubmitting}
+        onChange={(pin) => {
+          setValue('shippingLatitude', pin?.latitude, { shouldDirty: true })
+          setValue('shippingLongitude', pin?.longitude, { shouldDirty: true })
+        }}
+      />
 
       <Button
         type="submit"

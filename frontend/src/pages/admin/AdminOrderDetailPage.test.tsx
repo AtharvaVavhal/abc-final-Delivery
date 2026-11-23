@@ -302,6 +302,24 @@ describe('AdminOrderDetailPage', () => {
     expect(within(row).getByText('Logo: Uploaded file')).toBeInTheDocument()
   })
 
+  it('links the delivery pin the customer shared to Google Maps', async () => {
+    reply(mock, { deliveryPin: { latitude: 18.45751, longitude: 73.85081 } })
+    renderPage()
+
+    const link = await screen.findByRole('link', { name: 'Open in Google Maps' })
+    expect(link).toHaveAttribute('href', 'https://www.google.com/maps/search/?api=1&query=18.45751,73.85081')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link.getAttribute('rel')).toContain('noopener')
+    expect(screen.getByText('18.45751, 73.85081')).toBeInTheDocument()
+  })
+
+  it('shows no pin section when the customer did not share one', async () => {
+    reply(mock, { deliveryPin: null })
+    renderPage()
+    await screen.findByText('Jane Doe')
+    expect(screen.queryByRole('link', { name: 'Open in Google Maps' })).not.toBeInTheDocument()
+  })
+
   it('renders a financial summary using backend values (no client calculation)', async () => {
     reply(mock)
     renderPage()

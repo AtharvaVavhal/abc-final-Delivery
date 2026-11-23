@@ -217,6 +217,21 @@ export function AdminOrderDetailPage() {
           </span>
           <span>{order.shippingCountry}</span>
         </address>
+        {order.deliveryPin && (
+          <p className={styles.deliveryPin}>
+            <span className={styles.deliveryPinLabel}>Delivery pin shared by the customer</span>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryPin.latitude},${order.deliveryPin.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open in Google Maps
+            </a>
+            <span className={styles.deliveryPinCoords}>
+              {order.deliveryPin.latitude.toFixed(5)}, {order.deliveryPin.longitude.toFixed(5)}
+            </span>
+          </p>
+        )}
       </AdminCard>
 
       <AdminCard as="section" flush title="Status history">
