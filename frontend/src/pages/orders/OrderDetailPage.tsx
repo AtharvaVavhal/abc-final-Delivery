@@ -18,6 +18,7 @@ import { getApiErrorMessage } from '@/utils/apiError'
 import type { OrderStatus, PaymentAttemptView } from '@/types/orders'
 import { ORDER_STATUS_LABELS } from '@/features/orders/orderStatus'
 import { OrderStatusBadge } from '@/features/orders/OrderStatusBadge'
+import { OrderPhotoStatus } from '@/features/orders/OrderPhotoStatus'
 import styles from './OrderDetailPage.module.css'
 
 const RETRYABLE_STATUSES = new Set<OrderStatus>(['PENDING_PAYMENT', 'PAYMENT_FAILED'])
@@ -212,6 +213,8 @@ export function OrderDetailPage() {
               </li>
             ))}
           </ul>
+
+          <OrderPhotoStatus order={order} />
 
           {timeline.length > 0 && (
             <>

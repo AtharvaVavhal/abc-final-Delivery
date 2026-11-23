@@ -285,15 +285,18 @@ describe('AdminOrderDetailPage', () => {
           quantity: 1,
           lineTotal: '400.00',
           customizations: [
-            { fieldLabel: 'Front text', textValue: 'PrintForge', uploadedFileId: null },
-            { fieldLabel: 'Logo', textValue: null, uploadedFileId: 'file-1' },
+            { id: 'c-1', fieldLabel: 'Front text', textValue: 'PrintForge', uploadedFileId: null, reviewStatus: null, reviewNote: null },
+            { id: 'c-2', fieldLabel: 'Logo', textValue: null, uploadedFileId: 'file-1', reviewStatus: 'PENDING', reviewNote: null },
           ],
         },
       ],
     })
     renderPage()
 
-    const row = (await screen.findByText('Custom Tee')).closest('tr') as HTMLElement
+    // The name also heads the photo-review card now; the Items row is the one in the table.
+    const row = (await screen.findAllByText('Custom Tee'))
+      .map((el) => el.closest('tr'))
+      .find((tr): tr is HTMLTableRowElement => tr !== null) as HTMLElement
     expect(within(row).getByText('Large')).toBeInTheDocument()
     expect(within(row).getByText('Front text: PrintForge')).toBeInTheDocument()
     expect(within(row).getByText('Logo: Uploaded file')).toBeInTheDocument()

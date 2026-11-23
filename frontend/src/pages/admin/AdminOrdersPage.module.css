@@ -5,6 +5,10 @@
   gap: var(--space-3);
 }
 
+.filters select {
+  min-height: 2.625rem;
+}
+
 .filters > :not(button) {
   flex: 1 1 12rem;
   max-width: 18rem;
@@ -17,6 +21,7 @@
 }
 
 .orderLink {
+  white-space: nowrap;
   font-weight: var(--font-weight-semibold);
   color: var(--color-accent);
 }
@@ -69,4 +74,16 @@
 
 .orderLink {
   font-variant-numeric: tabular-nums;
+}
+
+.hideMobile {}
+
+@media (max-width: 600px) {
+  .hideMobile {
+    display: none;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
 }

@@ -1,8 +1,10 @@
 import {
   OrderStatus,
   PaymentAttemptStatus,
+  PhotoReviewStatus,
   RefundStatus,
 } from '@prisma/client';
+import type { PhotoReviewSummary } from '../photo-review.util';
 
 /**
  * Read-side response shapes — not request DTOs. Money fields are
@@ -16,9 +18,15 @@ import {
  */
 
 export interface OrderItemCustomizationView {
+  id: string;
   fieldLabel: string;
   textValue: string | null;
   uploadedFileId: string | null;
+  /** Photo review state; null for text-only fields and for orders whose
+   * photo is not under review (unpaid/cancelled/refunded). */
+  reviewStatus: PhotoReviewStatus | null;
+  /** The admin's reason when changes were requested. */
+  reviewNote: string | null;
 }
 
 export interface OrderItemView {
@@ -72,6 +80,12 @@ export interface OrderListItemView {
    * action manually via the Razorpay dashboard. Surfaced here so it's
    * visible directly in the admin order list, not just on drill-in. */
   needsManualRefund: boolean;
+  /** Who the order is for: the shipping recipient name captured at checkout
+   * (the immutable snapshot, §11), so the admin list can show a person and
+   * not just an order number. */
+  recipientName: string;
+  /** What this order's photos add up to — see summarisePhotoReview. */
+  photoReview: PhotoReviewSummary;
   createdAt: Date;
 }
 

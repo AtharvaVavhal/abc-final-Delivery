@@ -25,13 +25,6 @@
   color: var(--color-text-muted);
 }
 
-.kpiRow {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
 .kpiFigures {
   display: flex;
   flex-direction: column;
@@ -63,7 +56,8 @@
 }
 
 .spark {
-  flex: 0 0 auto;
+  display: block;
+  margin-top: auto;
   color: var(--color-text-strong);
 }
 
@@ -90,10 +84,19 @@
   min-width: 0;
 }
 
+.plotArea {
+  position: relative;
+}
+
 .svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: clamp(150px, 24vw, 230px);
+}
+
+.svg line,
+.svg polyline {
+  vector-effect: non-scaling-stroke;
 }
 
 .grid {
@@ -128,9 +131,16 @@
 }
 
 .endDot {
-  fill: var(--admin-mark, #e8a317);
-  stroke: var(--color-text-strong);
-  stroke-width: 1.5;
+  position: absolute;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(50%, -50%);
+  background: var(--admin-mark, #e8a317);
+  border: 1.5px solid var(--color-text-strong);
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .xAxis {
@@ -166,6 +176,16 @@
 
 .basis {
   margin-left: auto;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .placeholder,

@@ -18,10 +18,21 @@ export type OrderStatus =
 export type PaymentAttemptStatus = 'INITIATED' | 'CAPTURED' | 'FAILED' | 'ABANDONED'
 export type RefundStatus = 'PENDING' | 'PROCESSED' | 'FAILED'
 
+/** Review state of one uploaded photo (null: text-only field, or not under review). */
+export type PhotoReviewStatus = 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED'
+
+/** What an order's photos add up to, in the order the admin must act:
+ * anything to review first, then anything waiting on the customer. */
+export type PhotoReviewSummary = 'NONE' | 'TO_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED'
+
 export interface OrderItemCustomizationView {
+  id: string
   fieldLabel: string
   textValue: string | null
   uploadedFileId: string | null
+  reviewStatus: PhotoReviewStatus | null
+  /** The admin's reason when a new photo was requested. */
+  reviewNote: string | null
 }
 
 export interface OrderItemView {
@@ -69,6 +80,9 @@ export interface OrderListItemView {
   status: OrderStatus
   total: string
   currency: string
+  /** Who the order is for — the shipping recipient name from checkout. */
+  recipientName: string
+  photoReview: PhotoReviewSummary
   itemCount: number
   /** True iff a refund is flagged PENDING and awaiting manual processing —
    * §12.5, no in-app refund-initiation in MVP. */

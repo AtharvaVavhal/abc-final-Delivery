@@ -11,10 +11,29 @@
   gap: var(--space-4);
 }
 
+.statTile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.statLabel {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
 .statValue {
   margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-strong);
 }
 
@@ -47,6 +66,7 @@
 }
 
 .orderLink {
+  white-space: nowrap;
   font-weight: var(--font-weight-semibold);
   color: var(--color-accent);
 }
@@ -74,4 +94,16 @@
 @media (max-width: 640px) {
   .attentionGrid { grid-template-columns: 1fr; }
   .stageLink { grid-template-columns: minmax(120px, 1fr) 1fr 3ch; gap: 10px; }
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Phones: the item count is the least useful column; dropping it lets
+   Order, Date, Status and Total fit without sideways scrolling. */
+@media (max-width: 600px) {
+  .hideMobile {
+    display: none;
+  }
 }

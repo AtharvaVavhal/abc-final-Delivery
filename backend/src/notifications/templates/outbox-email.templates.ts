@@ -23,7 +23,12 @@ export function buildEmailContent(
     case 'ORDER_PAID':
       return buildOrderPaidEmail(payload);
     case 'ORDER_STATUS_CHANGED':
-      return buildOrderStatusChangedEmail(payload);
+      // Photo-review requests ride on this event type with a `kind` marker:
+      // a dedicated enum value would need an ALTER TYPE migration, which the
+      // additive-only migration guard (G-10) does not allow.
+      return payload.kind === 'PHOTO_CHANGES_REQUESTED'
+        ? buildPhotoChangesRequestedEmail(payload)
+        : buildOrderStatusChangedEmail(payload);
     default:
       return null;
   }
@@ -79,6 +84,36 @@ function buildOrderStatusChangedEmail(
     html: `
       <p>Your order <strong>${orderNumber}</strong> is now <strong>${formatStatus(toStatus)}</strong>.</p>
       ${refundNote}
+    `.trim(),
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** The admin's note is free text typed by staff — escaped, never trusted as HTML. */
+function buildPhotoChangesRequestedEmail(
+  payload: Record<string, unknown>,
+): EmailContent {
+  const orderNumber = escapeHtml(asString(payload.orderNumber));
+  const note = escapeHtml(asString(payload.note));
+  const orderLink = asString(payload.orderLink);
+  const cta = orderLink.startsWith('https://')
+    ? `<p><a href="${escapeHtml(orderLink)}">Open your order and upload a new photo</a></p>`
+    : '<p>Sign in to your account, open this order and upload a new photo.</p>';
+  return {
+    subject: `Order ${orderNumber}: we need a new photo`,
+    html: `
+      <p>We looked at the photo you uploaded for order <strong>${orderNumber}</strong> and need a different one to get the best result.</p>
+      <p><strong>What to fix:</strong> ${note}</p>
+      ${cta}
+      <p>We'll start production as soon as the new photo is approved.</p>
     `.trim(),
   };
 }

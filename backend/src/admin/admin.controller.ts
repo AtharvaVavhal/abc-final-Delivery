@@ -36,6 +36,7 @@ import { CancelSubscriptionDto } from '../subscriptions/dto/cancel-subscription.
 import { AdminService } from './admin.service';
 import { ListAdminOrdersQueryDto } from './dto/list-admin-orders-query.dto';
 import { DashboardOverviewQueryDto } from './dto/dashboard-overview-query.dto';
+import { ReviewPhotoDto } from './dto/review-photo.dto';
 import { ListAdminCustomersQueryDto } from './dto/list-admin-customers-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -143,6 +144,27 @@ export class AdminController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.adminTransitionStatus(tenant, admin, id, dto);
+  }
+
+  /** Approve a customer's photo or ask for a new one. Same permission as a
+   * status transition (no new permission): staff who move orders along can
+   * review the photos on them. */
+  @RequirePermission('orders:transition')
+  @Patch('orders/:id/customizations/:customizationId/review')
+  async reviewPhoto(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('customizationId', ParseUUIDPipe) customizationId: string,
+    @Body() dto: ReviewPhotoDto,
+  ) {
+    return this.ordersService.adminReviewPhoto(
+      tenant,
+      admin,
+      id,
+      customizationId,
+      dto,
+    );
   }
 
   /**

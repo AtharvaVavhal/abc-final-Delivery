@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
   Order,
   OrderStatus,
   PaymentAttemptStatus,
+  PhotoReviewStatus,
   Prisma,
   RefundStatus,
 } from '@prisma/client';
@@ -28,6 +30,13 @@ import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { ListAdminOrdersQueryDto } from '../admin/dto/list-admin-orders-query.dto';
 import { UpdateOrderStatusDto } from '../admin/dto/update-order-status.dto';
+import { ReviewPhotoDto } from '../admin/dto/review-photo.dto';
+import {
+  isPhotoReviewGateEnforced,
+  PHOTO_REVIEW_BLOCKS_PRODUCTION_MESSAGE,
+  photoReviewWhere,
+  summarisePhotoReview,
+} from './photo-review.util';
 import {
   OrderDetailView,
   OrderListItemView,
@@ -61,7 +70,15 @@ interface TenantAuditContext {
 }
 
 const ORDER_LIST_INCLUDE = {
-  items: { select: { quantity: true } },
+  items: {
+    select: {
+      quantity: true,
+      customizations: {
+        where: { uploadedFileId: { not: null } },
+        select: { reviewStatus: true },
+      },
+    },
+  },
   paymentAttempts: {
     select: {
       refunds: {
@@ -245,6 +262,7 @@ export class OrdersService {
       tenantId: tenantContext.tenantId,
       ...(query.status ? { status: query.status } : {}),
       ...(query.userId ? { userId: query.userId } : {}),
+      ...(query.photoReview ? photoReviewWhere(query.photoReview) : {}),
       ...(query.dateFrom || query.dateTo
         ? {
             createdAt: {
@@ -309,6 +327,9 @@ export class OrdersService {
       return this.adminGetOrderDetail(tenantContext, orderId);
     }
     assertTransitionAllowed(order.status, dto.status);
+    if (dto.status === OrderStatus.IN_PRODUCTION) {
+      await this.assertPhotosReadyForProduction(order.id);
+    }
 
     const actor: Actor = { role: Role.ADMIN, actorId: admin.id };
     const tenantAudit: TenantAuditContext = { tenantContext, actor: admin };
@@ -345,6 +366,227 @@ export class OrdersService {
       });
     }
     return this.adminGetOrderDetail(tenantContext, orderId);
+  }
+
+  // ─── Photo review ───────────────────────────────────────────────────────
+
+  /** Refuses to start production while a photo is unapproved — but only
+   * when the gate is switched on (PHOTO_REVIEW_GATE=enforced). */
+  private async assertPhotosReadyForProduction(orderId: string): Promise<void> {
+    if (!isPhotoReviewGateEnforced()) return;
+    const open = await this.prisma.orderItemCustomization.count({
+      where: {
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+        reviewStatus: {
+          in: [PhotoReviewStatus.PENDING, PhotoReviewStatus.CHANGES_REQUESTED],
+        },
+      },
+    });
+    if (open > 0) {
+      throw new ConflictException(PHOTO_REVIEW_BLOCKS_PRODUCTION_MESSAGE);
+    }
+  }
+
+  /**
+   * Approve a customer's photo, or ask for a new one. Only while the order is
+   * PAID or CONFIRMED (once production has started the photo is final).
+   * Repeating the same decision is a no-op, so a double click is safe.
+   * Notifying the customer is a later phase; the decision is audit-logged.
+   */
+  async adminReviewPhoto(
+    tenantContext: TenantContext,
+    admin: AuthenticatedUser,
+    orderId: string,
+    customizationId: string,
+    dto: ReviewPhotoDto,
+  ): Promise<{
+    id: string;
+    reviewStatus: PhotoReviewStatus;
+    reviewNote: string | null;
+    reviewedAt: Date;
+    /** True when an email to the customer was queued. False when there was
+     * nothing to send to (a phone-only customer has no email) or the
+     * decision was an approval. */
+    notified: boolean;
+  }> {
+    const order = await this.findOrderOrThrow(orderId);
+    assertObjectInTenant(order, tenantContext.tenantId);
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.CONFIRMED
+    ) {
+      throw new ConflictException(
+        'Photos can only be reviewed while the order is paid and not yet in production.',
+      );
+    }
+
+    const customization = await this.prisma.orderItemCustomization.findFirst({
+      where: {
+        id: customizationId,
+        tenantId: tenantContext.tenantId,
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+      },
+    });
+    if (!customization) {
+      throw new NotFoundException('Photo not found on this order');
+    }
+
+    const target =
+      dto.decision === 'APPROVE'
+        ? PhotoReviewStatus.APPROVED
+        : PhotoReviewStatus.CHANGES_REQUESTED;
+    const note =
+      target === PhotoReviewStatus.APPROVED ? null : (dto.note ?? null);
+
+    if (
+      customization.reviewStatus === target &&
+      customization.reviewNote === note &&
+      customization.reviewedAt
+    ) {
+      return {
+        id: customization.id,
+        reviewStatus: target,
+        reviewNote: note,
+        reviewedAt: customization.reviewedAt,
+        notified: false,
+      };
+    }
+
+    const reviewedAt = new Date();
+    let notified = false;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.orderItemCustomization.update({
+        where: { id: customization.id },
+        data: {
+          reviewStatus: target,
+          reviewNote: note,
+          reviewedAt,
+          reviewedByUserId: admin.id,
+        },
+      });
+      const attribution = await resolveTenantAuditActor(
+        tx,
+        tenantContext,
+        admin,
+      );
+      await this.auditService.logTenantAction(tx, {
+        tenantId: tenantContext.tenantId,
+        ...attribution,
+        action: 'order.photo_review',
+        targetType: 'Order',
+        targetId: order.id,
+        metadata: {
+          customizationId: customization.id,
+          fromStatus: customization.reviewStatus,
+          toStatus: target,
+        },
+      });
+
+      if (target === PhotoReviewStatus.CHANGES_REQUESTED && note) {
+        // Email only when the customer has an address: phone-only (OTP)
+        // customers have none, and queuing for them would just fail in the
+        // poller. They still see the request on their order page.
+        const customer = await tx.user.findUnique({
+          where: { id: order.userId },
+          select: { email: true },
+        });
+        if (customer?.email) {
+          const base = process.env.FRONTEND_URL?.replace(/\/+$/, '');
+          await this.notificationsService.enqueueOutboxEvent(tx, {
+            eventType: 'ORDER_STATUS_CHANGED',
+            aggregateType: 'Order',
+            aggregateId: order.id,
+            eventKey: `PHOTO_CHANGES_REQUESTED:${customization.id}:${reviewedAt.toISOString()}`,
+            payload: {
+              kind: 'PHOTO_CHANGES_REQUESTED',
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              userId: order.userId,
+              email: customer.email,
+              note,
+              ...(base ? { orderLink: `${base}/orders/${order.id}` } : {}),
+            },
+          });
+          notified = true;
+        }
+      }
+    });
+
+    return {
+      id: customization.id,
+      reviewStatus: target,
+      reviewNote: note,
+      reviewedAt,
+      notified,
+    };
+  }
+
+  /**
+   * The customer's answer to "we need a new photo": swap in a freshly
+   * uploaded file and put the photo back in the review queue. Owner only;
+   * only while the admin has asked for a change and the order has not gone
+   * into production. The new file must be one this customer uploaded for
+   * this store.
+   */
+  async replaceCustomizationPhoto(
+    userId: string,
+    orderId: string,
+    customizationId: string,
+    uploadedFileId: string,
+  ): Promise<{ id: string; reviewStatus: PhotoReviewStatus }> {
+    const order = await this.findOrderOrThrow(orderId);
+    this.assertOwnedBy(order, userId);
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.CONFIRMED
+    ) {
+      throw new ConflictException(
+        'The photo can no longer be changed for this order.',
+      );
+    }
+
+    const customization = await this.prisma.orderItemCustomization.findFirst({
+      where: {
+        id: customizationId,
+        tenantId: order.tenantId,
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+      },
+    });
+    if (!customization) {
+      throw new NotFoundException('Photo not found on this order');
+    }
+    if (customization.reviewStatus !== PhotoReviewStatus.CHANGES_REQUESTED) {
+      throw new ConflictException(
+        'A new photo has not been requested for this order.',
+      );
+    }
+
+    const file = await this.prisma.uploadedFile.findFirst({
+      where: {
+        id: uploadedFileId,
+        uploadedByUserId: userId,
+        tenantId: order.tenantId,
+      },
+      select: { id: true },
+    });
+    if (!file) {
+      throw new NotFoundException('Uploaded file not found');
+    }
+
+    await this.prisma.orderItemCustomization.update({
+      where: { id: customization.id },
+      data: {
+        uploadedFileId: file.id,
+        reviewStatus: PhotoReviewStatus.PENDING,
+        reviewNote: null,
+        reviewedAt: null,
+        reviewedByUserId: null,
+      },
+    });
+    return { id: customization.id, reviewStatus: PhotoReviewStatus.PENDING };
   }
 
   // ─── Cancellation + manual-refund flagging ─────────────────────────────
@@ -636,6 +878,12 @@ export class OrdersService {
       needsManualRefund: order.paymentAttempts.some(
         (pa) => pa.refunds.length > 0,
       ),
+      recipientName: order.shippingRecipientName,
+      photoReview: summarisePhotoReview(
+        order.items.flatMap((item) =>
+          item.customizations.map((c) => c.reviewStatus),
+        ),
+      ),
       createdAt: order.createdAt,
     };
   }
@@ -698,6 +946,14 @@ export class OrdersService {
           (refund) => refund.status === RefundStatus.PENDING,
         ),
       ),
+      recipientName: order.shippingRecipientName,
+      photoReview: summarisePhotoReview(
+        order.items.flatMap((item) =>
+          item.customizations
+            .filter((c) => c.uploadedFileId !== null)
+            .map((c) => c.reviewStatus),
+        ),
+      ),
       shippingRecipientName: order.shippingRecipientName,
       shippingPhone: order.shippingPhone,
       shippingAddressLine1: order.shippingAddressLine1,
@@ -716,9 +972,12 @@ export class OrdersService {
         quantity: item.quantity,
         lineTotal: paiseToDecimalString(decimalToPaise(item.lineTotal)),
         customizations: item.customizations.map((c) => ({
+          id: c.id,
           fieldLabel: c.fieldLabelSnapshot,
           textValue: c.textValue,
           uploadedFileId: c.uploadedFileId,
+          reviewStatus: c.reviewStatus,
+          reviewNote: c.reviewNote,
         })),
       })),
       statusHistory,

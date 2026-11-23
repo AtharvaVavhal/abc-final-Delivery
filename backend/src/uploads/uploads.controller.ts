@@ -28,6 +28,9 @@ interface UploadedFileView {
   url: string;
   format: string;
   bytes: number;
+  /** Pixel size for images; null for older files. */
+  width: number | null;
+  height: number | null;
   createdAt: Date;
 }
 
@@ -95,7 +98,14 @@ export class UploadsController {
   }
 
   private toView(
-    file: { id: string; format: string; bytes: number; createdAt: Date },
+    file: {
+      id: string;
+      format: string;
+      bytes: number;
+      width: number | null;
+      height: number | null;
+      createdAt: Date;
+    },
     url: string,
   ): UploadedFileView {
     return {
@@ -103,6 +113,8 @@ export class UploadsController {
       url,
       format: file.format,
       bytes: file.bytes,
+      width: file.width,
+      height: file.height,
       createdAt: file.createdAt,
     };
   }

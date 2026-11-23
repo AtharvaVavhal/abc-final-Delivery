@@ -70,6 +70,16 @@ enum OrderStatus {
   REFUNDED
 }
 
+// Admin review of a customer-uploaded photo, per file customization (see
+// docs/architecture/ADMIN-PHOTO-REVIEW-DESIGN.md). Deliberately NOT an
+// OrderStatus: payment/fulfilment state and "has anyone looked at the photo"
+// are independent, and one order can hold several photos.
+enum PhotoReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
 // Payment-infrastructure state, per attempt — §12.1. Distinct from OrderStatus.
 enum PaymentAttemptStatus {
   INITIATED
@@ -443,6 +453,9 @@ model UploadedFile {
   bytes              Int
   resourceType       String
   deliveryType       String
+  // Pixel size from the Cloudinary upload response; NULL for older files.
+  width              Int?
+  height             Int?
 
   tenantId             String
   uploadedByCustomerId String?
@@ -716,6 +729,12 @@ model OrderItemCustomization {
   fieldLabelSnapshot String
   textValue          String?
   uploadedFileId     String?
+
+  // Photo review — set only on file customizations (NULL for text-only rows).
+  reviewStatus     PhotoReviewStatus?
+  reviewNote       String?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
 
   tenantId String
 

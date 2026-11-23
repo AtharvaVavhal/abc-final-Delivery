@@ -17,7 +17,8 @@ import { ORDER_STATUS_LABELS } from '@/features/orders/orderStatus'
 import { adminOrderDetailPath } from '@/constants/routes'
 import { formatPrice } from '@/utils/formatPrice'
 import { formatDate } from '@/utils/formatDate'
-import type { OrderStatus } from '@/types/orders'
+import type { OrderStatus, PhotoReviewSummary } from '@/types/orders'
+import { PhotoPill } from '@/features/admin/photo-review/PhotoPill'
 import styles from './AdminOrdersPage.module.css'
 
 const DEFAULT_LIMIT = 20
@@ -26,8 +27,23 @@ const ORDER_STATUS_VALUES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]
 
 /** Quick views over the same `?status=` filter the Status select drives —
  * the stages an order moves through in day-to-day work. */
-const STATUS_TABS: { label: string; value: OrderStatus | '' }[] = [
+const PHOTO_FILTER_VALUES: PhotoReviewSummary[] = ['NONE', 'TO_REVIEW', 'CHANGES_REQUESTED', 'APPROVED']
+
+function parsePhotoReview(value: string | null): PhotoReviewSummary | undefined {
+  return value && (PHOTO_FILTER_VALUES as string[]).includes(value) ? (value as PhotoReviewSummary) : undefined
+}
+
+interface OrderTab {
+  label: string
+  /** A status view (''= all orders). */
+  value?: OrderStatus | ''
+  /** A photo-review view — takes precedence over the status. */
+  photoReview?: PhotoReviewSummary
+}
+
+const STATUS_TABS: OrderTab[] = [
   { label: 'All orders', value: '' },
+  { label: 'Photo review', photoReview: 'TO_REVIEW' },
   { label: 'Awaiting payment', value: 'PENDING_PAYMENT' },
   { label: 'Payment confirmed', value: 'PAID' },
   { label: 'In production', value: 'IN_PRODUCTION' },
@@ -51,6 +67,7 @@ export function AdminOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const page = Number(searchParams.get('page') ?? '1')
   const status = parseStatus(searchParams.get('status'))
+  const photoReview = parsePhotoReview(searchParams.get('photoReview'))
   const dateFrom = searchParams.get('dateFrom') ?? ''
   const dateTo = searchParams.get('dateTo') ?? ''
   const userId = searchParams.get('userId') ?? ''
@@ -58,12 +75,13 @@ export function AdminOrdersPage() {
   // The backend rejects a non-UUID userId with a 400 — validate client-side
   // so a typo shows as an inline field error instead of a page-level Alert.
   const userIdError = userId !== '' && !UUID_RE.test(userId) ? 'Enter a full customer UUID' : undefined
-  const hasActiveFilters = Boolean(status || dateFrom || dateTo || userId)
+  const hasActiveFilters = Boolean(status || photoReview || dateFrom || dateTo || userId)
 
   const ordersQuery = useAdminOrders({
     page,
     limit: DEFAULT_LIMIT,
     status,
+    photoReview,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     userId: userId && !userIdError ? userId : undefined,
@@ -84,10 +102,23 @@ export function AdminOrdersPage() {
     })
   }
 
+  /** A tab picks exactly one view: a photo-review view or a status view. */
+  function selectTab(tab: OrderTab) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('status')
+      next.delete('photoReview')
+      if (tab.photoReview) next.set('photoReview', tab.photoReview)
+      else if (tab.value) next.set('status', tab.value)
+      next.set('page', '1')
+      return next
+    })
+  }
+
   function clearFilters() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      for (const key of ['status', 'dateFrom', 'dateTo', 'userId']) {
+      for (const key of ['status', 'photoReview', 'dateFrom', 'dateTo', 'userId']) {
         next.delete(key)
       }
       next.set('page', '1')
@@ -113,14 +144,16 @@ export function AdminOrdersPage() {
     <AdminPage title="Orders" description="Every order in the system, newest first.">
       <nav className={styles.tabs} aria-label="Order views">
         {STATUS_TABS.map((tab) => {
-          const active = (status ?? '') === tab.value
+          const active = tab.photoReview
+            ? photoReview === tab.photoReview
+            : !photoReview && (status ?? '') === (tab.value ?? '')
           return (
             <button
               key={tab.label}
               type="button"
               className={active ? `${styles.tab} ${styles.tabActive}` : styles.tab}
               aria-pressed={active}
-              onClick={() => setFilter('status', tab.value)}
+              onClick={() => selectTab(tab)}
             >
               {tab.label}
             </button>
@@ -204,8 +237,10 @@ export function AdminOrdersPage() {
               <AdminTable.Head>
                 <AdminTable.Row>
                   <AdminTable.HeaderCell>Order</AdminTable.HeaderCell>
-                  <AdminTable.HeaderCell>Date</AdminTable.HeaderCell>
-                  <AdminTable.HeaderCell align="center">Items</AdminTable.HeaderCell>
+                  <AdminTable.HeaderCell className={styles.hideMobile}>Customer</AdminTable.HeaderCell>
+                  <AdminTable.HeaderCell className={styles.hideMobile}>Date</AdminTable.HeaderCell>
+                  <AdminTable.HeaderCell align="center" className={styles.hideMobile}>Items</AdminTable.HeaderCell>
+                  <AdminTable.HeaderCell className={styles.hideMobile}>Photo</AdminTable.HeaderCell>
                   <AdminTable.HeaderCell>Status</AdminTable.HeaderCell>
                   <AdminTable.HeaderCell align="end">Total</AdminTable.HeaderCell>
                 </AdminTable.Row>
@@ -218,8 +253,12 @@ export function AdminOrdersPage() {
                         {order.orderNumber}
                       </Link>
                     </AdminTable.Cell>
-                    <AdminTable.Cell>{formatDate(order.createdAt)}</AdminTable.Cell>
-                    <AdminTable.Cell align="center">{order.itemCount}</AdminTable.Cell>
+                    <AdminTable.Cell className={styles.hideMobile}>{order.recipientName}</AdminTable.Cell>
+                    <AdminTable.Cell className={styles.hideMobile}><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
+                    <AdminTable.Cell align="center" className={styles.hideMobile}>{order.itemCount}</AdminTable.Cell>
+                    <AdminTable.Cell className={styles.hideMobile}>
+                      <PhotoPill summary={order.photoReview ?? 'NONE'} />
+                    </AdminTable.Cell>
                     <AdminTable.Cell>
                       <span className={styles.statusCell}>
                         <OrderStatusBadge status={order.status} />

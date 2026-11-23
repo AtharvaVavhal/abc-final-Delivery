@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PhotoReviewStatus } from '@prisma/client';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { TenantContext } from '../common/tenant/tenant-context';
 import { OrdersService } from './orders.service';
@@ -96,5 +96,46 @@ describe('OrdersService.adminTransitionStatus — illegal transition rejection',
       }),
     ).rejects.toThrow(ConflictException);
     expect(prisma.paymentAttempt.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('OrdersService list rows — who the order is for', () => {
+  it('adminRecentOrders exposes the shipping recipient name from the order snapshot', async () => {
+    const prisma = {
+      order: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'order-1',
+            orderNumber: 'PF-000001',
+            status: OrderStatus.PAID,
+            total: '1499.00',
+            currency: 'INR',
+            createdAt: new Date('2026-11-23T10:00:00Z'),
+            shippingRecipientName: 'Riya Sharma',
+            items: [
+              {
+                quantity: 2,
+                customizations: [{ reviewStatus: PhotoReviewStatus.PENDING }],
+              },
+            ],
+            paymentAttempts: [],
+          },
+        ]),
+      },
+    };
+    const service = new OrdersService(
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
+
+    const [row] = await service.adminRecentOrders(tenantContext, 10);
+
+    expect(row.recipientName).toBe('Riya Sharma');
+    expect(row.photoReview).toBe('TO_REVIEW');
+    expect(row.itemCount).toBe(2);
+    expect(prisma.order.findMany.mock.calls[0][0].where).toEqual({
+      tenantId: 'tenant-a',
+    });
   });
 });
