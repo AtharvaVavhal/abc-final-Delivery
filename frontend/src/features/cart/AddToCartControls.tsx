@@ -58,7 +58,11 @@ export function AddToCartControls({
 
   const variantRequired = product.variants.length > 0
   const variantMissing = variantRequired && !selectedVariantId
-  const disabled = variantMissing || !customization.isValid || isPending
+  // Picking an option is explained when someone tries to add without one, not
+  // from the moment the page loads (which read as an error nobody had caused).
+  // So a missing option no longer greys the button out; it answers the click.
+  const [triedWithoutOption, setTriedWithoutOption] = useState(false)
+  const disabled = !customization.isValid || isPending
 
   const goToLogin = useCallback(() => {
     void navigate(ROUTES.LOGIN, { state: { from: location } })
@@ -101,6 +105,11 @@ export function AddToCartControls({
 
   function handleAddToCart() {
     reset()
+
+    if (variantMissing) {
+      setTriedWithoutOption(true)
+      return
+    }
 
     if (status !== 'authenticated') {
       if (!disabled) {
@@ -150,7 +159,9 @@ export function AddToCartControls({
         Add to cart
       </Button>
 
-      {variantMissing && <Alert variant="error">Please select an option above.</Alert>}
+      {variantMissing && triedWithoutOption && (
+        <Alert variant="error">Please select an option above.</Alert>
+      )}
       {error && <Alert variant="error">{getApiErrorMessage(error)}</Alert>}
     </div>
   )

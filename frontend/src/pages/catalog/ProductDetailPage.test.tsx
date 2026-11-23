@@ -297,6 +297,30 @@ describe('ProductDetailPage', () => {
     expect(screen.getByText('₹175.00')).toBeInTheDocument()
   })
 
+  it('does not show the "select an option" error until someone tries to add without one', async () => {
+    mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
+
+    renderAtSlug('ceramic-mug', AUTHENTICATED)
+    await screen.findByRole('heading', { name: 'Ceramic Mug' })
+
+    expect(screen.queryByText('Please select an option above.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add to cart' })).toBeEnabled()
+  })
+
+  it('removes the "select an option" error once an option is chosen', async () => {
+    const user = userEvent.setup()
+    mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
+
+    renderAtSlug('ceramic-mug', AUTHENTICATED)
+    await screen.findByRole('heading', { name: 'Ceramic Mug' })
+    await user.click(screen.getByRole('button', { name: 'Add to cart' }))
+    expect(await screen.findByText('Please select an option above.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: /Large/ }))
+
+    expect(screen.queryByText('Please select an option above.')).not.toBeInTheDocument()
+  })
+
   it('requires a variant to be selected before adding to cart, and never calls the API', async () => {
     const user = userEvent.setup()
     mock.onGet('/products/ceramic-mug').reply(200, { success: true, data: SAMPLE_PRODUCT })
