@@ -7,5 +7,8 @@ export interface UploadedFile {
   url: string
   format: string
   bytes: number
+  /** Pixel size for images; null for older files. */
+  width: number | null
+  height: number | null
   createdAt: string
 }

@@ -80,6 +80,11 @@ export function AdminDashboardPage() {
 
           <AdminCard as="section" title="Needs attention">
             <div className={styles.attentionGrid}>
+              <Link to={`${ROUTES.ADMIN_ORDERS}?photoReview=TO_REVIEW`} className={styles.attentionTile}>
+                <span className={styles.attentionLabel}>Review customer photos</span>
+                <strong className={styles.attentionCount}>{data.photosAwaitingReview ?? 0}</strong>
+                <span className={styles.attentionHint}>View orders</span>
+              </Link>
               {ATTENTION_STAGES.map(({ status, action }) => (
                 <Link key={status} to={ordersFor(status)} className={styles.attentionTile}>
                   <span className={styles.attentionLabel}>{action}</span>

@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useAdminOrder } from '@/hooks/useAdminOrder'
 import { useUpdateAdminOrderStatus } from '@/hooks/useUpdateAdminOrderStatus'
 import { OrderStatusForm } from '@/features/admin/OrderStatusForm'
+import { PhotoReviewPanel } from '@/features/admin/photo-review/PhotoReviewPanel'
 import { OrderStatusBadge } from '@/features/orders/OrderStatusBadge'
 import { ORDER_STATUS_LABELS } from '@/features/orders/orderStatus'
 import { Alert } from '@/components/ui/Alert'
@@ -111,6 +112,8 @@ export function AdminOrderDetailPage() {
           mark the order Refunded here to close it out.
         </Alert>
       )}
+
+      <PhotoReviewPanel order={order} />
 
       <AdminCard as="section" flush title="Items">
         {order.items.length === 0 ? (

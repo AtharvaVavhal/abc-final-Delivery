@@ -14,6 +14,13 @@ import { apiClient } from './client'
  * the boundary parameter (axios won't add one to a header you already
  * set), and multer would fail to parse the body server-side.
  */
+/** GET /uploads/:id — the file's metadata and a short-lived signed URL
+ * (owner or admin only). Used by the admin photo-review panel. */
+export async function fetchUploadedFile(id: string, signal?: AbortSignal): Promise<UploadedFile> {
+  const res = await apiClient.get<ApiSuccessResponse<UploadedFile>>(`/uploads/${id}`, { signal })
+  return res.data.data
+}
+
 export async function uploadFile(file: File): Promise<UploadedFile> {
   const formData = new FormData()
   formData.append('file', file)

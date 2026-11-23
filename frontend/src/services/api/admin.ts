@@ -7,6 +7,8 @@ import type {
   AdminDashboardView,
   ListAdminCustomersParams,
   ListAdminOrdersParams,
+  ReviewPhotoPayload,
+  ReviewPhotoResult,
   UpdateOrderStatusPayload,
   UpdateReviewStatusPayload,
 } from '@/types/admin'
@@ -76,6 +78,21 @@ export async function updateAdminOrderStatus(
   payload: UpdateOrderStatusPayload,
 ): Promise<OrderDetailView> {
   const res = await apiClient.patch<ApiSuccessResponse<OrderDetailView>>(`/admin/orders/${orderId}/status`, payload)
+  return res.data.data
+}
+
+/** PATCH /admin/orders/:id/customizations/:cid/review — approve a customer's
+ * photo or ask for a new one (note required for the latter). Only valid
+ * while the order is paid and not yet in production; the backend enforces it. */
+export async function reviewOrderPhoto(
+  orderId: string,
+  customizationId: string,
+  payload: ReviewPhotoPayload,
+): Promise<ReviewPhotoResult> {
+  const res = await apiClient.patch<ApiSuccessResponse<ReviewPhotoResult>>(
+    `/admin/orders/${orderId}/customizations/${customizationId}/review`,
+    payload,
+  )
   return res.data.data
 }
 

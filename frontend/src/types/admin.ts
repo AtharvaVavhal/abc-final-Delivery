@@ -10,7 +10,7 @@
  * included, same as the customer-facing endpoint) with no admin-only
  * fields layered on top.
  */
-import type { OrderListItemView, OrderStatus } from './orders'
+import type { OrderListItemView, OrderStatus, PhotoReviewStatus, PhotoReviewSummary } from './orders'
 import type { CustomizationFieldType, SurchargeType } from './catalog'
 import type { ReviewStatus } from './reviews'
 
@@ -21,6 +21,8 @@ export interface OrderStatusCount {
 
 export interface AdminDashboardView {
   totalOrders: number
+  /** Photos on paid, not-yet-in-production orders awaiting a decision. */
+  photosAwaitingReview: number
   /** Every OrderStatus value, zero-filled — confirmed live. */
   ordersByStatus: OrderStatusCount[]
   /** Major-unit decimal string. "Paid-or-later" order totals only. */
@@ -38,6 +40,20 @@ export interface ListAdminOrdersParams {
   userId?: string
   dateFrom?: string
   dateTo?: string
+  photoReview?: PhotoReviewSummary
+}
+
+export interface ReviewPhotoPayload {
+  decision: 'APPROVE' | 'REQUEST_CHANGES'
+  /** Required (3–500 chars) for REQUEST_CHANGES; shown to the customer. */
+  note?: string
+}
+
+export interface ReviewPhotoResult {
+  id: string
+  reviewStatus: PhotoReviewStatus
+  reviewNote: string | null
+  reviewedAt: string
 }
 
 export interface UpdateOrderStatusPayload {

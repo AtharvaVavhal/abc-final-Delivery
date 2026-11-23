@@ -78,7 +78,7 @@ describe('AdminOrdersPage', () => {
 
     await screen.findByRole('link', { name: /PF-000001/ })
     const headers = screen.getAllByRole('columnheader').map((h) => h.textContent)
-    expect(headers).toEqual(['Order', 'Customer', 'Date', 'Items', 'Status', 'Total'])
+    expect(headers).toEqual(['Order', 'Customer', 'Date', 'Items', 'Photo', 'Status', 'Total'])
     expect(screen.getByRole('heading', { level: 1, name: 'Orders' })).toBeInTheDocument()
   })
 
@@ -153,6 +153,25 @@ describe('AdminOrdersPage', () => {
     expect(screen.getByLabelText('Status')).toHaveValue('IN_PRODUCTION')
     const calls = adminOrdersCalls(mock).map((r) => r.params as Record<string, unknown>)
     expect(calls.at(-1)).toMatchObject({ status: 'IN_PRODUCTION', page: 1 })
+  })
+
+  it('has a Photo review tab that filters by photoReview, replaces the status filter, and shows each order\'s photo state', async () => {
+    const user = userEvent.setup()
+    mock.onGet('/admin/orders').reply(200, ordersResponse([buildOrder({ photoReview: 'TO_REVIEW' })]))
+
+    renderWithProviders(<AdminOrdersPage />, { initialEntries: ['/admin/orders?status=SHIPPED'] })
+
+    await screen.findByRole('link', { name: /PF-000001/ })
+    const tabs = screen.getByRole('navigation', { name: 'Order views' })
+    await user.click(within(tabs).getByRole('button', { name: 'Photo review' }))
+
+    expect(within(tabs).getByRole('button', { name: 'Photo review' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Status')).toHaveValue('')
+    const params = adminOrdersCalls(mock).map((r) => r.params as Record<string, unknown>).at(-1)
+    expect(params).toMatchObject({ photoReview: 'TO_REVIEW', page: 1 })
+    expect(params?.status).toBeUndefined()
+    const row = screen.getByRole('link', { name: /PF-000001/ }).closest('tr') as HTMLElement
+    expect(within(row).getByText('To review')).toBeInTheDocument()
   })
 
   it('"All orders" tab clears the status filter', async () => {
