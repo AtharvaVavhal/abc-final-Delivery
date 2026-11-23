@@ -23,6 +23,17 @@ import styles from './AdminOrdersPage.module.css'
 const DEFAULT_LIMIT = 20
 
 const ORDER_STATUS_VALUES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]
+
+/** Quick views over the same `?status=` filter the Status select drives —
+ * the stages an order moves through in day-to-day work. */
+const STATUS_TABS: { label: string; value: OrderStatus | '' }[] = [
+  { label: 'All orders', value: '' },
+  { label: 'Awaiting payment', value: 'PENDING_PAYMENT' },
+  { label: 'Payment confirmed', value: 'PAID' },
+  { label: 'In production', value: 'IN_PRODUCTION' },
+  { label: 'Shipped', value: 'SHIPPED' },
+  { label: 'Delivered', value: 'DELIVERED' },
+]
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function parseStatus(value: string | null): OrderStatus | undefined {
@@ -100,6 +111,23 @@ export function AdminOrdersPage() {
 
   return (
     <AdminPage title="Orders" description="Every order in the system, newest first.">
+      <nav className={styles.tabs} aria-label="Order views">
+        {STATUS_TABS.map((tab) => {
+          const active = (status ?? '') === tab.value
+          return (
+            <button
+              key={tab.label}
+              type="button"
+              className={active ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              aria-pressed={active}
+              onClick={() => setFilter('status', tab.value)}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </nav>
+
       <AdminCard as="section" title="Filters">
         <div className={styles.filters}>
           <AdminSelect

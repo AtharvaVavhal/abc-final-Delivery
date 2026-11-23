@@ -127,6 +127,40 @@ describe('AdminOrdersPage', () => {
     expect(calls.at(-1)).toMatchObject({ status: 'PAID', page: 1 })
   })
 
+  it('has status tabs that drive the same ?status= filter and mark the active view', async () => {
+    const user = userEvent.setup()
+    mock.onGet('/admin/orders').reply(200, ordersResponse([buildOrder()]))
+
+    renderWithProviders(<AdminOrdersPage />, { initialEntries: ['/admin/orders?page=2'] })
+
+    await screen.findByRole('link', { name: /PF-000001/ })
+    const tabs = screen.getByRole('navigation', { name: 'Order views' })
+    expect(within(tabs).getByRole('button', { name: 'All orders' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(within(tabs).getByRole('button', { name: 'In production' }))
+
+    expect(within(tabs).getByRole('button', { name: 'In production' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(tabs).getByRole('button', { name: 'All orders' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByLabelText('Status')).toHaveValue('IN_PRODUCTION')
+    const calls = adminOrdersCalls(mock).map((r) => r.params as Record<string, unknown>)
+    expect(calls.at(-1)).toMatchObject({ status: 'IN_PRODUCTION', page: 1 })
+  })
+
+  it('"All orders" tab clears the status filter', async () => {
+    const user = userEvent.setup()
+    mock.onGet('/admin/orders').reply(200, ordersResponse([buildOrder({ status: 'SHIPPED' })]))
+
+    renderWithProviders(<AdminOrdersPage />, { initialEntries: ['/admin/orders?status=SHIPPED'] })
+
+    await screen.findByRole('link', { name: /PF-000001/ })
+    const tabs = screen.getByRole('navigation', { name: 'Order views' })
+    expect(within(tabs).getByRole('button', { name: 'Shipped' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(within(tabs).getByRole('button', { name: 'All orders' }))
+
+    expect(screen.getByLabelText('Status')).toHaveValue('')
+  })
+
   it('has date-range filters that pass dateFrom / dateTo through to the API', async () => {
     mock.onGet('/admin/orders').reply(200, ordersResponse([buildOrder()]))
 
