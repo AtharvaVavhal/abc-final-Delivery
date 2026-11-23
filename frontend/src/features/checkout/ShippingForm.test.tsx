@@ -298,4 +298,75 @@ describe('ShippingForm', () => {
       )
     })
   })
+  describe('Use my current location', () => {
+    function stubGeolocation(impl: (ok: PositionCallback, fail: PositionErrorCallback) => void) {
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: { getCurrentPosition: vi.fn(impl) },
+      })
+    }
+
+    afterEach(() => {
+      // jsdom has no geolocation by default.
+      // @ts-expect-error — removing the stub between tests
+      delete navigator.geolocation
+    })
+
+    it('does not ask for location until the button is tapped', () => {
+      stubGeolocation(() => undefined)
+      renderForm()
+      expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled()
+      expect(screen.getByText(/We don.t store your location/)).toBeInTheDocument()
+    })
+
+    it('fills the PIN from the position, then City and State from the normal lookup', async () => {
+      stubGeolocation((ok) =>
+        ok({ coords: { latitude: 18.4575, longitude: 73.8508 } } as GeolocationPosition),
+      )
+      mock.onGet('/postal-codes/reverse').reply(200, { success: true, data: { postalCode: '411046' } })
+      renderForm()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Use my current location' }))
+
+      await waitFor(() => expect(screen.getByLabelText('Postal code')).toHaveValue('411046'))
+      await waitFor(() => expect(screen.getByLabelText('City')).toHaveValue('Pune'))
+      expect(screen.getByLabelText('State')).toHaveValue('Maharashtra')
+      expect(mock.history.get.find((r) => r.url === '/postal-codes/reverse')?.params).toEqual({
+        lat: 18.4575,
+        lng: 73.8508,
+      })
+    })
+
+    it('explains a blocked permission and leaves the form usable', async () => {
+      stubGeolocation((_ok, fail) =>
+        fail({ code: 1, PERMISSION_DENIED: 1 } as unknown as GeolocationPositionError),
+      )
+      renderForm()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Use my current location' }))
+
+      expect(await screen.findByText(/Location access was blocked/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Postal code')).toBeEnabled()
+    })
+
+    it('shows the server message when no PIN is found for the spot', async () => {
+      stubGeolocation((ok) =>
+        ok({ coords: { latitude: 0, longitude: 0 } } as GeolocationPosition),
+      )
+      mock.onGet('/postal-codes/reverse').reply(404, {
+        success: false,
+        error: { code: 'NOT_FOUND', message: "We couldn't find a PIN code for your location. Please enter it manually.", details: [] },
+      })
+      renderForm()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Use my current location' }))
+
+      expect(await screen.findByText(/couldn't find a PIN code for your location/)).toBeInTheDocument()
+    })
+
+    it('hides the button when the browser has no geolocation', () => {
+      renderForm()
+      expect(screen.queryByRole('button', { name: 'Use my current location' })).not.toBeInTheDocument()
+    })
+  })
 })

@@ -93,6 +93,9 @@ export interface AppConfig {
      * Has a working public default — never a production-required secret,
      * and checkout stays usable if the provider is down. */
     providerBaseUrl: string;
+    /** Base URL of the reverse geocoder used by "Use my location"
+     * (Nominatim-compatible `/reverse`). Public default, no key. */
+    reverseGeocodeBaseUrl: string;
   };
   /**
    * Per-module tenant-scoping rollout flags (decision P3-D1,
@@ -237,6 +240,9 @@ export default (): AppConfig => ({
   postal: {
     providerBaseUrl:
       process.env.POSTAL_LOOKUP_BASE_URL ?? 'https://api.pincodeapi.in/api/v1',
+    reverseGeocodeBaseUrl:
+      process.env.REVERSE_GEOCODE_BASE_URL ??
+      'https://nominatim.openstreetmap.org',
   },
   tenantEnforcement: loadTenantEnforcement(),
 });

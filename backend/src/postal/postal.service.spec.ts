@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -13,7 +14,10 @@ import { PostalLookupService } from './postal.service';
  */
 describe('PostalLookupService', () => {
   const config = {
-    get: () => ({ providerBaseUrl: 'https://provider.test/api/v1' }),
+    get: () => ({
+      providerBaseUrl: 'https://provider.test/api/v1',
+      reverseGeocodeBaseUrl: 'https://geo.test',
+    }),
   };
 
   function buildService() {
@@ -217,5 +221,66 @@ describe('PostalLookupService', () => {
     await buildService().lookup('411046');
     const options = spy.mock.calls[0][1] as RequestInit;
     expect(options.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  describe('reverseLookup ("Use my location")', () => {
+    const PUNE = {
+      address: { postcode: '411 046', country_code: 'in', state: 'Maharashtra' },
+    };
+
+    it('returns the PIN (spaces stripped) for a spot in India', async () => {
+      mockFetch(() => providerResponse(PUNE));
+      await expect(
+        buildService().reverseLookup(18.4575, 73.8508),
+      ).resolves.toEqual({ postalCode: '411046' });
+    });
+
+    it('rounds coordinates to 4 decimals and identifies the app, with no other data', async () => {
+      const spy = mockFetch(() => providerResponse(PUNE));
+      await buildService().reverseLookup(18.457512345, 73.850812345);
+      const [url, options] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain('https://geo.test/reverse?');
+      expect(url).toContain('lat=18.4575');
+      expect(url).toContain('lon=73.8508');
+      expect(url).not.toContain('18.45751');
+      expect(
+        (options.headers as Record<string, string>)['User-Agent'],
+      ).toContain('AB-Creations');
+    });
+
+    it('rejects out-of-range or non-finite coordinates without calling the provider', async () => {
+      const spy = mockFetch(() => providerResponse(PUNE));
+      await expect(buildService().reverseLookup(91, 10)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(
+        buildService().reverseLookup(10, NaN),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('404s outside India or when the spot has no usable PIN', async () => {
+      mockFetch(() =>
+        providerResponse({ address: { postcode: '90210', country_code: 'us' } }),
+      );
+      await expect(
+        buildService().reverseLookup(34.09, -118.4),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      mockFetch(() => providerResponse({ address: { country_code: 'in' } }));
+      await expect(
+        buildService().reverseLookup(18.45, 73.85),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('503s when the geocoder is down, without leaking coordinates to logs', async () => {
+      mockFetch(() => Promise.reject(new Error('boom 18.4575,73.8508')));
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      await expect(
+        buildService().reverseLookup(18.4575, 73.8508),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('18.4575');
+    });
   });
 });

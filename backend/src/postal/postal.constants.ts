@@ -26,3 +26,19 @@ export const PIN_CODE_NOT_FOUND_MESSAGE =
 
 export const PIN_LOOKUP_UNAVAILABLE_MESSAGE =
   "We couldn't verify this PIN right now. Please check your PIN or enter your address manually.";
+
+// ── "Use my location" (reverse geocoding) ───────────────────────────────
+
+/** Coordinates are rounded to 4 decimals (~11 m) before leaving the server
+ * — enough to find a PIN, less precise than the browser's raw fix. */
+export const COORDINATE_DECIMALS = 4;
+
+/** Identifies this app to the geocoder (OSM's usage policy requires it).
+ * Deliberately generic: no personal or customer details. */
+export const REVERSE_GEOCODE_USER_AGENT =
+  'AB-Creations-Storefront/1.0 (+https://abcmanufactures.com)';
+
+export const LOCATION_INVALID_MESSAGE = 'Enter a valid latitude and longitude.';
+
+export const LOCATION_PIN_NOT_FOUND_MESSAGE =
+  "We couldn't find a PIN code for your location. Please enter it manually.";

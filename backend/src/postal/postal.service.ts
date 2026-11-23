@@ -10,11 +10,15 @@ import { AppConfig } from '../common/config/configuration';
 import { PIN_CODE_REGEX } from '../common/validation/indian-address.util';
 import { PostalLookupView } from './dto/postal-lookup-view.interface';
 import {
+  COORDINATE_DECIMALS,
+  LOCATION_INVALID_MESSAGE,
+  LOCATION_PIN_NOT_FOUND_MESSAGE,
   LOOKUP_COUNTRY,
   PIN_CODE_INVALID_MESSAGE,
   PIN_CODE_NOT_FOUND_MESSAGE,
   PIN_LOOKUP_UNAVAILABLE_MESSAGE,
   POSTAL_PROVIDER_TIMEOUT_MS,
+  REVERSE_GEOCODE_USER_AGENT,
 } from './postal.constants';
 
 /**
@@ -93,6 +97,78 @@ export class PostalLookupService {
     }
 
     return this.normalize(postalCode, body);
+  }
+
+  /**
+   * "Use my location": coordinates -> the PIN code at that spot. The
+   * caller then runs the normal {@link lookup} for city/state, so both
+   * paths share one source of truth for the address fields.
+   *
+   * Privacy: coordinates are rounded before the outbound call, never
+   * stored, and never logged (warnings carry the error name only).
+   */
+  async reverseLookup(
+    lat: number,
+    lng: number,
+  ): Promise<{ postalCode: string }> {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 ||
+      Math.abs(lng) > 180
+    ) {
+      throw new BadRequestException(LOCATION_INVALID_MESSAGE);
+    }
+
+    const baseUrl = this.config
+      .get('postal', { infer: true })
+      .reverseGeocodeBaseUrl.replace(/\/+$/, '');
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      addressdetails: '1',
+      zoom: '18',
+      lat: lat.toFixed(COORDINATE_DECIMALS),
+      lon: lng.toFixed(COORDINATE_DECIMALS),
+    });
+
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/reverse?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Accept-Language': 'en',
+          'User-Agent': REVERSE_GEOCODE_USER_AGENT,
+        },
+        signal: AbortSignal.timeout(POSTAL_PROVIDER_TIMEOUT_MS),
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Reverse geocoder unreachable: ${this.errName(err)}`,
+      );
+      throw new ServiceUnavailableException(LOCATION_PIN_NOT_FOUND_MESSAGE);
+    }
+
+    if (!response.ok) {
+      this.logger.warn(`Reverse geocoder returned HTTP ${response.status}`);
+      throw new ServiceUnavailableException(LOCATION_PIN_NOT_FOUND_MESSAGE);
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new ServiceUnavailableException(LOCATION_PIN_NOT_FOUND_MESSAGE);
+    }
+
+    const address = (body as { address?: Record<string, unknown> } | null)
+      ?.address;
+    const countryCode = this.str(address?.country_code).toLowerCase();
+    const postalCode = this.str(address?.postcode).replace(/\s+/g, '');
+    if (countryCode !== 'in' || !PIN_CODE_REGEX.test(postalCode)) {
+      throw new NotFoundException(LOCATION_PIN_NOT_FOUND_MESSAGE);
+    }
+    return { postalCode };
   }
 
   /**
