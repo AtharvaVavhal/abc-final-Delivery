@@ -18,6 +18,7 @@ import { AppConfig } from '../common/config/configuration';
 import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
 import { OtpService } from './otp/otp.service';
+import { nationalIndianMobile } from './otp/phone.util';
 import { withPlatformRlsBypass } from '../common/tenant/tenant-rls';
 import { NotificationsService } from '../notifications/notifications.service';
 import { refreshCookieBaseOptions } from '../common/http/refresh-cookie-options';
@@ -242,6 +243,10 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             phoneE164,
+            // The number they just proved they own is also their contact
+            // number until they say otherwise (shown on My account and
+            // prefilled at checkout).
+            phone: nationalIndianMobile(phoneE164),
             phoneVerifiedAt: new Date(),
             otpStoreId: store.id,
           },
@@ -272,6 +277,7 @@ export class AuthService {
     }
 
     await this.assertOtpSession(user, hostname);
+    await this.saveLoginPhoneToProfile(user);
 
     if (!user.phoneVerifiedAt) {
       user = await this.prisma.user.update({
@@ -294,6 +300,21 @@ export class AuthService {
       accessToken: this.signAccessToken(user),
       user: this.toPublicUser(user),
     };
+  }
+
+  /**
+   * Fills the profile phone with the number the customer just verified, but
+   * only when it is still empty — a number they typed themselves is never
+   * overwritten. The `phone: null` condition is in the UPDATE itself, so a
+   * concurrent profile save cannot be clobbered either. Covers accounts made
+   * before this behaviour existed: they are filled in on their next login.
+   */
+  private async saveLoginPhoneToProfile(user: User): Promise<void> {
+    if (!user.phoneE164 || user.phone) return;
+    await this.prisma.user.updateMany({
+      where: { id: user.id, phone: null },
+      data: { phone: nationalIndianMobile(user.phoneE164) },
+    });
   }
 
   // ─── Refresh rotation + reuse detection (§13.C, §23) ───────────────
