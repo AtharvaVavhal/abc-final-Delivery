@@ -1,4 +1,8 @@
-import { maskPhone, normalizeIndianMobile } from './phone.util';
+import {
+  maskPhone,
+  nationalIndianMobile,
+  normalizeIndianMobile,
+} from './phone.util';
 
 describe('normalizeIndianMobile', () => {
   it.each([
@@ -27,5 +31,17 @@ describe('normalizeIndianMobile', () => {
 describe('maskPhone', () => {
   it('hides the middle digits', () => {
     expect(maskPhone('+919876543210')).toBe('+91******3210');
+  });
+});
+
+describe('nationalIndianMobile', () => {
+  it('drops the +91 to give the 10-digit number customers type', () => {
+    expect(nationalIndianMobile('+919876543210')).toBe('9876543210');
+  });
+
+  it('leaves anything that is not a +91 mobile untouched', () => {
+    expect(nationalIndianMobile('+14155550100')).toBe('+14155550100');
+    expect(nationalIndianMobile('+915876543210')).toBe('+915876543210');
+    expect(nationalIndianMobile('9876543210')).toBe('9876543210');
   });
 });
