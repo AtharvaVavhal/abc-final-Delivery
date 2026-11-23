@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { AdminCard } from '@/components/admin/AdminCard'
 import type { OrderDetailView, OrderItemCustomizationView, OrderItemView } from '@/types/orders'
 import { PhotoPill } from './PhotoPill'
-import { canReviewPhotos, formatBytes } from './photoReviewLabels'
+import { canReviewPhotos, formatBytes, photoReviewApplies } from './photoReviewLabels'
 import styles from './PhotoReview.module.css'
 
 const NOTE_MIN = 3
@@ -21,9 +21,11 @@ interface PhotoCardProps {
   reviewable: boolean
   /** The order's shipping phone — shown when the customer can't be emailed. */
   contactPhone: string
+  /** False for an unpaid / cancelled / refunded order: the photo is not under review. */
+  underReview: boolean
 }
 
-function PhotoCard({ orderId, item, photo, reviewable, contactPhone }: PhotoCardProps) {
+function PhotoCard({ orderId, item, photo, reviewable, contactPhone, underReview }: PhotoCardProps) {
   const file = useUploadedFile(photo.uploadedFileId)
   const review = useReviewOrderPhoto(orderId)
   const [asking, setAsking] = useState(false)
@@ -52,7 +54,7 @@ function PhotoCard({ orderId, item, photo, reviewable, contactPhone }: PhotoCard
   }
 
   const noteId = `photo-note-${photo.id}`
-  const status = photo.reviewStatus
+  const status = underReview ? photo.reviewStatus : null
 
   return (
     <article className={styles.card} aria-label={`${item.productName}, ${photo.fieldLabel}`}>
@@ -220,6 +222,7 @@ export function PhotoReviewPanel({ order }: { order: OrderDetailView }) {
             item={item}
             photo={photo}
             reviewable={reviewable}
+            underReview={photoReviewApplies(order.status)}
             contactPhone={order.shippingPhone}
           />
         ))}

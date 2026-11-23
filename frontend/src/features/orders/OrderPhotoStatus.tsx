@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useReplaceOrderPhoto } from '@/hooks/useReplaceOrderPhoto'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { Alert } from '@/components/ui/Alert'
+import { photoReviewApplies } from '@/features/admin/photo-review/photoReviewLabels'
 import type { OrderDetailView, OrderItemCustomizationView } from '@/types/orders'
 import styles from './OrderPhotoStatus.module.css'
 
@@ -94,6 +95,9 @@ function PhotoRow({
  * control. Renders nothing when no photo on the order is under review.
  */
 export function OrderPhotoStatus({ order }: { order: OrderDetailView }) {
+  // Nothing to say about the photo until the order is paid (and nothing once
+  // it is cancelled or refunded).
+  if (!photoReviewApplies(order.status)) return null
   const photos = order.items.flatMap((item) =>
     item.customizations
       .filter((c) => c.uploadedFileId !== null && Boolean(c.reviewStatus))

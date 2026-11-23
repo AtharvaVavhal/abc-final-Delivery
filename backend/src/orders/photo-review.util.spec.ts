@@ -1,4 +1,4 @@
-import { PhotoReviewStatus as S } from '@prisma/client';
+import { OrderStatus, PhotoReviewStatus as S } from '@prisma/client';
 import {
   isPhotoReviewGateEnforced,
   photoReviewWhere,
@@ -23,31 +23,78 @@ describe('summarisePhotoReview', () => {
   });
 });
 
+describe('summarisePhotoReview — only paid orders are under review', () => {
+  it.each([
+    OrderStatus.PENDING_PAYMENT,
+    OrderStatus.PAYMENT_FAILED,
+    OrderStatus.CANCELLED,
+    OrderStatus.REFUNDED,
+  ])('is NONE for a %s order even if its photo is marked pending', (status) => {
+    expect(summarisePhotoReview([S.PENDING], status)).toBe('NONE');
+    expect(summarisePhotoReview([S.CHANGES_REQUESTED], status)).toBe('NONE');
+  });
+
+  it.each([
+    OrderStatus.PAID,
+    OrderStatus.CONFIRMED,
+    OrderStatus.IN_PRODUCTION,
+    OrderStatus.SHIPPED,
+    OrderStatus.DELIVERED,
+  ])('reads the photo state normally for a %s order', (status) => {
+    expect(summarisePhotoReview([S.PENDING], status)).toBe('TO_REVIEW');
+    expect(summarisePhotoReview([S.APPROVED], status)).toBe('APPROVED');
+  });
+});
+
 describe('photoReviewWhere', () => {
-  it('TO_REVIEW matches any pending photo', () => {
+  it('TO_REVIEW matches a pending photo on a paid order only', () => {
     expect(photoReviewWhere('TO_REVIEW')).toEqual({
-      items: {
-        some: { customizations: { some: { reviewStatus: S.PENDING } } },
-      },
+      AND: [
+        {
+          status: {
+            in: [
+              OrderStatus.PAID,
+              OrderStatus.CONFIRMED,
+              OrderStatus.IN_PRODUCTION,
+              OrderStatus.SHIPPED,
+              OrderStatus.DELIVERED,
+            ],
+          },
+        },
+        {
+          items: {
+            some: { customizations: { some: { reviewStatus: S.PENDING } } },
+          },
+        },
+      ],
     });
+  });
+
+  it('every review view is limited to paid orders, so unpaid and cancelled ones never queue up', () => {
+    for (const view of [
+      'TO_REVIEW',
+      'CHANGES_REQUESTED',
+      'APPROVED',
+    ] as const) {
+      const json = JSON.stringify(photoReviewWhere(view));
+      expect(json).toContain(
+        '"status":{"in":["PAID","CONFIRMED","IN_PRODUCTION","SHIPPED","DELIVERED"]}',
+      );
+    }
   });
 
   it('APPROVED excludes orders that still have a pending or changes-requested photo', () => {
     const where = photoReviewWhere('APPROVED') as { AND: unknown[] };
-    expect(where.AND).toHaveLength(3);
+    expect(where.AND).toHaveLength(4);
     expect(JSON.stringify(where)).toContain('NOT');
   });
 
-  it('NONE matches orders with no reviewed photo at all', () => {
-    expect(photoReviewWhere('NONE')).toEqual({
-      NOT: {
-        items: {
-          some: {
-            customizations: { some: { reviewStatus: { not: null } } },
-          },
-        },
-      },
-    });
+  it('NONE matches orders with no reviewed photo, and orders that are not in a reviewable state', () => {
+    const where = photoReviewWhere('NONE') as { OR: unknown[] };
+    expect(where.OR).toHaveLength(2);
+    const json = JSON.stringify(where);
+    expect(json).toContain('"reviewStatus":{"not":null}');
+    expect(json).toContain('"NOT":{"status"');
   });
 });
 

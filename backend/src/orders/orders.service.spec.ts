@@ -138,4 +138,42 @@ describe('OrdersService list rows — who the order is for', () => {
       tenantId: 'tenant-a',
     });
   });
+
+  it('does not report a photo on an unpaid or cancelled order as "to review"', async () => {
+    for (const status of [
+      OrderStatus.PENDING_PAYMENT,
+      OrderStatus.PAYMENT_FAILED,
+      OrderStatus.CANCELLED,
+    ]) {
+      const prisma = {
+        order: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'order-1',
+              orderNumber: 'PF-000009',
+              status,
+              total: '999.00',
+              currency: 'INR',
+              createdAt: new Date('2026-11-23T10:00:00Z'),
+              shippingRecipientName: 'Riya Sharma',
+              items: [
+                {
+                  quantity: 1,
+                  customizations: [{ reviewStatus: PhotoReviewStatus.PENDING }],
+                },
+              ],
+              paymentAttempts: [],
+            },
+          ]),
+        },
+      };
+      const service = new OrdersService(
+        prisma as never,
+        {} as never,
+        {} as never,
+      );
+      const [row] = await service.adminRecentOrders(tenantContext, 10);
+      expect(row.photoReview).toBe('NONE');
+    }
+  });
 });

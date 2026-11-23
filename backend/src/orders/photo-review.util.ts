@@ -1,4 +1,4 @@
-import { PhotoReviewStatus, Prisma } from '@prisma/client';
+import { OrderStatus, PhotoReviewStatus, Prisma } from '@prisma/client';
 
 /** What an order's photos add up to, for the admin list and filter.
  * Precedence is "what the admin must do next": anything still to look at
@@ -13,11 +13,28 @@ export const PHOTO_REVIEW_FILTERS = [
   'APPROVED',
 ] as const satisfies readonly PhotoReviewSummary[];
 
+/** A photo is only under review once the order is paid. A new order's photos
+ * start as PENDING at checkout, so an unpaid, failed, cancelled or refunded
+ * order must not read as "to review" (and must not appear in the review
+ * queue) however its photo rows happen to be marked. */
+export const PHOTO_REVIEW_ORDER_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.PAID,
+  OrderStatus.CONFIRMED,
+  OrderStatus.IN_PRODUCTION,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+];
+
 /** `statuses` are the review states of the order's FILE customizations
- * (`null` = a file row that is not under review, e.g. an unpaid order). */
+ * (`null` = a file row that is not under review). `orderStatus` is the
+ * order's own status; omit it only where the order is known to be paid. */
 export function summarisePhotoReview(
   statuses: readonly (PhotoReviewStatus | null)[],
+  orderStatus?: OrderStatus,
 ): PhotoReviewSummary {
+  if (orderStatus && !PHOTO_REVIEW_ORDER_STATUSES.includes(orderStatus)) {
+    return 'NONE';
+  }
   if (statuses.includes(PhotoReviewStatus.PENDING)) return 'TO_REVIEW';
   if (statuses.includes(PhotoReviewStatus.CHANGES_REQUESTED)) {
     return 'CHANGES_REQUESTED';
@@ -45,15 +62,25 @@ export function photoReviewWhere(
   const approved = hasCustomization({
     reviewStatus: PhotoReviewStatus.APPROVED,
   });
+  const paid: Prisma.OrderWhereInput = {
+    status: { in: [...PHOTO_REVIEW_ORDER_STATUSES] },
+  };
   switch (filter) {
     case 'TO_REVIEW':
-      return pending;
+      return { AND: [paid, pending] };
     case 'CHANGES_REQUESTED':
-      return { AND: [changes, { NOT: pending }] };
+      return { AND: [paid, changes, { NOT: pending }] };
     case 'APPROVED':
-      return { AND: [approved, { NOT: pending }, { NOT: changes }] };
+      return { AND: [paid, approved, { NOT: pending }, { NOT: changes }] };
     case 'NONE':
-      return { NOT: hasCustomization({ reviewStatus: { not: null } }) };
+      // No reviewed photo at all, or the order is not in a state where photos
+      // are reviewed (unpaid / failed / cancelled / refunded).
+      return {
+        OR: [
+          { NOT: paid },
+          { NOT: hasCustomization({ reviewStatus: { not: null } }) },
+        ],
+      };
   }
 }
 

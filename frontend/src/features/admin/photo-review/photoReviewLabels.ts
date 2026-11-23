@@ -19,6 +19,14 @@ export const PHOTO_DOT: Record<Exclude<PhotoReviewSummary, 'NONE'>, string> = {
   APPROVED: '#1f9d61',
 }
 
+/** Order states in which a photo is under review (or has been). Before
+ * payment, or after a cancellation or refund, a photo is not "to review" even
+ * though it was uploaded — the backend applies the same rule. */
+const PHOTO_REVIEW_ORDER_STATUSES = ['PAID', 'CONFIRMED', 'IN_PRODUCTION', 'SHIPPED', 'DELIVERED']
+export function photoReviewApplies(orderStatus: string): boolean {
+  return PHOTO_REVIEW_ORDER_STATUSES.includes(orderStatus)
+}
+
 /** A review decision can only be made while the order is paid and not yet in
  * production — the backend enforces the same rule. */
 export function canReviewPhotos(orderStatus: string): boolean {

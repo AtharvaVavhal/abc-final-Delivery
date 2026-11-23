@@ -98,6 +98,14 @@ describe('OrderPhotoStatus (customer)', () => {
     expect(screen.getByText('This order can no longer be changed.')).toBeInTheDocument()
   })
 
+  it.each(['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CANCELLED', 'REFUNDED'])(
+    'says nothing about the photo on a %s order',
+    (status) => {
+      const { container } = renderWithProviders(<OrderPhotoStatus order={order(status, {})} />)
+      expect(container).toBeEmptyDOMElement()
+    },
+  )
+
   it('renders nothing when no photo is under review', () => {
     const o = order('PAID', {})
     o.items[0].customizations = o.items[0].customizations.filter((c) => c.uploadedFileId === null)
