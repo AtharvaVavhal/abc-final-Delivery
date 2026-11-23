@@ -1,10 +1,13 @@
 import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 import {
   INDIAN_MOBILE_E164_REGEX,
@@ -89,6 +92,20 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @MaxLength(100)
   shippingCountry: string;
+
+  /** Optional delivery pin — the customer chose to share it so the courier
+   * can find the door. Both or neither; see normalizeDeliveryPin. */
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-90)
+  @Max(90)
+  shippingLatitude?: number;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-180)
+  @Max(180)
+  shippingLongitude?: number;
 
   /** Optional (§2.2) — checked and claimed inside the same transaction as
    * order creation (CouponsService.validateAndClaim), never a separate

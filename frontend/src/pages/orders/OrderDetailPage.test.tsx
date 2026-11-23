@@ -124,6 +124,32 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByText(/Discount/)).not.toBeInTheDocument()
   })
 
+  it('shows the customer the delivery pin they shared, with a link and the erase promise', async () => {
+    mock.onGet('/orders/order-1').reply(200, {
+      success: true,
+      data: { ...buildOrder('PAID'), deliveryPin: { latitude: 18.45751, longitude: 73.85081 } },
+    })
+
+    renderOrderDetail()
+
+    const link = await screen.findByRole('link', { name: 'View your pin on the map' })
+    expect(link).toHaveAttribute('href', 'https://www.google.com/maps/search/?api=1&query=18.45751,73.85081')
+    expect(link.getAttribute('rel')).toContain('noopener')
+    expect(screen.getByText(/erased once your order is delivered/)).toBeInTheDocument()
+  })
+
+  it('says nothing about a pin when none was shared (or it has been erased)', async () => {
+    mock.onGet('/orders/order-1').reply(200, {
+      success: true,
+      data: { ...buildOrder('DELIVERED'), deliveryPin: null },
+    })
+
+    renderOrderDetail()
+
+    await screen.findByText('₹349.00')
+    expect(screen.queryByRole('link', { name: 'View your pin on the map' })).not.toBeInTheDocument()
+  })
+
   it('shows the discount row with the coupon code when one was applied', async () => {
     mock.onGet('/orders/order-1').reply(200, {
       success: true,

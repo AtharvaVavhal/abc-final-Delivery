@@ -3,7 +3,8 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { shippingSchema, type ShippingFormValues } from '@/schemas/checkout.schema'
 import { usePostalLookup } from '@/hooks/usePostalLookup'
-import { canUseGeolocation, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
+import { canUseGeolocation, useAutoLocate, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
+import { DeliveryPinPicker } from './delivery-pin/DeliveryPinPicker'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
 import styles from './ShippingForm.module.css'
@@ -57,6 +58,7 @@ export function ShippingForm({
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors, dirtyFields },
   } = useForm<ShippingFormValues>({
     // Validate on blur (and on submit) — not on every keystroke.
@@ -101,19 +103,33 @@ export function ShippingForm({
 
   const pinStatus = describePinStatus(lookup)
 
+  // Optional delivery pin: lives in the form values (so it is submitted with
+  // the address) but has no input of its own.
+  const pinLat = useWatch({ control, name: 'shippingLatitude' })
+  const pinLng = useWatch({ control, name: 'shippingLongitude' })
+  const deliveryPin =
+    pinLat !== undefined && pinLng !== undefined ? { latitude: pinLat, longitude: pinLng } : null
+
   // "Use my location": asked for only on tap. Only the resulting PIN is
   // written into the form; the normal PIN lookup above then fills City /
   // State / Country, exactly as if the customer had typed it.
   const location = useCurrentLocationPin()
-  async function handleUseLocation() {
+  async function handleUseLocation(auto = false) {
     const pin = await location.locate()
     if (!pin) return
+    // An automatic attempt must never overwrite a PIN the customer typed
+    // while it was working; a tap on the button always may.
+    if (auto && getValues('shippingPostalCode').trim() !== '') return
     setValue('shippingPostalCode', pin, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     })
   }
+
+  // On open with an empty PIN (a PIN saved on the account is left alone),
+  // look it up from the device location by itself.
+  useAutoLocate(postalCodeValue.trim() === '', () => void handleUseLocation(true))
 
   return (
     <form className={styles.form} onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
@@ -222,6 +238,15 @@ export function ShippingForm({
           disabled={isSubmitting}
         />
       </div>
+
+      <DeliveryPinPicker
+        value={deliveryPin}
+        disabled={isSubmitting}
+        onChange={(pin) => {
+          setValue('shippingLatitude', pin?.latitude, { shouldDirty: true })
+          setValue('shippingLongitude', pin?.longitude, { shouldDirty: true })
+        }}
+      />
 
       <Button
         type="submit"

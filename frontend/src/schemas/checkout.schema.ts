@@ -29,6 +29,9 @@ export const shippingSchema = z.object({
     .min(1, 'Postal code is required')
     .regex(/^\d{6}$/, 'Enter a valid 6-digit PIN code.'),
   shippingCountry: z.string().trim().min(1, 'Country is required').max(100),
+  /** Optional delivery pin — set only if the customer chose to share one. */
+  shippingLatitude: z.number().min(-90).max(90).optional(),
+  shippingLongitude: z.number().min(-180).max(180).optional(),
 })
 
 export type ShippingFormValues = z.infer<typeof shippingSchema>

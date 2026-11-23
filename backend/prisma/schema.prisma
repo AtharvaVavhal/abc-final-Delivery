@@ -621,6 +621,11 @@ model Order {
   shippingState         String
   shippingPostalCode    String
   shippingCountry       String
+  // Optional delivery pin the customer chose to share so the courier can find
+  // the door. Rounded to ~1 m, and cleared once the order is delivered,
+  // cancelled or refunded (see transitionOrderWithHistory).
+  shippingLatitude      Float?
+  shippingLongitude     Float?
 
   tenantId   String
   storeId    String?

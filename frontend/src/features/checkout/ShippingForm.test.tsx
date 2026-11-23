@@ -7,6 +7,12 @@ import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from '@/services/api/client'
 import { ShippingForm } from './ShippingForm'
 
+vi.mock('./delivery-pin/DeliveryPinMap', () => ({
+  default: ({ position }: { position: { latitude: number; longitude: number } }) => (
+    <div>pin map at {position.latitude},{position.longitude}</div>
+  ),
+}))
+
 const PUNE = {
   postalCode: '411046',
   city: 'Pune',
@@ -300,23 +306,77 @@ describe('ShippingForm', () => {
   })
   describe('Use my current location', () => {
     function stubGeolocation(impl: (ok: PositionCallback, fail: PositionErrorCallback) => void) {
+      const getCurrentPosition = vi.fn(impl)
       Object.defineProperty(navigator, 'geolocation', {
         configurable: true,
-        value: { getCurrentPosition: vi.fn(impl) },
+        value: { getCurrentPosition },
       })
+      return getCurrentPosition
     }
 
     afterEach(() => {
-      // jsdom has no geolocation by default.
+      // jsdom has no geolocation (or Permissions API) by default.
       // @ts-expect-error — removing the stub between tests
       delete navigator.geolocation
+      // @ts-expect-error — removing the stub between tests
+      delete navigator.permissions
     })
 
-    it('does not ask for location until the button is tapped', () => {
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+    const FIX = { coords: { latitude: 18.4575, longitude: 73.8508 } } as GeolocationPosition
+
+    it('says up front that the location is used once and not stored', () => {
       stubGeolocation(() => undefined)
       renderForm()
-      expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled()
       expect(screen.getByText(/We don.t store your location/)).toBeInTheDocument()
+    })
+
+    it('finds the PIN by itself, once, when opened with an empty PIN', async () => {
+      const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+      mock.onGet('/postal-codes/reverse').reply(200, { success: true, data: { postalCode: '411046' } })
+      renderForm()
+
+      await waitFor(() => expect(screen.getByLabelText('Postal code')).toHaveValue('411046'))
+      await waitFor(() => expect(screen.getByLabelText('City')).toHaveValue('Pune'))
+      expect(getCurrentPosition).toHaveBeenCalledTimes(1)
+    })
+
+    it('leaves a PIN saved on the account alone — no lookup at all', async () => {
+      const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+      renderForm({ defaultValues: { shippingPostalCode: '400001' } })
+
+      await settle()
+      expect(getCurrentPosition).not.toHaveBeenCalled()
+      expect(screen.getByLabelText('Postal code')).toHaveValue('400001')
+    })
+
+    it('does not try again if the browser already blocked location', async () => {
+      const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+      Object.defineProperty(navigator, 'permissions', {
+        configurable: true,
+        value: { query: vi.fn().mockResolvedValue({ state: 'denied' }) },
+      })
+      renderForm()
+
+      await settle()
+      expect(getCurrentPosition).not.toHaveBeenCalled()
+    })
+
+    it('never overwrites a PIN the customer typed while the automatic lookup was working', async () => {
+      const user = userEvent.setup()
+      let deliverFix: () => void = () => undefined
+      const getCurrentPosition = stubGeolocation((ok) => {
+        deliverFix = () => ok(FIX)
+      })
+      mock.onGet('/postal-codes/reverse').reply(200, { success: true, data: { postalCode: '411046' } })
+      renderForm()
+      await waitFor(() => expect(getCurrentPosition).toHaveBeenCalled())
+
+      await user.type(screen.getByLabelText('Postal code'), '110001')
+      deliverFix()
+      await settle()
+
+      expect(screen.getByLabelText('Postal code')).toHaveValue('110001')
     })
 
     it('fills the PIN from the position, then City and State from the normal lookup', async () => {
@@ -367,6 +427,67 @@ describe('ShippingForm', () => {
     it('hides the button when the browser has no geolocation', () => {
       renderForm()
       expect(screen.queryByRole('button', { name: 'Use my current location' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('delivery pin (optional)', () => {
+    afterEach(() => {
+      // @ts-expect-error — removing the stub between tests
+      delete navigator.geolocation
+    })
+
+    async function fillAddress(user: ReturnType<typeof userEvent.setup>) {
+      await user.type(screen.getByLabelText('Recipient name'), 'Jane Doe')
+      await user.type(screen.getByLabelText('Phone number'), '9876543210')
+      await user.type(screen.getByLabelText('Address line 1'), '123 Test St')
+      await user.type(screen.getByLabelText('Postal code'), '411046')
+      await screen.findByText(/Matched Pune, Maharashtra/)
+    }
+
+    it('sends no coordinates unless the customer placed a pin', async () => {
+      const user = userEvent.setup()
+      const onSubmit = vi.fn()
+      renderForm({ onSubmit })
+
+      await fillAddress(user)
+      await user.click(screen.getByRole('button', { name: 'Pay now' }))
+
+      await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled())
+      const values = onSubmit.mock.calls[0][0] as Record<string, unknown>
+      expect(values.shippingLatitude).toBeUndefined()
+      expect(values.shippingLongitude).toBeUndefined()
+    })
+
+    it('sends the pin with the address once the customer has placed one, and drops it when removed', async () => {
+      const user = userEvent.setup()
+      const onSubmit = vi.fn()
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition: vi.fn((ok: PositionCallback) =>
+            ok({ coords: { latitude: 18.4575, longitude: 73.8508, accuracy: 10 } } as GeolocationPosition),
+          ),
+        },
+      })
+      renderForm({ onSubmit })
+
+      await fillAddress(user)
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+      expect(await screen.findByText('pin map at 18.4575,73.8508')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Pay now' }))
+
+      await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+      expect(onSubmit.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ shippingLatitude: 18.4575, shippingLongitude: 73.8508 }),
+      )
+
+      // Removing the pin takes it out of the next submission.
+      await user.click(screen.getByRole('button', { name: 'Remove pin' }))
+      await user.click(screen.getByRole('button', { name: 'Pay now' }))
+      await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2))
+      const second = onSubmit.mock.calls[1][0] as Record<string, unknown>
+      expect(second.shippingLatitude).toBeUndefined()
+      expect(second.shippingLongitude).toBeUndefined()
     })
   })
 })

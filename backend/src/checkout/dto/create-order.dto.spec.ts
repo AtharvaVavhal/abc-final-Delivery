@@ -160,4 +160,29 @@ describe('CreateOrderDto validation', () => {
       ]),
     );
   });
+
+  describe('delivery pin (optional)', () => {
+    it('accepts a pin, and an order without one', async () => {
+      expect(
+        (
+          await validateDto({
+            ...VALID,
+            shippingLatitude: 18.4575,
+            shippingLongitude: 73.8508,
+          })
+        ).errors,
+      ).toHaveLength(0);
+      expect((await validateDto(VALID)).errors).toHaveLength(0);
+    });
+
+    it.each([
+      ['latitude above 90', { shippingLatitude: 91, shippingLongitude: 73 }],
+      ['latitude below -90', { shippingLatitude: -91, shippingLongitude: 73 }],
+      ['longitude above 180', { shippingLatitude: 18, shippingLongitude: 181 }],
+      ['a non-number', { shippingLatitude: 'north', shippingLongitude: 73 }],
+    ])('rejects %s', async (_name, pin) => {
+      const { errors } = await validateDto({ ...VALID, ...pin });
+      expect(errors.length).toBeGreaterThan(0);
+    });
+  });
 });

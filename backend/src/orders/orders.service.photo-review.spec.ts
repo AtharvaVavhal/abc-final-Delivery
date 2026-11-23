@@ -63,6 +63,7 @@ function build(opts: {
           : opts.customization,
       ),
       count: jest.fn().mockResolvedValue(opts.openPhotos ?? 0),
+      update: jest.fn().mockResolvedValue({}),
     },
     $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
@@ -345,7 +346,6 @@ describe('OrdersService.replaceCustomizationPhoto (customer)', () => {
 
   it('swaps in the new file and sends the photo back to review', async () => {
     const { service, prisma } = build({ customization: requested });
-    prisma.orderItemCustomization.update = jest.fn().mockResolvedValue({});
 
     const result = await service.replaceCustomizationPhoto(
       'user-1',

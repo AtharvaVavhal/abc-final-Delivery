@@ -757,9 +757,20 @@ export class OrdersService {
   ): Promise<void> {
     assertTransitionAllowed(order.status, to);
 
+    // The delivery pin is only needed until the parcel is handed over; once the
+    // order is delivered, cancelled or refunded it is erased in the same update.
+    const pinNoLongerNeeded =
+      to === OrderStatus.DELIVERED ||
+      to === OrderStatus.CANCELLED ||
+      to === OrderStatus.REFUNDED;
     const cas = await tx.order.updateMany({
       where: { id: order.id, status: order.status },
-      data: { status: to },
+      data: {
+        status: to,
+        ...(pinNoLongerNeeded
+          ? { shippingLatitude: null, shippingLongitude: null }
+          : {}),
+      },
     });
     if (cas.count !== 1) {
       return;
@@ -962,6 +973,13 @@ export class OrdersService {
       shippingState: order.shippingState,
       shippingPostalCode: order.shippingPostalCode,
       shippingCountry: order.shippingCountry,
+      deliveryPin:
+        order.shippingLatitude !== null && order.shippingLongitude !== null
+          ? {
+              latitude: order.shippingLatitude,
+              longitude: order.shippingLongitude,
+            }
+          : null,
       createdAt: order.createdAt,
       items: order.items.map((item) => ({
         id: item.id,

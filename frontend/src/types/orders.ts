@@ -123,6 +123,8 @@ export interface OrderDetailView extends OrderListItemView {
   shippingState: string
   shippingPostalCode: string
   shippingCountry: string
+  /** The delivery pin the customer shared, or null. Erased once the order is delivered, cancelled or refunded. */
+  deliveryPin: { latitude: number; longitude: number } | null
   items: OrderItemView[]
   statusHistory: OrderStatusHistoryView[]
   paymentAttempts: PaymentAttemptView[]

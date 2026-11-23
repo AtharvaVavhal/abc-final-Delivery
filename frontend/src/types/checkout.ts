@@ -70,6 +70,9 @@ export interface CreateOrderPayload {
   shippingState: string
   shippingPostalCode: string
   shippingCountry: string
+  /** Optional delivery pin the customer chose to share (both or neither). */
+  shippingLatitude?: number
+  shippingLongitude?: number
   /** Optional — checked and claimed inside the same transaction as order
    * creation, never a separate pre-check. Should be the server's own
    * normalized echo from a prior POST /checkout/validate call (see

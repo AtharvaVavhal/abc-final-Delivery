@@ -118,7 +118,11 @@ describe('OrdersService.adminTransitionStatus — REFUNDED closes the PENDING Re
     });
     expect(tx.order.updateMany).toHaveBeenCalledWith({
       where: { id: 'order-1', status: OrderStatus.PAID },
-      data: { status: OrderStatus.REFUNDED },
+      data: {
+        status: OrderStatus.REFUNDED,
+        shippingLatitude: null,
+        shippingLongitude: null,
+      },
     });
     expect(tx.orderStatusHistory.create).toHaveBeenCalled();
 
@@ -149,7 +153,11 @@ describe('OrdersService.adminTransitionStatus — REFUNDED closes the PENDING Re
       expect(tx.refund.updateMany).toHaveBeenCalledTimes(1);
       expect(tx.order.updateMany).toHaveBeenCalledWith({
         where: { id: 'order-1', status: from },
-        data: { status: OrderStatus.REFUNDED },
+        data: {
+          status: OrderStatus.REFUNDED,
+          shippingLatitude: null,
+          shippingLongitude: null,
+        },
       });
     },
   );

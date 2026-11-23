@@ -105,3 +105,20 @@
   flex-direction: column;
   gap: 2px;
 }
+
+.deliveryPin {
+  margin: var(--space-3) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.deliveryPinLabel {
+  color: var(--color-text-muted);
+}
+
+.deliveryPinCoords {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
