@@ -1,13 +1,14 @@
 interface SparklineProps {
   values: number[]
-  /** Decorative by default — the tile's text already carries the number. */
   width?: number
   height?: number
+  /** Stretch to the container's width (height stays fixed). */
+  fluid?: boolean
 }
 
 /** Tiny trend line. Decorative (`aria-hidden`): the figure and delta beside
  * it are the accessible content. */
-export function Sparkline({ values, width = 96, height = 32 }: SparklineProps) {
+export function Sparkline({ values, width = 96, height = 32, fluid = false }: SparklineProps) {
   if (values.length < 2) return null
   const min = Math.min(...values)
   const max = Math.max(...values)
@@ -21,8 +22,16 @@ export function Sparkline({ values, width = 96, height = 32 }: SparklineProps) {
     })
     .join(' ')
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" focusable="false">
+    <svg
+      width={fluid ? '100%' : width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio={fluid ? 'none' : undefined}
+      aria-hidden="true"
+      focusable="false"
+    >
       <polyline
+        vectorEffect="non-scaling-stroke"
         points={points}
         fill="none"
         stroke="currentColor"

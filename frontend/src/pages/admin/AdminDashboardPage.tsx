@@ -50,7 +50,7 @@ export function AdminDashboardPage() {
   return (
     <AdminPage
       title="Overview"
-      description="All-time order and revenue totals, plus the ten most recent orders."
+      description="Sales trends, what needs attention, and the ten most recent orders."
     >
       {isError ? (
         <Alert variant="error">{getApiErrorMessage(error)}</Alert>
@@ -135,7 +135,7 @@ export function AdminDashboardPage() {
                           {order.orderNumber}
                         </Link>
                       </AdminTable.Cell>
-                      <AdminTable.Cell>{formatDate(order.createdAt)}</AdminTable.Cell>
+                      <AdminTable.Cell><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
                       <AdminTable.Cell align="center">{order.itemCount}</AdminTable.Cell>
                       <AdminTable.Cell>
                         <span className={styles.statusCell}>

@@ -96,7 +96,7 @@ describe('AdminDashboardPage', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Overview')
     expect(
-      screen.getByText('All-time order and revenue totals, plus the ten most recent orders.'),
+      screen.getByText('Sales trends, what needs attention, and the ten most recent orders.'),
     ).toBeInTheDocument()
   })
 

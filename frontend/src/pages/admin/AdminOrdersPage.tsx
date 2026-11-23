@@ -218,7 +218,7 @@ export function AdminOrdersPage() {
                         {order.orderNumber}
                       </Link>
                     </AdminTable.Cell>
-                    <AdminTable.Cell>{formatDate(order.createdAt)}</AdminTable.Cell>
+                    <AdminTable.Cell><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
                     <AdminTable.Cell align="center">{order.itemCount}</AdminTable.Cell>
                     <AdminTable.Cell>
                       <span className={styles.statusCell}>

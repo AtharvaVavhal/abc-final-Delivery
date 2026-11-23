@@ -53,15 +53,27 @@ export function SalesChart({ current, previous, summary }: SalesChartProps) {
         ))}
       </div>
       <div className={styles.plot}>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className={styles.svg}>
+        <div className={styles.plotArea}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={summary}
+          className={styles.svg}
+        >
           {ticks.map((t) => (
             <line key={t} x1="0" x2={W} y1={y(t)} y2={y(t)} className={t === 0 ? styles.axis : styles.grid} />
           ))}
           <polyline points={line(prev)} className={styles.prevLine} />
           <polygon points={`0,${BOTTOM} ${line(cur)} ${x(lastIndex)},${BOTTOM}`} className={styles.area} />
           <polyline points={line(cur)} className={styles.curLine} />
-          <circle cx={x(lastIndex)} cy={y(cur[lastIndex] ?? 0)} r="4" className={styles.endDot} />
         </svg>
+        <span
+          className={styles.endDot}
+          aria-hidden="true"
+          style={{ top: `${(y(cur[lastIndex] ?? 0) / H) * 100}%` }}
+        />
+        </div>
         <div className={styles.xAxis} aria-hidden="true">
           {labelIdx.map((i) => (
             <span key={i}>{current[i] ? formatDay(current[i].date) : ''}</span>

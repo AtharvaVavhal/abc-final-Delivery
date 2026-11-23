@@ -45,17 +45,15 @@ function Kpi({ label, value, delta, spark }: KpiProps) {
   return (
     <div className={styles.kpi}>
       <span className={styles.kpiLabel}>{label}</span>
-      <div className={styles.kpiRow}>
-        <div className={styles.kpiFigures}>
-          <strong className={styles.kpiValue}>{value}</strong>
-          <DeltaText delta={delta} />
-        </div>
-        {spark && (
-          <span className={styles.spark}>
-            <Sparkline values={spark} />
-          </span>
-        )}
+      <div className={styles.kpiFigures}>
+        <strong className={styles.kpiValue}>{value}</strong>
+        <DeltaText delta={delta} />
       </div>
+      {spark && (
+        <span className={styles.spark}>
+          <Sparkline values={spark} width={200} height={28} fluid />
+        </span>
+      )}
     </div>
   )
 }
