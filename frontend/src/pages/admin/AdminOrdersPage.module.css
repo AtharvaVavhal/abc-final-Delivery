@@ -27,3 +27,46 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* Quick status views — same ?status= filter as the select below. Ink
+   underline + amber edge on the active one; no filled buttons. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-text-strong);
+}
+
+.tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+  border-radius: var(--radius-sm);
+}
+
+.tabActive {
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--admin-mark, #e8a317);
+}
+
+.orderLink {
+  font-variant-numeric: tabular-nums;
+}
