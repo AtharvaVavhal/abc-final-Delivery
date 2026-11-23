@@ -23,3 +23,20 @@
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
+
+.locationAssist {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.locationNote {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.locationNote[data-variant='error'] {
+  color: var(--color-danger);
+}

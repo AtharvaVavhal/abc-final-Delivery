@@ -101,16 +101,29 @@ describe('OtpSignIn', () => {
     await user.type(screen.getByLabelText(/Mobile number/), '9876543210')
     await user.click(screen.getByRole('button', { name: 'SEND OTP' }))
     await screen.findByLabelText('Verification code')
-    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000)
-    await user.click(
-      await screen.findByRole('button', { name: 'Resend OTP' }),
-    )
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Please wait a moment and try again.',
-    )
-    expect(screen.getByRole('button', { name: /Resend OTP in/ })).toBeDisabled()
-    expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
-    expect(requestOtp).toHaveBeenCalledTimes(2)
+    const now = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000)
+    try {
+      // The cooldown is re-read on a 250 ms timer; give a loaded test run
+      // room to tick instead of the 1 s default (this was the flake).
+      await user.click(
+        await screen.findByRole(
+          'button',
+          { name: 'Resend OTP' },
+          { timeout: 5000 },
+        ),
+      )
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Please wait a moment and try again.',
+      )
+      expect(
+        screen.getByRole('button', { name: /Resend OTP in/ }),
+      ).toBeDisabled()
+      expect(screen.getByLabelText('Verification code')).toBeInTheDocument()
+      expect(requestOtp).toHaveBeenCalledTimes(2)
+    } finally {
+      // Don't leak the frozen clock into the tests that follow.
+      now.mockRestore()
+    }
   })
   it('rejects an invalid number without calling the API', async () => {
     const requestOtp = vi.fn().mockResolvedValue(undefined)
