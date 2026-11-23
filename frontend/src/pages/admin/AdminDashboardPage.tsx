@@ -11,8 +11,18 @@ import { AdminPageSkeleton } from '@/components/admin/AdminPageSkeleton'
 import { OrderStatusBadge } from '@/features/orders/OrderStatusBadge'
 import { formatPrice } from '@/utils/formatPrice'
 import { formatDate } from '@/utils/formatDate'
+import type { OrderStatus } from '@/types/orders'
+import { ORDER_STATUS_LABELS } from '@/features/orders/orderStatus'
 import { adminOrderDetailPath, ROUTES } from '@/constants/routes'
 import styles from './AdminDashboardPage.module.css'
+
+const ATTENTION_STAGES: { status: OrderStatus; action: string }[] = [
+  { status: 'PAID', action: 'Confirm paid orders' },
+  { status: 'CONFIRMED', action: 'Start production' },
+  { status: 'PAYMENT_FAILED', action: 'Review failed payments' },
+]
+const OPEN_STAGES: OrderStatus[] = ['PENDING_PAYMENT', 'PAID', 'CONFIRMED', 'IN_PRODUCTION', 'SHIPPED']
+const ordersFor = (status: OrderStatus) => `${ROUTES.ADMIN_ORDERS}?status=${status}`
 
 /**
  * Behind AdminRoute (App.tsx). Minimal by design — GET /admin/dashboard is
@@ -23,6 +33,8 @@ import styles from './AdminDashboardPage.module.css'
  */
 export function AdminDashboardPage() {
   const { data, isPending, isError, error } = useAdminDashboard()
+  const countFor = (status: OrderStatus) => data?.ordersByStatus.find(row => row.status === status)?.count ?? 0
+  const openOrders = OPEN_STAGES.reduce((sum, status) => sum + countFor(status), 0)
 
   if (isPending) {
     return <AdminPageSkeleton rows={4} />
@@ -51,6 +63,34 @@ export function AdminDashboardPage() {
               <p className={styles.statValue}>{formatPrice(data.totalRevenue)}</p>
             </AdminCard>
           </div>
+
+          <AdminCard as="section" title="Needs attention">
+            <div className={styles.attentionGrid}>
+              {ATTENTION_STAGES.map(({ status, action }) => (
+                <Link key={status} to={ordersFor(status)} className={styles.attentionTile}>
+                  <span className={styles.attentionLabel}>{action}</span>
+                  <strong className={styles.attentionCount}>{countFor(status)}</strong>
+                  <span className={styles.attentionHint}>View orders</span>
+                </Link>
+              ))}
+            </div>
+          </AdminCard>
+
+          <AdminCard as="section" title="Open orders by stage">
+            <p className={styles.stageIntro}>Awaiting payment through shipment; delivered, cancelled, refunded and failed-payment orders are excluded.</p>
+            {openOrders === 0 && <p className={styles.stageEmpty}>No open orders.</p>}
+            <ul className={styles.stageList}>
+              {OPEN_STAGES.map(status => (
+                <li key={status}>
+                  <Link className={styles.stageLink} to={ordersFor(status)}>
+                    <span>{ORDER_STATUS_LABELS[status]}</span>
+                    <span className={styles.stageBar} aria-hidden="true"><span style={{ width: `${openOrders ? countFor(status) / openOrders * 100 : 0}%` }} /></span>
+                    <strong>{countFor(status)}</strong>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </AdminCard>
 
           <AdminCard as="section" title="Orders by status">
             <dl className={styles.statusGrid}>

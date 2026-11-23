@@ -1,8 +1,26 @@
 .shell {
+  /* Admin-only design layer (light sidebar concept): ink primary, hairline
+     borders, warm paper. Scoped here so the storefront keeps its red brand.
+     The accent aliases are re-declared because var() in :root resolves
+     there, not here. Amber is a marker colour only (see --admin-mark). */
+  --admin-mark: #e8a317;
+  --color-primary: #111110;
+  --color-primary-hover: #2a2a28;
+  --color-primary-active: #000000;
+  --color-primary-foreground: #ffffff;
+  --color-primary-ring: rgb(17 17 16 / 18%);
+  --color-accent: var(--color-primary);
+  --color-accent-hover: var(--color-primary-hover);
+  --color-accent-contrast: var(--color-primary-foreground);
+  --color-accent-ring: var(--color-primary-ring);
+  --color-border: #e7e5e0;
+  --color-surface: #f4f3ef;
+
   display: flex;
   min-height: 100svh;
-  background: var(--color-surface);
+  background: #fafaf8;
   color: var(--color-text);
+  font-feature-settings: 'tnum' 1, 'cv11' 1;
 }
 
 /* Keyboard users land here first; visible only on focus. */

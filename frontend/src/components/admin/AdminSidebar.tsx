@@ -40,7 +40,15 @@ export const AdminSidebar = forwardRef<HTMLButtonElement, AdminSidebarProps>(
             className={styles.brand}
             onClick={onNavigate}
           >
-            AB Creations <span className={styles.brandTag}>Admin</span>
+            <img
+              className={styles.brandMark}
+              src="/brand/ab-creations/round-logo.jpg"
+              width={34}
+              height={34}
+              alt=""
+              aria-hidden="true"
+            />
+            <span className={styles.brandName}>AB Creations <span className={styles.brandTag}>Admin</span></span>
           </NavLink>
           {/* Only meaningful while the mobile drawer is open — on desktop
               the sidebar is persistent and there is nothing to close. */}
