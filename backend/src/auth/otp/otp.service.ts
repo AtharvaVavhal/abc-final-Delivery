@@ -62,7 +62,11 @@ export class OtpService {
     if (!this.enabled) throw new NotFoundException();
   }
 
-  async requestCode(rawPhone: string, ip: string | undefined): Promise<void> {
+  async requestCode(
+    rawPhone: string,
+    ip: string | undefined,
+    storeId: string,
+  ): Promise<void> {
     this.assertEnabled();
     const phone = normalizeIndianMobile(rawPhone);
     if (!phone) {
@@ -71,84 +75,99 @@ export class OtpService {
       );
     }
 
-    const now = Date.now();
-    const since = (ms: number) => new Date(now - ms);
-    const startOfUtcDay = new Date(now);
-    startOfUtcDay.setUTCHours(0, 0, 0, 0);
+    if (!storeId) throw new UnauthorizedException(INVALID_CODE_MESSAGE);
+    // Reserve send budget across every API instance before calling the provider.
+    // This short transaction never holds a connection during an SMS request.
+    const { challenge, code } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(731920461)`;
+      const now = Date.now();
+      const since = (ms: number) => new Date(now - ms);
+      const startOfUtcDay = new Date(now);
+      startOfUtcDay.setUTCHours(0, 0, 0, 0);
 
-    const [lastForPhone, phoneWindow, phoneDay, ipWindow, globalToday] =
-      await Promise.all([
-        this.prisma.otpChallenge.findFirst({
-          where: { phoneE164: phone },
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true },
-        }),
-        this.prisma.otpChallenge.count({
-          where: {
-            phoneE164: phone,
-            createdAt: { gte: since(OTP_PHONE_WINDOW_MS) },
-          },
-        }),
-        this.prisma.otpChallenge.count({
-          where: {
-            phoneE164: phone,
-            createdAt: { gte: since(24 * 60 * 60_000) },
-          },
-        }),
-        ip
-          ? this.prisma.otpChallenge.count({
-              where: {
-                requestIp: ip,
-                createdAt: { gte: since(OTP_IP_WINDOW_MS) },
-              },
-            })
-          : Promise.resolve(0),
-        this.prisma.otpChallenge.count({
-          where: { createdAt: { gte: startOfUtcDay } },
-        }),
-      ]);
+      const [lastForPhone, phoneWindow, phoneDay, ipWindow, globalToday] =
+        await Promise.all([
+          tx.otpChallenge.findFirst({
+            where: { phoneE164: phone },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+          }),
+          tx.otpChallenge.count({
+            where: {
+              phoneE164: phone,
+              createdAt: { gte: since(OTP_PHONE_WINDOW_MS) },
+            },
+          }),
+          tx.otpChallenge.count({
+            where: {
+              phoneE164: phone,
+              createdAt: { gte: since(24 * 60 * 60_000) },
+            },
+          }),
+          ip
+            ? tx.otpChallenge.count({
+                where: {
+                  requestIp: ip,
+                  createdAt: { gte: since(OTP_IP_WINDOW_MS) },
+                },
+              })
+            : Promise.resolve(0),
+          tx.otpChallenge.count({
+            where: { createdAt: { gte: startOfUtcDay } },
+          }),
+        ]);
 
-    if (globalToday >= this.dailySendCap) {
-      this.logger.error(
-        `OTP daily send cap (${this.dailySendCap}) reached — refusing sends`,
-      );
-      throw new ServiceUnavailableException(
-        'Sign-in by one-time code is temporarily unavailable',
-      );
-    }
-    if (
-      globalToday + 1 >=
-      Math.floor(this.dailySendCap * OTP_CAP_ALERT_FRACTION)
-    ) {
-      this.logger.warn(
-        `OTP daily send cap ${globalToday + 1}/${this.dailySendCap} (>=80%)`,
-      );
-    }
+      if (globalToday >= this.dailySendCap) {
+        this.logger.error(
+          `OTP daily send cap (${this.dailySendCap}) reached — refusing sends`,
+        );
+        throw new ServiceUnavailableException(
+          'Sign-in by one-time code is temporarily unavailable',
+        );
+      }
+      if (
+        globalToday + 1 >=
+        Math.floor(this.dailySendCap * OTP_CAP_ALERT_FRACTION)
+      ) {
+        this.logger.warn(
+          `OTP daily send cap ${globalToday + 1}/${this.dailySendCap} (>=80%)`,
+        );
+      }
 
-    if (
-      lastForPhone &&
-      now - lastForPhone.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS
-    ) {
-      throw this.tooMany('Please wait a moment before requesting another code');
-    }
-    if (
-      phoneWindow >= OTP_PHONE_WINDOW_MAX ||
-      phoneDay >= OTP_PHONE_DAY_MAX ||
-      ipWindow >= OTP_IP_WINDOW_MAX
-    ) {
-      throw this.tooMany('Too many code requests. Please try again later');
-    }
+      if (
+        lastForPhone &&
+        now - lastForPhone.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS
+      ) {
+        throw this.tooMany(
+          'Please wait a moment before requesting another code',
+        );
+      }
+      if (
+        phoneWindow >= OTP_PHONE_WINDOW_MAX ||
+        phoneDay >= OTP_PHONE_DAY_MAX ||
+        ipWindow >= OTP_IP_WINDOW_MAX
+      ) {
+        throw this.tooMany('Too many code requests. Please try again later');
+      }
 
-    const code = randomInt(0, 10 ** OTP_CODE_LENGTH)
-      .toString()
-      .padStart(OTP_CODE_LENGTH, '0');
-    const challenge = await this.prisma.otpChallenge.create({
-      data: {
-        phoneE164: phone,
-        codeHash: this.hashCode(phone, code),
-        expiresAt: new Date(now + OTP_TTL_MS),
-        requestIp: ip ?? null,
-      },
+      const code = randomInt(0, 10 ** OTP_CODE_LENGTH)
+        .toString()
+        .padStart(OTP_CODE_LENGTH, '0');
+      // A resend permanently supersedes all previous challenges in this store.
+      await tx.otpChallenge.updateMany({
+        where: { phoneE164: phone, storeId, consumedAt: null },
+        data: { consumedAt: new Date(now) },
+      });
+      const challenge = await tx.otpChallenge.create({
+        data: {
+          phoneE164: phone,
+          storeId,
+          codeHash: this.hashCode(storeId, phone, code),
+          expiresAt: new Date(now + OTP_TTL_MS),
+          requestIp: ip ?? null,
+        },
+      });
+      return { challenge, code };
     });
 
     try {
@@ -167,48 +186,66 @@ export class OtpService {
   }
 
   /** Returns the verified E.164 number. Throws a generic 401 on any failure. */
-  async verifyCode(rawPhone: string, code: string): Promise<string> {
+  async verifyCode(
+    rawPhone: string,
+    code: string,
+    storeId: string,
+  ): Promise<string> {
     this.assertEnabled();
     const phone = normalizeIndianMobile(rawPhone);
-    if (!phone) throw new UnauthorizedException(INVALID_CODE_MESSAGE);
-
-    const challenge = await this.prisma.otpChallenge.findFirst({
-      where: {
-        phoneE164: phone,
-        consumedAt: null,
-        expiresAt: { gt: new Date() },
-        attempts: { lt: OTP_MAX_VERIFY_ATTEMPTS },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!challenge) throw new UnauthorizedException(INVALID_CODE_MESSAGE);
-
-    // Atomically spend an attempt before comparing, so concurrent guesses
-    // cannot exceed the attempt budget.
-    const spent = await this.prisma.otpChallenge.updateMany({
-      where: {
-        id: challenge.id,
-        consumedAt: null,
-        attempts: { lt: OTP_MAX_VERIFY_ATTEMPTS },
-      },
-      data: { attempts: { increment: 1 } },
-    });
-    if (spent.count !== 1)
+    if (!phone || !storeId || !/^\d{6}$/.test(code))
       throw new UnauthorizedException(INVALID_CODE_MESSAGE);
 
-    const expected = Buffer.from(challenge.codeHash, 'hex');
-    const actual = Buffer.from(this.hashCode(phone, code), 'hex');
-    const matches =
-      expected.length === actual.length && timingSafeEqual(expected, actual);
-    if (!matches) throw new UnauthorizedException(INVALID_CODE_MESSAGE);
+    // Return a failure value so an incorrect attempt commits instead of rolling
+    // back when the caller receives its generic 401.
+    const accepted = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(731920461)`;
+      const challenge = await tx.otpChallenge.findFirst({
+        where: {
+          phoneE164: phone,
+          storeId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (
+        !challenge ||
+        challenge.consumedAt ||
+        challenge.expiresAt.getTime() <= Date.now() ||
+        challenge.attempts >= OTP_MAX_VERIFY_ATTEMPTS
+      )
+        return false;
 
-    // Single use: only one concurrent verifier can flip consumedAt.
-    const consumed = await this.prisma.otpChallenge.updateMany({
-      where: { id: challenge.id, consumedAt: null },
-      data: { consumedAt: new Date() },
+      // Atomically spend an attempt before comparing, so concurrent guesses
+      // cannot exceed the attempt budget.
+      const spent = await tx.otpChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+          attempts: { lt: OTP_MAX_VERIFY_ATTEMPTS },
+        },
+        data: { attempts: { increment: 1 } },
+      });
+      if (spent.count !== 1) return false;
+
+      const expected = Buffer.from(challenge.codeHash, 'hex');
+      const actual = Buffer.from(this.hashCode(storeId, phone, code), 'hex');
+      const matches =
+        expected.length === actual.length && timingSafeEqual(expected, actual);
+      if (!matches) return false;
+
+      // Single use: only one concurrent verifier can flip consumedAt.
+      const consumed = await tx.otpChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: { consumedAt: new Date() },
+      });
+      return consumed.count === 1;
     });
-    if (consumed.count !== 1)
-      throw new UnauthorizedException(INVALID_CODE_MESSAGE);
+    if (!accepted) throw new UnauthorizedException(INVALID_CODE_MESSAGE);
 
     return phone;
   }
@@ -221,9 +258,9 @@ export class OtpService {
     });
   }
 
-  private hashCode(phoneE164: string, code: string): string {
+  private hashCode(storeId: string, phoneE164: string, code: string): string {
     return createHmac('sha256', this.hmacSecret)
-      .update(`${phoneE164}:${code}`)
+      .update(`${storeId}:${phoneE164}:${code}`)
       .digest('hex');
   }
 

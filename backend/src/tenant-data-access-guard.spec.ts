@@ -84,8 +84,8 @@ const ALLOWLIST: ReadonlyArray<{ path: string; category: string }> = [
   },
   // "auth" — the rest of the auth module (identity is global; Master Plan
   // §9: "Auth endpoints — none [tenant context]"). No file here currently
-  // matches the detection patterns; listed for completeness per the named
-  // exemption category, not because it's needed to pass today.
+  // AuthService now resolves registered OTP StoreDomains and refuses tenant
+  // members at OTP/session boundaries, using the existing platform-RLS wrapper.
   { path: 'auth/auth.service.ts', category: 'auth (identity is global)' },
   { path: 'auth/auth.controller.ts', category: 'auth (identity is global)' },
   // "health" — no tenant context at all (Master Plan §9).
@@ -273,7 +273,7 @@ describe('tenant data access — PrismaService allowlist guard (D4, Phase 3)', (
     }
   });
 
-  it('the ten known, currently-existing access sites are exactly jwt.strategy.ts, tenant-context.guard.ts, platform.service.ts, tenant-lifecycle.ts, support-session.service.ts, team.service.ts, tenant-actor-attribution.ts, platform-plans.service.ts, and payment-account-readiness.ts (storefront-tenant.resolver.ts remains allowlisted but currently reads via $queryRaw, not a Prisma tenancy delegate)', () => {
+  it('the known access sites include auth domain resolution and membership refusal (storefront resolver uses parameterized SQL)', () => {
     const detectedTodayFiles = ALLOWLIST.filter((a) => {
       try {
         const code = stripComments(readFileSync(join(SRC_DIR, a.path), 'utf8'));
@@ -287,6 +287,7 @@ describe('tenant data access — PrismaService allowlist guard (D4, Phase 3)', (
     }).map((a) => a.path);
     expect(detectedTodayFiles.sort()).toEqual(
       [
+        'auth/auth.service.ts',
         'auth/strategies/jwt.strategy.ts',
         'common/tenant/tenant-context.guard.ts',
         'platform/platform.service.ts',

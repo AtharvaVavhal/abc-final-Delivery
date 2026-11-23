@@ -36,11 +36,11 @@ each is required.
 | `RAZORPAY_SAAS_WEBHOOK_SECRET` | ⬜ | ⬜ | ✅ | Verifies the `X-Razorpay-Signature` header on `POST /api/v1/webhooks/billing` (SaaS subscription billing webhooks only). Distinct from `RAZORPAY_WEBHOOK_SECRET` (merchant commerce, `POST /api/v1/payments/webhook`) — never reused. | opaque string (secret) | Render service env (secret) **and** Razorpay dashboard webhook config (SaaS account) |
 | `PAYMENT_CREDENTIALS_MASTER_KEY` | ⬜ | ⬜ | ✅ | AES-256-GCM master key for merchant `PaymentAccount` credentials. Base64, must decode to exactly 32 bytes (`openssl rand -base64 32`). Production refuses to boot if missing or malformed. | base64 32-byte key | Render service env (secret) |
 | `RESEND_API_KEY` | ⬜ | ⬜ | ✅ | Resend API key for transactional email dispatch (outbox poller). | `re_XXXXXXXX` (secret) | Render service env (secret) |
-| `AUTH_OTP_ENABLED` | ⬜ | ⬜ | ⬜ | Feature flag for phone-OTP customer login. Default off; OTP routes 404 while off. When `true` in production, the four keys below become required. | `true` / unset | Railway service env |
+| `AUTH_OTP_ENABLED` | ⬜ | ⬜ | ⬜ | Feature flag for phone-OTP customer login. Default off; OTP routes 404 while off. When `true` in production, `OTP_HMAC_SECRET` and the selected provider credentials are required. AB CREATIONS uses Renflair WhatsApp. | `true` / unset | Railway service env |
 | `OTP_HMAC_SECRET` | ⬜ | ⬜ | ✅ (if OTP on) | Keyed-hash secret for stored SMS codes. Long random string; never reuse another secret. | random 32+ bytes | Railway service env (secret) |
-| `MSG91_AUTH_KEY` | ⬜ | ⬜ | ✅ (if OTP on) | MSG91 API auth key. | secret | Railway service env (secret) |
-| `MSG91_OTP_TEMPLATE_ID` | ⬜ | ⬜ | ✅ (if OTP on) | DLT-approved MSG91 OTP template id. | string | Railway service env |
-| `OTP_SMS_PROVIDER` | ⬜ | ⬜ | ⬜ | `msg91` (SMS, default), `msg91-whatsapp` (WhatsApp authentication template), `renflair` (Renflair WhatsApp OTP) or `console` (dev only — logs codes; refused in production). | `msg91` | Railway service env |
+| `MSG91_AUTH_KEY` | ⬜ | ⬜ | ✅ (if MSG91 selected) | MSG91 API auth key. | secret | Railway service env (secret) |
+| `MSG91_OTP_TEMPLATE_ID` | ⬜ | ⬜ | ✅ (if MSG91 SMS selected) | DLT-approved MSG91 OTP template id. | string | Railway service env |
+| `OTP_SMS_PROVIDER` | ⬜ | ⬜ | ⬜ | `renflair` (AB CREATIONS default, WhatsApp OTP), `msg91` (legacy SMS), `msg91-whatsapp` (legacy WhatsApp) or `console` (dev/test delivery sink; never logs codes; refused in production). | `renflair` | Railway service env |
 | `OTP_DAILY_SEND_CAP` | ⬜ | ⬜ | ⬜ | Global SMS sends per UTC day before OTP refuses (default 500; warns at 80%). | `500` | Railway service env |
 | `MSG91_BASE_URL` | ⬜ | ⬜ | ⬜ | Override MSG91 host (default `https://control.msg91.com`). | URL | Railway service env |
 | `MSG91_WHATSAPP_INTEGRATED_NUMBER` | ⬜ | ⬜ | ✅ (if `OTP_SMS_PROVIDER=msg91-whatsapp`) | Your WhatsApp Business number connected in MSG91 (digits with country code). | `919XXXXXXXXX` | Railway service env |

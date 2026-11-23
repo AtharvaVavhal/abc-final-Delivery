@@ -25,7 +25,8 @@ const PROD_INTEGRATION: Record<string, string> = {
   // 32 random bytes, base64 — a validly-SHAPED placeholder (not a real
   // secret; this exact value is also not used anywhere outside this test
   // file/`.env.test`, see ENVIRONMENT.md's own note on that distinction).
-  PAYMENT_CREDENTIALS_MASTER_KEY: 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
+  PAYMENT_CREDENTIALS_MASTER_KEY:
+    'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
   CLOUDINARY_CLOUD_NAME: 'printforge',
   CLOUDINARY_API_KEY: 'placeholder',
   CLOUDINARY_API_SECRET: 'placeholder',
@@ -102,9 +103,9 @@ describe('validateEnv', () => {
       expect(() => validateEnv({ ...prod })).not.toThrow();
     });
 
-    it('requires the HMAC secret and MSG91 keys once the flag is on', () => {
+    it('requires the HMAC secret and Renflair key once the flag is on', () => {
       expect(() => validateEnv({ ...prod, AUTH_OTP_ENABLED: 'true' })).toThrow(
-        /OTP_HMAC_SECRET is required[\s\S]*MSG91_AUTH_KEY is required[\s\S]*MSG91_OTP_TEMPLATE_ID is required/,
+        /OTP_HMAC_SECRET is required[\s\S]*RENFLAIR_API_KEY is required/,
       );
     });
 
@@ -174,6 +175,7 @@ describe('validateEnv', () => {
           ...prod,
           AUTH_OTP_ENABLED: 'true',
           OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91',
           MSG91_AUTH_KEY: 'k',
           MSG91_OTP_TEMPLATE_ID: 't',
         }),
@@ -212,9 +214,8 @@ describe('validateEnv', () => {
           ...BASE,
           NODE_ENV: 'production',
           ...PROD_INTEGRATION,
-          PAYMENT_CREDENTIALS_MASTER_KEY: Buffer.from('too-short').toString(
-            'base64',
-          ),
+          PAYMENT_CREDENTIALS_MASTER_KEY:
+            Buffer.from('too-short').toString('base64'),
         }),
       ).toThrow(/PAYMENT_CREDENTIALS_MASTER_KEY is not a valid AES-256 key/);
     });

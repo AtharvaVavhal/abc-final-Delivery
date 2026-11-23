@@ -5,6 +5,24 @@ flag that defaults to off).** All open questions are resolved (see §11).
 Touches the frozen auth area (BLUEPRINT-v1.2 §17/§23), so this must be approved
 first. SMS provider: **MSG91** (owner decision).
 
+## 2026-11-23 implementation clarification
+
+The owner confirmed in the login-redesign task that AB CREATIONS uses
+**Renflair WhatsApp OTP**, supplied `https://renflair.in/wp-otp.php` and the
+`TEST-WHATSAPP-OTP-PHP-SCRIPT.zip` example. This supersedes the MSG91 provider
+choice below for this storefront. Renflair only delivers; generation and
+verification remain server-side. No sample credentials are imported.
+
+The current P9-D1 legacy `User` model remains in use. OTP identities now carry
+an immutable store binding; challenges are store-bound; verified domain routing
+and membership refusal are checked at issuance, refresh and access validation.
+Thin JWTs, refresh cookies and RLS remain. This is a constrained legacy bridge,
+not the deferred store-scoped `Customer` migration. The existing global unique
+phone can belong to only one store; cross-store use is refused. Existing unbound
+phone accounts and email-only accounts need an audited reconciliation/claim
+flow before general cut-over. See `AB-CREATIONS-LOGIN-REDESIGN.md` for release
+requirements and validation. The historical proposal below is retained.
+
 ## 1. Goal
 
 Let customers sign in and check out with a mobile number + SMS code instead of

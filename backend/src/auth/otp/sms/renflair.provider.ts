@@ -8,6 +8,7 @@ import { SmsProvider } from './sms-provider';
  * generates and verifies the code; this only delivers it.
  *
  * Request shape taken from Renflair's own sample script (send-otp.php):
+ * Rechecked against the owner's TEST-WHATSAPP-OTP-PHP-SCRIPT.zip on 2026-11-23.
  *   GET {base}/V1.php?API=<key>&PHONE=<10-digit>&OTP=<code>&COUNTRY=91
  * The message text and the app name shown in it are fixed by Renflair and its
  * dashboard ("App / Website Name"), not by us.

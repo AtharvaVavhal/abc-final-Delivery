@@ -6,6 +6,8 @@ import { AppConfig } from '../../common/config/configuration';
 import { PrismaService } from '../../common/database/prisma.service';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { withPlatformRlsBypass } from '../../common/tenant/tenant-rls';
+import { AuthService } from '../auth.service';
+import type { Request } from 'express';
 
 /**
  * Access-token payload. Phase 2a (decision P2-D4) makes newly-issued merchant
@@ -49,15 +51,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService<AppConfig, true>,
     private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      passReqToCallback: true,
       secretOrKey: configService.get('auth', { infer: true }).accessTokenSecret,
     });
   }
 
-  async validate(payload: AccessTokenPayload): Promise<AuthenticatedUser> {
+  async validate(
+    req: Request,
+    payload: AccessTokenPayload,
+  ): Promise<AuthenticatedUser> {
     if (!payload?.sub) {
       throw new UnauthorizedException();
     }
@@ -78,11 +85,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
+    const storefront = await this.authService.assertOtpSession(
+      user,
+      req.hostname,
+    );
+
     return {
       id: user.id,
       email: user.email,
       role: user.role,
       platformRole: user.platformRole,
+      storefront,
       memberships: user.tenantMemberships.map((m) => ({
         tenantId: m.tenantId,
         role: m.role,

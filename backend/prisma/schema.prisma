@@ -161,6 +161,9 @@ model User {
   // legacy free-text `phone` profile field below, which is unverified and may
   // hold duplicates — never used for login.
   phoneE164       String?   @unique
+  // Legacy OTP identities are restricted to their issuing storefront.
+  // Nullable for existing/password users; unbound phone-only users fail closed.
+  otpStoreId      String?
   phoneVerifiedAt DateTime?
 
   role         Role          @default(CUSTOMER)
@@ -255,6 +258,7 @@ model RefreshToken {
 model OtpChallenge {
   id         String    @id @default(uuid())
   phoneE164  String
+  storeId    String?
   codeHash   String
   expiresAt  DateTime
   attempts   Int       @default(0)

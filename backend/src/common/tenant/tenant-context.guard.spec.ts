@@ -46,6 +46,29 @@ function makeContext(options: {
 }
 
 describe('TenantContextGuard (Phase 3 / D6)', () => {
+  it('uses the DB-validated OTP storefront without granting membership permissions', async () => {
+    const { context, reflector, request } = makeContext({
+      user: { memberships: [], storefront: { tenantId: 't1', storeId: 's1' } },
+    });
+    await new TenantContextGuard(reflector, {} as PrismaService).canActivate(
+      context,
+    );
+    expect(request.tenantContext).toEqual({
+      tenantId: 't1',
+      source: 'storefront-otp',
+    });
+  });
+  it('refuses a browser tenant override for an OTP storefront session', async () => {
+    const { context, reflector } = makeContext({
+      user: { memberships: [], storefront: { tenantId: 't1', storeId: 's1' } },
+      headers: { [ACTIVE_TENANT_HEADER]: 't2' },
+    });
+    await expect(
+      new TenantContextGuard(reflector, {} as PrismaService).canActivate(
+        context,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
   const prisma = {
     storeDomain: { findUnique: jest.fn().mockResolvedValue(null) },
   } as unknown as PrismaService;

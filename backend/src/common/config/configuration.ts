@@ -57,8 +57,8 @@ export interface AppConfig {
   otp: {
     /** Feature flag — defaults to off; the OTP routes 404 while false. */
     enabled: boolean;
-    /** 'msg91' = SMS; 'msg91-whatsapp' = WhatsApp authentication template;
-     * 'console' logs the code (never in production). */
+    /** Renflair WhatsApp is the AB CREATIONS default. Existing adapters stay
+     * available explicitly. 'console' is a test sink (never in production). */
     provider: 'msg91' | 'msg91-whatsapp' | 'renflair' | 'console';
     /** Keyed-hash secret for stored codes (HMAC-SHA256). */
     hmacSecret: string;
@@ -206,9 +206,9 @@ export default (): AppConfig => ({
         ? 'console'
         : process.env.OTP_SMS_PROVIDER === 'msg91-whatsapp'
           ? 'msg91-whatsapp'
-          : process.env.OTP_SMS_PROVIDER === 'renflair'
-            ? 'renflair'
-            : 'msg91',
+          : process.env.OTP_SMS_PROVIDER === 'msg91'
+            ? 'msg91'
+            : 'renflair',
     hmacSecret: process.env.OTP_HMAC_SECRET ?? '',
     dailySendCap:
       Number.parseInt(process.env.OTP_DAILY_SEND_CAP ?? '500', 10) || 500,

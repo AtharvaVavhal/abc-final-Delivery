@@ -59,7 +59,7 @@ export class AuthController {
     @Body() dto: OtpRequestDto,
     @Req() req: Request,
   ): Promise<void> {
-    await this.authService.requestOtp(dto.phone, req.ip);
+    await this.authService.requestOtp(dto.phone, req.ip, req.hostname);
   }
 
   /** Phone-OTP step 2 — verifies the code and starts a customer session. */
@@ -69,9 +69,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyOtp(
     @Body() dto: OtpVerifyDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthTokenResult> {
-    return this.authService.verifyOtpAndLogin(dto.phone, dto.code, res);
+    return this.authService.verifyOtpAndLogin(
+      dto.phone,
+      dto.code,
+      res,
+      req.hostname,
+    );
   }
 
   @Public()
@@ -95,7 +101,7 @@ export class AuthController {
     const rawToken = (
       req.cookies as Record<string, string | undefined> | undefined
     )?.[REFRESH_TOKEN_COOKIE_NAME];
-    return this.authService.refresh(rawToken, res);
+    return this.authService.refresh(rawToken, res, req.hostname);
   }
 
   @Post('logout')

@@ -141,7 +141,10 @@ function otpProductionProblems(config: Record<string, unknown>): string[] {
   }
   if (config['OTP_SMS_PROVIDER'] === 'console') {
     problems.push('OTP_SMS_PROVIDER=console is not allowed in production');
-  } else if (config['OTP_SMS_PROVIDER'] === 'renflair') {
+  } else if (
+    !config['OTP_SMS_PROVIDER'] ||
+    config['OTP_SMS_PROVIDER'] === 'renflair'
+  ) {
     if (blank('RENFLAIR_API_KEY')) {
       problems.push(
         'RENFLAIR_API_KEY is required in production when AUTH_OTP_ENABLED=true and OTP_SMS_PROVIDER=renflair',
