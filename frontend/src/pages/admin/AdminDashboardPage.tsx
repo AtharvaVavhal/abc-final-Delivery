@@ -8,6 +8,7 @@ import { AdminTable } from '@/components/admin/AdminTable'
 import { AdminBadge } from '@/components/admin/AdminBadge'
 import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
 import { AdminPageSkeleton } from '@/components/admin/AdminPageSkeleton'
+import { SalesOverview } from '@/features/admin/overview/SalesOverview'
 import { OrderStatusBadge } from '@/features/orders/OrderStatusBadge'
 import { formatPrice } from '@/utils/formatPrice'
 import { formatDate } from '@/utils/formatDate'
@@ -63,6 +64,8 @@ export function AdminDashboardPage() {
               <p className={styles.statValue}>{formatPrice(data.totalRevenue)}</p>
             </AdminCard>
           </div>
+
+          <SalesOverview />
 
           <AdminCard as="section" title="Needs attention">
             <div className={styles.attentionGrid}>
