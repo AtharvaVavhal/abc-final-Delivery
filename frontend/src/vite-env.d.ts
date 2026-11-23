@@ -11,6 +11,8 @@ interface ImportMetaEnv {
    * production origin (src/seo/siteConfig.constants.ts). Set it for
    * preview/staging deploys that live on a different hostname. */
   readonly VITE_SITE_URL?: string
+  /** 'true' switches customer login/signup to phone OTP. Default off. */
+  readonly VITE_AUTH_OTP_ENABLED?: string
 }
 
 interface ImportMeta {

@@ -57,3 +57,21 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+.attentionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.attentionTile { display: flex; flex-direction: column; gap: var(--space-2); padding: 20px; border: 1px solid var(--color-border); border-top: 2px solid var(--admin-mark, #e8a317); border-radius: var(--radius-md); text-decoration: none; color: var(--color-text-strong); }
+.attentionTile:hover { background: var(--color-surface); }
+.attentionLabel { font-size: var(--text-sm); font-weight: var(--font-weight-medium); }
+.attentionCount { font-size: 2rem; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.attentionHint { color: var(--color-text-muted); font-size: var(--text-xs); }
+.stageIntro, .stageEmpty { font-size: var(--text-sm); color: var(--color-text-muted); }
+.stageList { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.stageLink { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr 3ch; gap: var(--space-4); align-items: center; min-height: 44px; padding: 8px 12px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--text-sm); }
+.stageLink:hover { background: var(--color-surface); }
+.stageLink strong { text-align: right; font-variant-numeric: tabular-nums; }
+.stageBar { height: 5px; overflow: hidden; border-radius: 4px; background: var(--color-surface); }
+.stageBar span { display: block; height: 100%; background: var(--color-text-strong); border-radius: inherit; }
+@media (max-width: 640px) {
+  .attentionGrid { grid-template-columns: 1fr; }
+  .stageLink { grid-template-columns: minmax(120px, 1fr) 1fr 3ch; gap: 10px; }
+}

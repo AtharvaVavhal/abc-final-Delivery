@@ -80,8 +80,8 @@ const SETTINGS_RESPONSE = {
       label: 'Navbar seller name',
       description: 'Registered business name on the storefront navbar.',
       kind: 'text',
-      value: 'Identica',
-      default: 'Identica',
+      value: 'AB CREATIONS GWL',
+      default: 'AB CREATIONS GWL',
     },
     {
       key: 'sellerLocality',
@@ -96,8 +96,8 @@ const SETTINGS_RESPONSE = {
       label: 'Navbar GSTIN',
       description: 'GST identification number shown on the navbar.',
       kind: 'text',
-      value: '27ARLPM5978P1ZL',
-      default: '27ARLPM5978P1ZL',
+      value: '23EQZPS2886B1Z7',
+      default: '23EQZPS2886B1Z7',
     },
     {
       key: 'sellerPaymentProtected',
@@ -310,7 +310,7 @@ describe('AdminSettingsPage', () => {
     expect(within(content).getByLabelText('Announcement bar text')).toBeInTheDocument()
 
     const navbarSeller = screen.getByRole('region', { name: 'Navbar seller identity' })
-    expect(within(navbarSeller).getByLabelText('Legal name')).toHaveValue('Identica')
+    expect(within(navbarSeller).getByLabelText('Legal name')).toHaveValue('AB CREATIONS GWL')
     expect(within(navbarSeller).getByLabelText('Location')).toHaveValue(
       'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
     )
@@ -319,7 +319,7 @@ describe('AdminSettingsPage', () => {
       within(navbarSeller).getByRole('checkbox', { name: /show payment protected/i }),
     ).toBeChecked()
     expect(within(navbarSeller).getByRole('region', { name: 'Navbar preview' })).toHaveTextContent(
-      'Identica',
+      'AB CREATIONS GWL',
     )
 
     const tax = screen.getByRole('region', { name: 'Tax (GST)' })
@@ -346,9 +346,9 @@ describe('AdminSettingsPage', () => {
     ]
     renderWithProviders(<AdminSettingsPage />)
 
-    expect(await screen.findByLabelText('Legal name')).toHaveValue('Identica')
-    expect(screen.getByLabelText('Location')).toHaveValue('Sakinaka, Mumbai, Maharashtra')
-    expect(screen.getByLabelText('GSTIN')).toHaveValue('27ARLPM5978P1ZL')
+    expect(await screen.findByLabelText('Legal name')).toHaveValue('AB CREATIONS GWL')
+    expect(screen.getByLabelText('Location')).toHaveValue('Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India')
+    expect(screen.getByLabelText('GSTIN')).toHaveValue('23EQZPS2886B1Z7')
     expect(screen.getByRole('checkbox', { name: /show payment protected/i })).toBeChecked()
   })
 
@@ -362,7 +362,7 @@ describe('AdminSettingsPage', () => {
         description: '',
         kind: 'text',
         value: 'Atharva Prints',
-        default: 'Identica',
+        default: 'AB CREATIONS GWL',
       },
     })
     renderWithProviders(<AdminSettingsPage />)

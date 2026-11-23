@@ -26,7 +26,11 @@ import type { Permission } from '../../auth/permissions/permission';
 export interface TenantContext {
   tenantId: string;
   source:
-    'membership-header' | 'membership-default' | 'domain' | 'support-session';
+    | 'membership-header'
+    | 'membership-default'
+    | 'domain'
+    | 'support-session'
+    | 'storefront-otp';
   /** Present for the ordinary merchant path; absent for the (future, Phase
    * 9/12) unauthenticated storefront path AND for the support-session path.
    * Carries only `role` — that is all `PermissionsGuard.can()` needs, and

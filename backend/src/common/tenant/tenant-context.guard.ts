@@ -106,6 +106,19 @@ export class TenantContextGuard {
       ? headerValue[0]
       : headerValue;
 
+    if (user.storefront) {
+      if (requestedTenantId && requestedTenantId !== user.storefront.tenantId) {
+        throw new ForbiddenException(
+          'The requested tenant does not match this storefront',
+        );
+      }
+      request.tenantContext = {
+        tenantId: user.storefront.tenantId,
+        source: 'storefront-otp',
+      };
+      return true;
+    }
+
     if (requestedTenantId) {
       const membership = memberships.find(
         (m) => m.tenantId === requestedTenantId,

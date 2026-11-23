@@ -10,7 +10,7 @@ const current: StorefrontPublicSettings = {
   announcement_text: '',
   contact: { email: '', phone: '', address: '' },
   seller: {
-    legalName: 'GOURAV KUMAR ABHAY SINGH',
+    legalName: 'AB CREATIONS GWL',
     locality: 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',
     gstin: '23EQZPS2886B1Z7',
     paymentProtected: true,

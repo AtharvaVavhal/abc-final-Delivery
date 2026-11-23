@@ -92,6 +92,13 @@ import { join } from 'path';
  *     four — proven by the full-statement `^...$` anchor on each pattern
  *     (the same property the D4/G-20 RLS-toggle check already relies on),
  *     not by a verb blacklist.
+ *   - **(Phone-OTP login / P9-D1, docs/saas/DECISIONS.md)** exactly two
+ *     single-action statements, on the already-existing `users` table:
+ *     `ALTER COLUMN "email" DROP NOT NULL` and
+ *     `ALTER COLUMN "passwordHash" DROP NOT NULL` — so customers can exist
+ *     with a verified phone number and no email/password. Any other column,
+ *     any other table, any multi-action ALTER, and every other `DROP` remain
+ *     rejected. This RELAXES a constraint (it cannot lose or alter data).
  * Forbidden anywhere (unchanged — G-19, D4/G-20, P4-D3, and P4-D2 do NOT
  * weaken these beyond their own narrow, named exemptions above):
  *   - DROP (table / column / index / constraint / type / schema / view /
@@ -587,6 +594,43 @@ interface LegacyUniqueDropStatement {
   name: string;
 }
 
+/**
+ * Phone-OTP login / P9-D1 (docs/saas/DECISIONS.md) — the ONLY two columns
+ * whose NOT NULL may be dropped, both on `users`. Do NOT extend this list
+ * without a new recorded decision.
+ */
+const OTP_APPROVED_DROP_NOT_NULL = new Map<string, ReadonlySet<string>>([
+  ['users', new Set(['email', 'passwordHash'])],
+]);
+
+/** Parses a single-action `ALTER TABLE "<t>" ALTER COLUMN "<col>" DROP NOT NULL`. */
+function parseDropNotNull(
+  stmt: string,
+): { table: string; column: string } | null {
+  const m =
+    /^ALTER\s+TABLE\s+(?:ONLY\s+)?"([^"]+)"\s+ALTER\s+COLUMN\s+"([^"]+)"\s+DROP\s+NOT\s+NULL\s*$/i.exec(
+      stmt,
+    );
+  if (!m) {
+    return null;
+  }
+  return { table: m[1], column: m[2] };
+}
+
+/** True iff this is one of the two P9-D1-approved `users` DROP NOT NULLs. */
+function isApprovedDropNotNull(
+  stmt: string,
+  newInThisFile: Set<string>,
+): boolean {
+  const parsed = parseDropNotNull(stmt);
+  if (!parsed || newInThisFile.has(parsed.table)) {
+    return false;
+  }
+  return (
+    OTP_APPROVED_DROP_NOT_NULL.get(parsed.table)?.has(parsed.column) === true
+  );
+}
+
 /** Parses a single-action `ALTER TABLE "<t>" DROP CONSTRAINT "<name>"`. */
 function parseLegacyUniqueDrop(stmt: string): LegacyUniqueDropStatement | null {
   const m =
@@ -812,6 +856,10 @@ export function findAdditiveOnlyViolations(rawSql: string): string[] {
     // otherwise fires unconditionally on any DROP CONSTRAINT text.
     if (isApprovedLegacyUniqueDrop(stmt, newInThisFile)) {
       continue; // approved W7 legacy-unique drop (P4-D2)
+    }
+    // Phone-OTP login / P9-D1: the two approved users DROP NOT NULLs.
+    if (isApprovedDropNotNull(stmt, newInThisFile)) {
+      continue;
     }
     // Phase 4 W7 / P4-D2 (root-cause correction): the real W7 migration
     // uses DROP INDEX, not DROP CONSTRAINT, for these same five legacy
@@ -1669,6 +1717,64 @@ describe('migration safety — additive-only guard (G-10)', () => {
         CREATE TABLE "widgets" ("id" TEXT NOT NULL);
       `;
       expect(findAdditiveOnlyViolations(sql)).toEqual([]);
+    });
+  });
+
+  describe('phone-OTP DROP NOT NULL exemption (P9-D1)', () => {
+    it.each(['email', 'passwordHash'])(
+      'permits ALTER COLUMN "%s" DROP NOT NULL on users',
+      (column) => {
+        const sql = `ALTER TABLE "users" ALTER COLUMN "${column}" DROP NOT NULL;`;
+        expect(findAdditiveOnlyViolations(sql)).toEqual([]);
+      },
+    );
+
+    it('permits both together', () => {
+      const sql = `
+        ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL;
+        ALTER TABLE "users" ALTER COLUMN "passwordHash" DROP NOT NULL;`;
+      expect(findAdditiveOnlyViolations(sql)).toEqual([]);
+    });
+
+    it.each([
+      [
+        'another users column',
+        'ALTER TABLE "users" ALTER COLUMN "role" DROP NOT NULL;',
+      ],
+      [
+        'another users column (tokenVersion)',
+        'ALTER TABLE "users" ALTER COLUMN "tokenVersion" DROP NOT NULL;',
+      ],
+      [
+        'the same column on another table',
+        'ALTER TABLE "orders" ALTER COLUMN "email" DROP NOT NULL;',
+      ],
+      [
+        'a customers table column',
+        'ALTER TABLE "customers" ALTER COLUMN "passwordHash" DROP NOT NULL;',
+      ],
+      [
+        'a multi-action ALTER mixing an approved and an unapproved column',
+        'ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL, ALTER COLUMN "role" DROP NOT NULL;',
+      ],
+      [
+        'DROP DEFAULT on an approved column',
+        'ALTER TABLE "users" ALTER COLUMN "email" DROP DEFAULT;',
+      ],
+      [
+        'SET NOT NULL on an approved column',
+        'ALTER TABLE "users" ALTER COLUMN "email" SET NOT NULL;',
+      ],
+      [
+        'dropping the approved column itself',
+        'ALTER TABLE "users" DROP COLUMN "email";',
+      ],
+      [
+        'a type change on an approved column',
+        'ALTER TABLE "users" ALTER COLUMN "email" TYPE VARCHAR(10);',
+      ],
+    ])('still rejects %s', (_label, sql) => {
+      expect(findAdditiveOnlyViolations(sql)).not.toEqual([]);
     });
   });
 

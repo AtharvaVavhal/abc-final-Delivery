@@ -12,7 +12,7 @@ import { OrderListItemView } from '../../orders/dto/order-view.interface';
  */
 export interface AdminCustomerListItemView {
   id: string;
-  email: string;
+  email: string | null;
   addressLine1: string | null;
   addressLine2: string | null;
   city: string | null;

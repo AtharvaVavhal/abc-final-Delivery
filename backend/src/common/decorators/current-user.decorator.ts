@@ -27,10 +27,12 @@ export interface AuthenticatedMembership {
  */
 export interface AuthenticatedUser {
   id: string;
-  email: string;
+  email: string | null;
   role: string;
   platformRole: PlatformRole | null;
   memberships: AuthenticatedMembership[];
+  /** Validated against registered domains and DB binding, never a JWT/browser claim. */
+  storefront?: { tenantId: string; storeId: string };
 }
 
 export const CurrentUser = createParamDecorator(

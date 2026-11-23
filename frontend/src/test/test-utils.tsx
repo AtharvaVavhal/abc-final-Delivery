@@ -17,6 +17,8 @@ export function createMockAuthContext(
     status: 'unauthenticated',
     login: vi.fn().mockResolvedValue(undefined),
     register: vi.fn().mockResolvedValue(undefined),
+    loginWithOtp: vi.fn().mockResolvedValue(undefined),
+    requestOtp: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }

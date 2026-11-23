@@ -17,6 +17,8 @@ import {
 import { AppConfig } from '../common/config/configuration';
 import { PrismaService } from '../common/database/prisma.service';
 import { UsersService } from '../users/users.service';
+import { OtpService } from './otp/otp.service';
+import { withPlatformRlsBypass } from '../common/tenant/tenant-rls';
 import { NotificationsService } from '../notifications/notifications.service';
 import { refreshCookieBaseOptions } from '../common/http/refresh-cookie-options';
 import { refreshTtlMsForUser } from './refresh-ttl';
@@ -45,7 +47,7 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
 
 export interface PublicUser {
   id: string;
-  email: string;
+  email: string | null;
   role: string;
   createdAt: Date;
 }
@@ -68,6 +70,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
     configService: ConfigService<AppConfig, true>,
   ) {
     const authConfig = configService.get('auth', { infer: true });
@@ -160,7 +163,10 @@ export class AuthService {
       await this.sleep(delayMs);
     }
 
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+    // Phone-only (OTP) accounts have no password — they can never pass here.
+    const passwordValid = user.passwordHash
+      ? await bcrypt.compare(password, user.passwordHash)
+      : (await bcrypt.compare(password, DUMMY_PASSWORD_HASH), false);
     if (!passwordValid) {
       await this.prisma.user.update({
         where: { id: user.id },
@@ -197,11 +203,157 @@ export class AuthService {
     };
   }
 
+  // ─── Phone OTP (docs/architecture/PHONE-OTP-AUTH-DESIGN.md) ────────
+
+  async requestOtp(
+    phone: string,
+    ip: string | undefined,
+    hostname?: string,
+  ): Promise<void> {
+    this.otpService.assertEnabled();
+    const store = await this.resolveOtpStore(hostname);
+    await this.otpService.requestCode(phone, ip, store.id);
+  }
+
+  /**
+   * Verifies the SMS code, finds or creates the CUSTOMER account for that
+   * verified number, and issues the same access token + rotating refresh
+   * cookie as password login. Staff (admin / platform) accounts can never
+   * sign in this way.
+   *
+   * Memberships are checked even for legacy CUSTOMER-role staff. The global
+   * phone identity remains unique (P9-D1); it cannot be claimed by another store.
+   */
+  async verifyOtpAndLogin(
+    phone: string,
+    code: string,
+    res: Response,
+    hostname?: string,
+  ): Promise<AuthTokenResult> {
+    this.otpService.assertEnabled();
+    const store = await this.resolveOtpStore(hostname);
+    const phoneE164 = await this.otpService.verifyCode(phone, code, store.id);
+
+    let user = await this.prisma.user.findUnique({
+      where: { phoneE164 },
+    });
+    if (!user) {
+      try {
+        user = await this.prisma.user.create({
+          data: {
+            phoneE164,
+            phoneVerifiedAt: new Date(),
+            otpStoreId: store.id,
+          },
+        });
+      } catch (err) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          // Lost a race with a concurrent verify for the same number.
+          user = await this.prisma.user.findUnique({
+            where: { phoneE164 },
+          });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (
+      !user ||
+      !user.isActive ||
+      user.role !== 'CUSTOMER' ||
+      user.platformRole !== null ||
+      user.otpStoreId !== store.id
+    ) {
+      throw new UnauthorizedException('Invalid or expired code');
+    }
+
+    await this.assertOtpSession(user, hostname);
+
+    if (!user.phoneVerifiedAt) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { phoneVerifiedAt: new Date() },
+      });
+    }
+
+    const rawRefreshToken = generateOpaqueToken();
+    const refreshTokenExpiresAt = this.refreshExpiryFor(user);
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashRefreshToken(rawRefreshToken, this.refreshTokenSecret),
+        expiresAt: refreshTokenExpiresAt,
+      },
+    });
+    this.setRefreshCookie(res, rawRefreshToken, refreshTokenExpiresAt);
+    return {
+      accessToken: this.signAccessToken(user),
+      user: this.toPublicUser(user),
+    };
+  }
+
   // ─── Refresh rotation + reuse detection (§13.C, §23) ───────────────
+
+  /** No tenant ID from the client and no newest-tenant fallback at auth boundaries.
+   * The configured API host maps to the configured frontend's StoreDomain;
+   * other hosts must themselves be registered StoreDomains. */
+  private async resolveOtpStore(hostname?: string) {
+    const host = hostname?.toLowerCase();
+    if (!host) throw new UnauthorizedException('Store sign-in is unavailable');
+    const backendHost = new URL(this.backendUrl).hostname;
+    const domainHost =
+      host === backendHost ? new URL(this.frontendUrl).hostname : host;
+    const domain = await withPlatformRlsBypass(this.prisma, (tx) =>
+      tx.storeDomain.findUnique({
+        where: { hostname: domainHost },
+        include: { store: { include: { tenant: true } } },
+      }),
+    );
+    if (
+      !domain ||
+      domain.tenantId !== domain.store.tenantId ||
+      domain.verificationStatus !== 'VERIFIED' ||
+      domain.store.status !== 'ACTIVE' ||
+      domain.store.tenant.status !== 'ACTIVE'
+    ) {
+      throw new UnauthorizedException('Store sign-in is unavailable');
+    }
+    return domain.store;
+  }
+
+  /** DB-derived binding keeps thin JWTs unchanged. Used at issuance, refresh
+   * and every access-token validation. Password/staff sessions are unaffected. */
+  async assertOtpSession(
+    user: User,
+    hostname?: string,
+  ): Promise<{ tenantId: string; storeId: string } | undefined> {
+    if (!user.otpStoreId && !(user.phoneE164 && !user.passwordHash)) return;
+    const store = await this.resolveOtpStore(hostname);
+    const membership = await withPlatformRlsBypass(this.prisma, (tx) =>
+      tx.tenantMembership.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      }),
+    );
+    if (
+      user.otpStoreId !== store.id ||
+      user.role !== 'CUSTOMER' ||
+      user.platformRole ||
+      membership
+    ) {
+      throw new UnauthorizedException('Invalid storefront session');
+    }
+    return { tenantId: store.tenantId, storeId: store.id };
+  }
 
   async refresh(
     rawToken: string | undefined,
     res: Response,
+    hostname?: string,
   ): Promise<AuthTokenResult> {
     if (!rawToken) {
       throw new UnauthorizedException('Missing refresh token');
@@ -252,11 +404,23 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    await this.assertOtpSession(user, hostname);
+
     const newRawToken = generateOpaqueToken();
     const newTokenHash = hashRefreshToken(newRawToken, this.refreshTokenSecret);
     const newExpiresAt = this.refreshExpiryFor(user);
 
     await this.prisma.$transaction(async (tx) => {
+      const spent = await tx.refreshToken.updateMany({
+        where: {
+          id: tokenRow.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: { revokedAt: new Date() },
+      });
+      if (spent.count !== 1)
+        throw new UnauthorizedException('Invalid refresh token');
       const created = await tx.refreshToken.create({
         data: {
           userId: user.id,

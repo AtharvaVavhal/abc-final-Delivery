@@ -7,6 +7,10 @@ export interface AuthContextValue {
   status: AuthStatus
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string) => Promise<void>
+  /** Phone-OTP sign-in: verify the SMS code and start a session. */
+  loginWithOtp: (phone: string, code: string) => Promise<void>
+  /** Phone-OTP step 1: send the SMS code. */
+  requestOtp: (phone: string) => Promise<void>
   logout: () => Promise<void>
 }
 

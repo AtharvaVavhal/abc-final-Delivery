@@ -25,7 +25,8 @@ const PROD_INTEGRATION: Record<string, string> = {
   // 32 random bytes, base64 — a validly-SHAPED placeholder (not a real
   // secret; this exact value is also not used anywhere outside this test
   // file/`.env.test`, see ENVIRONMENT.md's own note on that distinction).
-  PAYMENT_CREDENTIALS_MASTER_KEY: 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
+  PAYMENT_CREDENTIALS_MASTER_KEY:
+    'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
   CLOUDINARY_CLOUD_NAME: 'printforge',
   CLOUDINARY_API_KEY: 'placeholder',
   CLOUDINARY_API_SECRET: 'placeholder',
@@ -95,6 +96,93 @@ describe('validateEnv', () => {
     ).toThrow(/RESEND_API_KEY is required in production/);
   });
 
+  describe('phone-OTP settings', () => {
+    const prod = { ...BASE, NODE_ENV: 'production', ...PROD_INTEGRATION };
+
+    it('needs no OTP keys while the flag is off', () => {
+      expect(() => validateEnv({ ...prod })).not.toThrow();
+    });
+
+    it('requires the HMAC secret and Renflair key once the flag is on', () => {
+      expect(() => validateEnv({ ...prod, AUTH_OTP_ENABLED: 'true' })).toThrow(
+        /OTP_HMAC_SECRET is required[\s\S]*RENFLAIR_API_KEY is required/,
+      );
+    });
+
+    it('refuses the console provider in production', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'console',
+        }),
+      ).toThrow(/OTP_SMS_PROVIDER=console is not allowed in production/);
+    });
+
+    it('requires the WhatsApp keys when the WhatsApp provider is selected', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91-whatsapp',
+          MSG91_AUTH_KEY: 'k',
+        }),
+      ).toThrow(
+        /MSG91_WHATSAPP_INTEGRATED_NUMBER is required[\s\S]*MSG91_WHATSAPP_TEMPLATE_NAME is required[\s\S]*MSG91_WHATSAPP_TEMPLATE_NAMESPACE is required/,
+      );
+    });
+
+    it('accepts a fully-configured WhatsApp OTP production boot (no SMS template id needed)', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91-whatsapp',
+          MSG91_AUTH_KEY: 'k',
+          MSG91_WHATSAPP_INTEGRATED_NUMBER: '919999999999',
+          MSG91_WHATSAPP_TEMPLATE_NAME: 'login_otp',
+          MSG91_WHATSAPP_TEMPLATE_NAMESPACE: 'ns',
+        }),
+      ).not.toThrow();
+    });
+
+    it('requires RENFLAIR_API_KEY when the Renflair provider is selected', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'renflair',
+        }),
+      ).toThrow(/RENFLAIR_API_KEY is required/);
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'renflair',
+          RENFLAIR_API_KEY: 'k',
+        }),
+      ).not.toThrow();
+    });
+
+    it('accepts a fully-configured OTP production boot', () => {
+      expect(() =>
+        validateEnv({
+          ...prod,
+          AUTH_OTP_ENABLED: 'true',
+          OTP_HMAC_SECRET: 'x',
+          OTP_SMS_PROVIDER: 'msg91',
+          MSG91_AUTH_KEY: 'k',
+          MSG91_OTP_TEMPLATE_ID: 't',
+        }),
+      ).not.toThrow();
+    });
+  });
+
   it('accepts a fully-configured production boot', () => {
     expect(() =>
       validateEnv({ ...BASE, NODE_ENV: 'production', ...PROD_INTEGRATION }),
@@ -126,9 +214,8 @@ describe('validateEnv', () => {
           ...BASE,
           NODE_ENV: 'production',
           ...PROD_INTEGRATION,
-          PAYMENT_CREDENTIALS_MASTER_KEY: Buffer.from('too-short').toString(
-            'base64',
-          ),
+          PAYMENT_CREDENTIALS_MASTER_KEY:
+            Buffer.from('too-short').toString('base64'),
         }),
       ).toThrow(/PAYMENT_CREDENTIALS_MASTER_KEY is not a valid AES-256 key/);
     });

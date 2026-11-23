@@ -4,7 +4,8 @@
  */
 export interface PublicUser {
   id: string
-  email: string
+  /** Null for phone-only (OTP) customers. */
+  email: string | null
   role: string
   createdAt: string
 }
@@ -16,7 +17,8 @@ export interface AuthTokenResult {
 
 export interface UserProfileView {
   id: string
-  email: string
+  /** Null for phone-only (OTP) customers. */
+  email: string | null
   addressLine1: string | null
   addressLine2: string | null
   city: string | null

@@ -24,7 +24,7 @@ describe('HeaderTrustBar', () => {
     mock.onGet('/settings').reply(
       200,
       settingsReply({
-        sellerLegalName: 'GOURAV KUMAR ABHAY SINGH',
+        sellerLegalName: 'AB CREATIONS GWL',
         sellerLocality: '',
         sellerGstin: '23EQZPS2886B1Z7',
         sellerPaymentProtected: 'true',
@@ -33,13 +33,13 @@ describe('HeaderTrustBar', () => {
     renderWithProviders(<HeaderTrustBar />)
 
     const region = await screen.findByRole('region', { name: 'Seller identity' })
-    expect(region).toHaveTextContent('GOURAV KUMAR ABHAY SINGH')
+    expect(region).toHaveTextContent('AB CREATIONS GWL')
     expect(region).toHaveTextContent('Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India')
     expect(region).toHaveTextContent('GST No. 23EQZPS2886B1Z7')
     expect(region).toHaveTextContent('Payment Protected')
   })
 
-  it('uses values saved in Store Admin instead of the Identica defaults', async () => {
+  it('uses values saved in Store Admin instead of the built-in defaults', async () => {
     mock.onGet('/settings').reply(
       200,
       settingsReply({

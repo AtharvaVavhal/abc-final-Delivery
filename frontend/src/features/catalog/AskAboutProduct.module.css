@@ -1,0 +1,11 @@
+.link {
+  align-self: flex-start;
+  font-size: 0.9rem;
+  color: var(--color-text-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}

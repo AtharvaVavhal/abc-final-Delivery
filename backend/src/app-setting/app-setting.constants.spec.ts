@@ -30,10 +30,10 @@ describe('app-setting constants — public allowlist & store identity', () => {
       expect(getAdminSettingDefinition(key)?.ownership).toBe('STORE');
     }
     expect(getAdminSettingDefinition('sellerLegalName')).toMatchObject({
-      default: 'Identica',
+      default: 'AB CREATIONS GWL',
     });
     expect(getAdminSettingDefinition('sellerGstin')).toMatchObject({
-      default: '27ARLPM5978P1ZL',
+      default: '23EQZPS2886B1Z7',
     });
     expect(getAdminSettingDefinition('sellerPaymentProtected')).toMatchObject({
       kind: 'boolean',
@@ -42,9 +42,9 @@ describe('app-setting constants — public allowlist & store identity', () => {
   });
 
   it('accepts a valid navbar GSTIN and rejects a malformed one', () => {
-    expect(normalizeAdminSettingValue('sellerGstin', '27ARLPM5978P1ZL')).toEqual({
+    expect(normalizeAdminSettingValue('sellerGstin', '23EQZPS2886B1Z7')).toEqual({
       valid: true,
-      value: '27ARLPM5978P1ZL',
+      value: '23EQZPS2886B1Z7',
     });
     expect(normalizeAdminSettingValue('sellerGstin', 'NOT-A-GSTIN').valid).toBe(
       false,

@@ -9,8 +9,12 @@ import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import { FullPageLoader } from '@/components/ui/FullPageLoader'
 import { cn } from '@/utils/cn'
 import styles from './RootLayout.module.css'
+import { OTP_LOGIN_ENABLED } from '@/features/auth/otpEnabled'
+import { ROUTES } from '@/constants/routes'
 
-const Footer = lazy(() => import('./Footer').then((m) => ({ default: m.Footer })))
+const Footer = lazy(() =>
+  import('./Footer').then((m) => ({ default: m.Footer })),
+)
 
 const SIDEBAR_COLLAPSED_KEY = 'storefront-sidebar-collapsed'
 
@@ -26,15 +30,38 @@ function getInitialSidebarCollapsed() {
 
 export function RootLayout() {
   const location = useLocation()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    getInitialSidebarCollapsed,
+  )
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? '1' : '0')
+      window.localStorage.setItem(
+        SIDEBAR_COLLAPSED_KEY,
+        sidebarCollapsed ? '1' : '0',
+      )
     } catch {
       // Storage may be unavailable (private browsing); collapse state just won't persist.
     }
   }, [sidebarCollapsed])
+
+  // OTP gets a full viewport; password/recovery and storefront retain their shell.
+  const standaloneLogin =
+    OTP_LOGIN_ENABLED &&
+    ((location.pathname === ROUTES.LOGIN &&
+      new URLSearchParams(location.search).get('method') !== 'password') ||
+      location.pathname === ROUTES.REGISTER)
+  if (standaloneLogin) {
+    return (
+      <ToastProvider>
+        <main id="main-content" tabIndex={-1}>
+          <Suspense fallback={<FullPageLoader label="Loading sign in" />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </ToastProvider>
+    )
+  }
 
   return (
     <ToastProvider>
@@ -46,13 +73,18 @@ export function RootLayout() {
           Skip to main content
         </a>
         <AnnouncementBar />
-        <div className={cn(styles.body, sidebarCollapsed && styles.bodyCollapsed)}>
+        <div
+          className={cn(styles.body, sidebarCollapsed && styles.bodyCollapsed)}
+        >
           <div className={styles.chrome}>
             <Header key={`${location.pathname}${location.search}`} />
           </div>
           <div
             id="global-sidebar"
-            className={cn(styles.sidebarColumn, sidebarCollapsed && styles.sidebarColumnCollapsed)}
+            className={cn(
+              styles.sidebarColumn,
+              sidebarCollapsed && styles.sidebarColumnCollapsed,
+            )}
             aria-hidden={sidebarCollapsed}
             inert={sidebarCollapsed}
           >
@@ -62,7 +94,10 @@ export function RootLayout() {
           </div>
           <button
             type="button"
-            className={cn(styles.sidebarToggle, sidebarCollapsed && styles.sidebarToggleCollapsed)}
+            className={cn(
+              styles.sidebarToggle,
+              sidebarCollapsed && styles.sidebarToggleCollapsed,
+            )}
             onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
             aria-expanded={!sidebarCollapsed}
             aria-controls="global-sidebar"

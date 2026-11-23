@@ -162,7 +162,7 @@ const snapshot = {
     seller: {
       legalName: Object.prototype.hasOwnProperty.call(raw, 'sellerLegalName')
         ? String(raw.sellerLegalName ?? '').trim()
-        : 'GOURAV KUMAR ABHAY SINGH',
+        : 'AB CREATIONS GWL',
       locality: Object.prototype.hasOwnProperty.call(raw, 'sellerLocality')
         ? String(raw.sellerLocality ?? '').trim()
         : 'Golden City, Magistrate Lane, Maharajpura, Gwalior, MP, India',

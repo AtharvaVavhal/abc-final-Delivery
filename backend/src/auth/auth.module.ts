@@ -8,6 +8,12 @@ import { AppConfig } from '../common/config/configuration';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { OtpService } from './otp/otp.service';
+import { SmsProvider } from './otp/sms/sms-provider';
+import { Msg91SmsProvider } from './otp/sms/msg91-sms.provider';
+import { ConsoleSmsProvider } from './otp/sms/console-sms.provider';
+import { Msg91WhatsAppProvider } from './otp/sms/msg91-whatsapp.provider';
+import { RenflairProvider } from './otp/sms/renflair.provider';
 
 /**
  * Depends on: users (credential lookup), notifications
@@ -38,7 +44,36 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    OtpService,
+    {
+      provide: SmsProvider,
+      inject: [ConfigService],
+      useFactory: (
+        configService: ConfigService<AppConfig, true>,
+      ): SmsProvider => {
+        const { provider } = configService.get('otp', { infer: true });
+        const nodeEnv = configService.get('nodeEnv', { infer: true });
+        if (provider === 'console') {
+          if (nodeEnv === 'production') {
+            throw new Error(
+              'OTP_SMS_PROVIDER=console is not allowed in production',
+            );
+          }
+          return new ConsoleSmsProvider();
+        }
+        if (provider === 'renflair') {
+          return new RenflairProvider(configService);
+        }
+        if (provider === 'msg91-whatsapp') {
+          return new Msg91WhatsAppProvider(configService);
+        }
+        return new Msg91SmsProvider(configService);
+      },
+    },
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

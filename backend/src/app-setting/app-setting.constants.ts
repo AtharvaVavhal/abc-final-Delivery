@@ -631,7 +631,7 @@ export const ADMIN_SETTING_DEFINITIONS: readonly AdminSettingDefinition[] = [
     description:
       'Registered business name on the storefront navbar strip (under the logo). Leave blank to hide the name.',
     kind: 'text',
-    default: 'GOURAV KUMAR ABHAY SINGH',
+    default: 'AB CREATIONS GWL',
   },
   {
     key: 'sellerLocality',

@@ -53,6 +53,36 @@ export interface AppConfig {
     apiKey: string;
     emailFromAddress: string;
   };
+  /** Phone-OTP customer login (docs/architecture/PHONE-OTP-AUTH-DESIGN.md). */
+  otp: {
+    /** Feature flag — defaults to off; the OTP routes 404 while false. */
+    enabled: boolean;
+    /** Renflair WhatsApp is the AB CREATIONS default. Existing adapters stay
+     * available explicitly. 'console' is a test sink (never in production). */
+    provider: 'msg91' | 'msg91-whatsapp' | 'renflair' | 'console';
+    /** Keyed-hash secret for stored codes (HMAC-SHA256). */
+    hmacSecret: string;
+    /** Global ceiling on SMS sends per UTC day (SMS-pumping / bill defence). */
+    dailySendCap: number;
+    /** Renflair WhatsApp OTP (GET https://whatsapp.renflair.in/V1.php). */
+    renflair: {
+      apiKey: string;
+      baseUrl: string;
+    };
+    msg91: {
+      authKey: string;
+      templateId: string;
+      baseUrl: string;
+      whatsapp: {
+        integratedNumber: string;
+        templateName: string;
+        templateNamespace: string;
+        languageCode: string;
+        /** Authentication templates carry a copy-code button; its value is the OTP. */
+        includeButton: boolean;
+      };
+    };
+  };
   cloudinary: {
     cloudName: string;
     apiKey: string;
@@ -168,6 +198,36 @@ export default (): AppConfig => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY ?? '',
     emailFromAddress: process.env.EMAIL_FROM_ADDRESS ?? '',
+  },
+  otp: {
+    enabled: process.env.AUTH_OTP_ENABLED === 'true',
+    provider:
+      process.env.OTP_SMS_PROVIDER === 'console'
+        ? 'console'
+        : process.env.OTP_SMS_PROVIDER === 'msg91-whatsapp'
+          ? 'msg91-whatsapp'
+          : process.env.OTP_SMS_PROVIDER === 'msg91'
+            ? 'msg91'
+            : 'renflair',
+    hmacSecret: process.env.OTP_HMAC_SECRET ?? '',
+    dailySendCap:
+      Number.parseInt(process.env.OTP_DAILY_SEND_CAP ?? '500', 10) || 500,
+    renflair: {
+      apiKey: process.env.RENFLAIR_API_KEY ?? '',
+      baseUrl: process.env.RENFLAIR_BASE_URL ?? 'https://whatsapp.renflair.in',
+    },
+    msg91: {
+      authKey: process.env.MSG91_AUTH_KEY ?? '',
+      templateId: process.env.MSG91_OTP_TEMPLATE_ID ?? '',
+      baseUrl: process.env.MSG91_BASE_URL ?? 'https://control.msg91.com',
+      whatsapp: {
+        integratedNumber: process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER ?? '',
+        templateName: process.env.MSG91_WHATSAPP_TEMPLATE_NAME ?? '',
+        templateNamespace: process.env.MSG91_WHATSAPP_TEMPLATE_NAMESPACE ?? '',
+        languageCode: process.env.MSG91_WHATSAPP_LANGUAGE ?? 'en',
+        includeButton: process.env.MSG91_WHATSAPP_INCLUDE_BUTTON !== 'false',
+      },
+    },
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
