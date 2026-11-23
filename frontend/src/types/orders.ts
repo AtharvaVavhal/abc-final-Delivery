@@ -69,6 +69,8 @@ export interface OrderListItemView {
   status: OrderStatus
   total: string
   currency: string
+  /** Who the order is for — the shipping recipient name from checkout. */
+  recipientName: string
   itemCount: number
   /** True iff a refund is flagged PENDING and awaiting manual processing —
    * §12.5, no in-app refund-initiation in MVP. */

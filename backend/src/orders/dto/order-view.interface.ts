@@ -72,6 +72,10 @@ export interface OrderListItemView {
    * action manually via the Razorpay dashboard. Surfaced here so it's
    * visible directly in the admin order list, not just on drill-in. */
   needsManualRefund: boolean;
+  /** Who the order is for: the shipping recipient name captured at checkout
+   * (the immutable snapshot, §11), so the admin list can show a person and
+   * not just an order number. */
+  recipientName: string;
   createdAt: Date;
 }
 

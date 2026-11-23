@@ -204,6 +204,7 @@ export function AdminOrdersPage() {
               <AdminTable.Head>
                 <AdminTable.Row>
                   <AdminTable.HeaderCell>Order</AdminTable.HeaderCell>
+                  <AdminTable.HeaderCell className={styles.hideMobile}>Customer</AdminTable.HeaderCell>
                   <AdminTable.HeaderCell className={styles.hideMobile}>Date</AdminTable.HeaderCell>
                   <AdminTable.HeaderCell align="center" className={styles.hideMobile}>Items</AdminTable.HeaderCell>
                   <AdminTable.HeaderCell>Status</AdminTable.HeaderCell>
@@ -218,6 +219,7 @@ export function AdminOrdersPage() {
                         {order.orderNumber}
                       </Link>
                     </AdminTable.Cell>
+                    <AdminTable.Cell className={styles.hideMobile}>{order.recipientName}</AdminTable.Cell>
                     <AdminTable.Cell className={styles.hideMobile}><span className={styles.nowrap}>{formatDate(order.createdAt)}</span></AdminTable.Cell>
                     <AdminTable.Cell align="center" className={styles.hideMobile}>{order.itemCount}</AdminTable.Cell>
                     <AdminTable.Cell>

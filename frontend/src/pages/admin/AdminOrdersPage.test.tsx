@@ -23,6 +23,7 @@ function buildOrder(overrides: Partial<Record<string, unknown>> = {}) {
     currency: 'INR',
     itemCount: 1,
     needsManualRefund: false,
+    recipientName: 'Riya Sharma',
     createdAt: '2026-08-27T14:27:57.215Z',
     ...overrides,
   }
@@ -77,8 +78,16 @@ describe('AdminOrdersPage', () => {
 
     await screen.findByRole('link', { name: /PF-000001/ })
     const headers = screen.getAllByRole('columnheader').map((h) => h.textContent)
-    expect(headers).toEqual(['Order', 'Date', 'Items', 'Status', 'Total'])
+    expect(headers).toEqual(['Order', 'Customer', 'Date', 'Items', 'Status', 'Total'])
     expect(screen.getByRole('heading', { level: 1, name: 'Orders' })).toBeInTheDocument()
+  })
+
+  it('shows who each order is for', async () => {
+    mock.onGet('/admin/orders').reply(200, ordersResponse([buildOrder({ recipientName: 'Neha Kulkarni' })]))
+    renderWithProviders(<AdminOrdersPage />)
+
+    const row = (await screen.findByRole('link', { name: /PF-000001/ })).closest('tr') as HTMLElement
+    expect(within(row).getByText('Neha Kulkarni')).toBeInTheDocument()
   })
 
   it('shows a page-level skeleton (polite loading status) while the first fetch is in flight', () => {

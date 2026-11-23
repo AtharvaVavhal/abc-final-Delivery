@@ -636,6 +636,7 @@ export class OrdersService {
       needsManualRefund: order.paymentAttempts.some(
         (pa) => pa.refunds.length > 0,
       ),
+      recipientName: order.shippingRecipientName,
       createdAt: order.createdAt,
     };
   }
@@ -698,6 +699,7 @@ export class OrdersService {
           (refund) => refund.status === RefundStatus.PENDING,
         ),
       ),
+      recipientName: order.shippingRecipientName,
       shippingRecipientName: order.shippingRecipientName,
       shippingPhone: order.shippingPhone,
       shippingAddressLine1: order.shippingAddressLine1,

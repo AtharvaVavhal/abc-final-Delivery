@@ -15,6 +15,7 @@ function buildOrder(overrides: Partial<Record<string, unknown>> = {}) {
     currency: 'INR',
     itemCount: 1,
     needsManualRefund: false,
+    recipientName: 'Riya Sharma',
     createdAt: '2026-08-27T14:27:57.215Z',
     ...overrides,
   }
@@ -143,7 +144,7 @@ describe('AdminDashboardPage', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((h) => h.textContent),
-    ).toEqual(['Order', 'Date', 'Items', 'Status', 'Total'])
+    ).toEqual(['Order', 'Customer', 'Date', 'Items', 'Status', 'Total'])
   })
 
   it('renders each recent order row: link, formatted date, item count, status badge, formatted total', async () => {
@@ -162,6 +163,7 @@ describe('AdminDashboardPage', () => {
     )
     expect(within(row).getByText(formatDate('2026-03-05T00:00:00.000Z'))).toBeInTheDocument()
     expect(within(row).getByText('3')).toBeInTheDocument()
+    expect(within(row).getByText('Riya Sharma')).toBeInTheDocument()
     expect(within(row).getByText('Awaiting payment')).toBeInTheDocument()
     expect(within(row).getByText('₹450.00')).toBeInTheDocument()
     // Order number is the row's only link.
