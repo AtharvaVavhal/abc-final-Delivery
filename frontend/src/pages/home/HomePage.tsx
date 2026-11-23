@@ -99,6 +99,18 @@ export function HomePage() {
 
       <CategoryCircleCarousel />
 
+      {/* Products first: on a phone the "how it works" cards used to push the
+          first product about 2,300 px down the page. */}
+      <BelowFold>
+        <ProductCollection
+          id="home-featured-heading"
+          title="Featured Collection"
+          params={{ sort: 'newest' }}
+          viewAllHref={`${ROUTES.PRODUCTS}?sort=newest`}
+          layout="grid"
+        />
+      </BelowFold>
+
       <BelowFold>
         <TrustStrip />
       </BelowFold>
@@ -109,16 +121,6 @@ export function HomePage() {
 
       <BelowFold>
         <WatchAndBuySection />
-      </BelowFold>
-
-      <BelowFold>
-        <ProductCollection
-          id="home-featured-heading"
-          title="Featured Collection"
-          params={{ sort: 'newest' }}
-          viewAllHref={`${ROUTES.PRODUCTS}?sort=newest`}
-          layout="grid"
-        />
       </BelowFold>
 
       <BelowFold>
