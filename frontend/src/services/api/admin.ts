@@ -3,6 +3,7 @@ import type { OrderDetailView, OrderListItemView } from '@/types/orders'
 import type {
   AdminCustomerDetailView,
   AdminCustomerListItemView,
+  AdminDashboardOverviewView,
   AdminDashboardView,
   ListAdminCustomersParams,
   ListAdminOrdersParams,
@@ -22,6 +23,18 @@ import { apiClient } from './client'
 
 export async function fetchAdminDashboard(): Promise<AdminDashboardView> {
   const res = await apiClient.get<ApiSuccessResponse<AdminDashboardView>>('/admin/dashboard')
+  return res.data.data
+}
+
+/** GET /admin/dashboard/overview — daily sales for the chart/KPI tiles and
+ * the equal period before it, for the comparison. */
+export async function fetchAdminDashboardOverview(
+  days: number,
+): Promise<AdminDashboardOverviewView> {
+  const res = await apiClient.get<ApiSuccessResponse<AdminDashboardOverviewView>>(
+    '/admin/dashboard/overview',
+    { params: { days } },
+  )
   return res.data.data
 }
 

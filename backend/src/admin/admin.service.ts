@@ -26,6 +26,12 @@ import {
   AdminDashboardView,
   OrderStatusCount,
 } from './dto/dashboard-view.interface';
+import { AdminDashboardOverviewView } from './dto/dashboard-overview.interface';
+import {
+  computeWindows,
+  summarisePeriod,
+  type OverviewOrderRow,
+} from './dashboard-overview.util';
 import { AdminSubscriptionView } from './dto/subscription-view.interface';
 import { AdminUsageView } from './dto/usage-view.interface';
 
@@ -125,6 +131,81 @@ export class AdminService {
         decimalToPaise(revenueAgg._sum.total ?? new Prisma.Decimal(0)),
       ),
       recentOrders,
+    };
+  }
+
+  // ─── GET /admin/dashboard/overview — sales over time ───────────────────
+
+  /**
+   * Daily net sales / orders for the last `days` India calendar days and
+   * the equal period before it, plus average order value and the share of
+   * buyers who had ordered before ("repeat customers").
+   *
+   * Same "net sales" meaning as {@link getDashboard}'s `totalRevenue`
+   * (paid-or-later statuses), scoped to the caller's tenant. Only the
+   * columns needed are read, for a bounded window (2 × `days`, at most
+   * 180 days), and bucketed in code so the day boundary is India time and
+   * the query stays plain Prisma (no raw SQL to bypass tenant scoping).
+   */
+  async getDashboardOverview(
+    tenantContext: TenantContext,
+    days: number,
+    now: Date = new Date(),
+  ): Promise<AdminDashboardOverviewView> {
+    const windows = computeWindows(now, days);
+    const revenueStatuses = REVENUE_ORDER_STATUSES as OrderStatus[];
+    const { tenantId } = tenantContext;
+
+    const rows: OverviewOrderRow[] = await this.prisma.order.findMany({
+      where: {
+        tenantId,
+        status: { in: revenueStatuses },
+        createdAt: { gte: windows.previousStart, lt: windows.currentEnd },
+      },
+      select: { createdAt: true, total: true, userId: true },
+    });
+
+    // Customers who also bought before a period began = its repeat buyers.
+    const returningBefore = async (
+      periodStart: Date,
+      periodEnd: Date,
+    ): Promise<Set<string>> => {
+      const ids = [
+        ...new Set(
+          rows
+            .filter((r) => r.createdAt >= periodStart && r.createdAt < periodEnd)
+            .map((r) => r.userId),
+        ),
+      ];
+      if (ids.length === 0) return new Set();
+      const prior = await this.prisma.order.groupBy({
+        by: ['userId'],
+        where: {
+          tenantId,
+          status: { in: revenueStatuses },
+          userId: { in: ids },
+          createdAt: { lt: periodStart },
+        },
+      });
+      return new Set(prior.map((row) => row.userId));
+    };
+
+    const [currentReturning, previousReturning] = await Promise.all([
+      returningBefore(windows.currentStart, windows.currentEnd),
+      returningBefore(windows.previousStart, windows.currentStart),
+    ]);
+
+    return {
+      days,
+      currency: 'INR',
+      timezone: 'Asia/Kolkata',
+      current: summarisePeriod(rows, windows.currentStart, days, currentReturning),
+      previous: summarisePeriod(
+        rows,
+        windows.previousStart,
+        days,
+        previousReturning,
+      ),
     };
   }
 

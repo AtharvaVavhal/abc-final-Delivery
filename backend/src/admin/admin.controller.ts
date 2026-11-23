@@ -35,6 +35,7 @@ import { DowngradeSubscriptionDto } from '../subscriptions/dto/downgrade-subscri
 import { CancelSubscriptionDto } from '../subscriptions/dto/cancel-subscription.dto';
 import { AdminService } from './admin.service';
 import { ListAdminOrdersQueryDto } from './dto/list-admin-orders-query.dto';
+import { DashboardOverviewQueryDto } from './dto/dashboard-overview-query.dto';
 import { ListAdminCustomersQueryDto } from './dto/list-admin-customers-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -166,6 +167,15 @@ export class AdminController {
     @Body() dto: CreateRefundDto,
   ) {
     return this.refundsService.createRefund(tenant, admin, id, dto);
+  }
+
+  @RequirePermission('dashboard:read')
+  @Get('dashboard/overview')
+  async dashboardOverview(
+    @CurrentTenant() tenant: TenantContext,
+    @Query() query: DashboardOverviewQueryDto,
+  ) {
+    return this.adminService.getDashboardOverview(tenant, query.days);
   }
 
   @RequirePermission('dashboard:read')

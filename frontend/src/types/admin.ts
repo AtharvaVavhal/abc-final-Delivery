@@ -141,3 +141,34 @@ export type UpdateCategoryPayload = Partial<CreateCategoryPayload>
 export interface UpdateReviewStatusPayload {
   status: ReviewStatus
 }
+
+/** GET /admin/dashboard/overview — mirrors backend
+ * src/admin/dto/dashboard-overview.interface.ts. Money is a decimal string. */
+export interface DashboardDayPoint {
+  /** India calendar day, `YYYY-MM-DD`. */
+  date: string
+  sales: string
+  orders: number
+}
+
+export interface DashboardPeriodSummary {
+  netSales: string
+  orders: number
+  averageOrderValue: string
+  buyers: number
+  repeatBuyers: number
+  /** 0–1, or null when there were no buyers. */
+  repeatCustomerRate: number | null
+  /** Zero-filled, oldest first. */
+  daily: DashboardDayPoint[]
+}
+
+export interface AdminDashboardOverviewView {
+  days: number
+  currency: 'INR'
+  timezone: 'Asia/Kolkata'
+  current: DashboardPeriodSummary
+  previous: DashboardPeriodSummary
+}
+
+export type OverviewDays = 7 | 30 | 90

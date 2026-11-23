@@ -215,23 +215,29 @@ describe('AdminDashboardPage', () => {
     expect(await screen.findByText('Dashboard is down')).toBeInTheDocument()
   })
 
-  it('has no search, filter, date-range, chart, or unsupported-metric UI', async () => {
+  it('has no search box or canvas chart, and no metrics the backend does not provide', async () => {
     reply(mock, buildDashboard())
     renderWithProviders(<AdminDashboardPage />)
 
     await screen.findByText('14')
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('figure')).not.toBeInTheDocument()
     expect(document.querySelector('canvas')).toBeNull()
     expect(
-      screen.queryByText(
-        /average order value|conversion|top product|top customer|low stock|revenue trend|over time|last \d+ days|vs\.? last/i,
-      ),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByLabelText(/date range|start date|end date|period|from date|to date/i),
+      screen.queryByText(/conversion|top product|top customer|low stock/i),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+  })
+
+  it('keeps the rest of the page working when the sales trends are unavailable', async () => {
+    reply(mock, buildDashboard())
+    mock.onGet('/admin/dashboard/overview').reply(500, {
+      success: false,
+      error: { code: 'INTERNAL', message: 'boom', details: [] },
+    })
+    renderWithProviders(<AdminDashboardPage />)
+
+    expect(await screen.findByText('14')).toBeInTheDocument()
+    expect(await screen.findByText('Sales trends are unavailable right now.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /PF-000014/ })).toBeInTheDocument()
   })
 })
