@@ -29,12 +29,20 @@ export async function lookupPostalCode(
  * PIN into the normal lookup so City/State come from the same source as a
  * typed PIN.
  */
+export interface ReverseGeocodeResult {
+  postalCode: string
+  /** Suggested street (building / house number + road), or null. */
+  addressLine1: string | null
+  /** Suggested area (neighbourhood / suburb), or null. */
+  addressLine2: string | null
+}
+
 export async function reverseLookupPostalCode(
   lat: number,
   lng: number,
   signal?: AbortSignal,
-): Promise<{ postalCode: string }> {
-  const res = await apiClient.get<ApiSuccessResponse<{ postalCode: string }>>(
+): Promise<ReverseGeocodeResult> {
+  const res = await apiClient.get<ApiSuccessResponse<ReverseGeocodeResult>>(
     '/postal-codes/reverse',
     { params: { lat, lng }, signal },
   )

@@ -225,14 +225,43 @@ describe('PostalLookupService', () => {
 
   describe('reverseLookup ("Use my location")', () => {
     const PUNE = {
-      address: { postcode: '411 046', country_code: 'in', state: 'Maharashtra' },
+      address: {
+        postcode: '411 046',
+        country_code: 'in',
+        state: 'Maharashtra',
+      },
     };
 
     it('returns the PIN (spaces stripped) for a spot in India', async () => {
       mockFetch(() => providerResponse(PUNE));
       await expect(
         buildService().reverseLookup(18.4575, 73.8508),
-      ).resolves.toEqual({ postalCode: '411046' });
+      ).resolves.toEqual({
+        postalCode: '411046',
+        addressLine1: null,
+        addressLine2: null,
+      });
+    });
+
+    it('also suggests the street and area at that point, for the customer to check', async () => {
+      mockFetch(() =>
+        providerResponse({
+          address: {
+            postcode: '411048',
+            country_code: 'in',
+            house_number: '7',
+            road: 'Kondhwa Main Road',
+            suburb: 'Kondhwa Budruk',
+          },
+        }),
+      );
+      await expect(
+        buildService().reverseLookup(18.4575, 73.8508),
+      ).resolves.toEqual({
+        postalCode: '411048',
+        addressLine1: '7 Kondhwa Main Road',
+        addressLine2: 'Kondhwa Budruk',
+      });
     });
 
     it('rounds coordinates to 4 decimals and identifies the app, with no other data', async () => {
@@ -261,7 +290,9 @@ describe('PostalLookupService', () => {
 
     it('404s outside India or when the spot has no usable PIN', async () => {
       mockFetch(() =>
-        providerResponse({ address: { postcode: '90210', country_code: 'us' } }),
+        providerResponse({
+          address: { postcode: '90210', country_code: 'us' },
+        }),
       );
       await expect(
         buildService().reverseLookup(34.09, -118.4),
