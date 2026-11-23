@@ -10,6 +10,9 @@ export interface OrderStatusCount {
 
 export interface AdminDashboardView {
   totalOrders: number;
+  /** Photos on paid, not-yet-in-production orders still waiting for an
+   * approve / ask-for-a-new-one decision. */
+  photosAwaitingReview: number;
   /** Every OrderStatus value, zero-filled — not just the statuses that
    * currently have orders — so the frontend never has to fill gaps. */
   ordersByStatus: OrderStatusCount[];

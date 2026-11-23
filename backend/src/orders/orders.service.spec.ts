@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PhotoReviewStatus } from '@prisma/client';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { TenantContext } from '../common/tenant/tenant-context';
 import { OrdersService } from './orders.service';
@@ -112,7 +112,12 @@ describe('OrdersService list rows — who the order is for', () => {
             currency: 'INR',
             createdAt: new Date('2026-11-23T10:00:00Z'),
             shippingRecipientName: 'Riya Sharma',
-            items: [{ quantity: 2 }],
+            items: [
+              {
+                quantity: 2,
+                customizations: [{ reviewStatus: PhotoReviewStatus.PENDING }],
+              },
+            ],
             paymentAttempts: [],
           },
         ]),
@@ -127,6 +132,7 @@ describe('OrdersService list rows — who the order is for', () => {
     const [row] = await service.adminRecentOrders(tenantContext, 10);
 
     expect(row.recipientName).toBe('Riya Sharma');
+    expect(row.photoReview).toBe('TO_REVIEW');
     expect(row.itemCount).toBe(2);
     expect(prisma.order.findMany.mock.calls[0][0].where).toEqual({
       tenantId: 'tenant-a',

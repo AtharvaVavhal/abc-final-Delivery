@@ -119,6 +119,9 @@ export class UploadsService {
           uploadedByUserId: userId,
           format: result.format ?? detectedMime.split('/')[1],
           bytes,
+          // Pixel size (images only) so the photo-review panel can show it.
+          width: result.width ?? null,
+          height: result.height ?? null,
           resourceType: result.resource_type,
           deliveryType,
           // Server-derived from the caller's own resolved tenant context —

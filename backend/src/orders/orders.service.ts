@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
   Order,
   OrderStatus,
   PaymentAttemptStatus,
+  PhotoReviewStatus,
   Prisma,
   RefundStatus,
 } from '@prisma/client';
@@ -28,6 +30,13 @@ import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { ListAdminOrdersQueryDto } from '../admin/dto/list-admin-orders-query.dto';
 import { UpdateOrderStatusDto } from '../admin/dto/update-order-status.dto';
+import { ReviewPhotoDto } from '../admin/dto/review-photo.dto';
+import {
+  isPhotoReviewGateEnforced,
+  PHOTO_REVIEW_BLOCKS_PRODUCTION_MESSAGE,
+  photoReviewWhere,
+  summarisePhotoReview,
+} from './photo-review.util';
 import {
   OrderDetailView,
   OrderListItemView,
@@ -61,7 +70,15 @@ interface TenantAuditContext {
 }
 
 const ORDER_LIST_INCLUDE = {
-  items: { select: { quantity: true } },
+  items: {
+    select: {
+      quantity: true,
+      customizations: {
+        where: { uploadedFileId: { not: null } },
+        select: { reviewStatus: true },
+      },
+    },
+  },
   paymentAttempts: {
     select: {
       refunds: {
@@ -245,6 +262,7 @@ export class OrdersService {
       tenantId: tenantContext.tenantId,
       ...(query.status ? { status: query.status } : {}),
       ...(query.userId ? { userId: query.userId } : {}),
+      ...(query.photoReview ? photoReviewWhere(query.photoReview) : {}),
       ...(query.dateFrom || query.dateTo
         ? {
             createdAt: {
@@ -309,6 +327,9 @@ export class OrdersService {
       return this.adminGetOrderDetail(tenantContext, orderId);
     }
     assertTransitionAllowed(order.status, dto.status);
+    if (dto.status === OrderStatus.IN_PRODUCTION) {
+      await this.assertPhotosReadyForProduction(order.id);
+    }
 
     const actor: Actor = { role: Role.ADMIN, actorId: admin.id };
     const tenantAudit: TenantAuditContext = { tenantContext, actor: admin };
@@ -345,6 +366,125 @@ export class OrdersService {
       });
     }
     return this.adminGetOrderDetail(tenantContext, orderId);
+  }
+
+  // ─── Photo review ───────────────────────────────────────────────────────
+
+  /** Refuses to start production while a photo is unapproved — but only
+   * when the gate is switched on (PHOTO_REVIEW_GATE=enforced). */
+  private async assertPhotosReadyForProduction(orderId: string): Promise<void> {
+    if (!isPhotoReviewGateEnforced()) return;
+    const open = await this.prisma.orderItemCustomization.count({
+      where: {
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+        reviewStatus: {
+          in: [PhotoReviewStatus.PENDING, PhotoReviewStatus.CHANGES_REQUESTED],
+        },
+      },
+    });
+    if (open > 0) {
+      throw new ConflictException(PHOTO_REVIEW_BLOCKS_PRODUCTION_MESSAGE);
+    }
+  }
+
+  /**
+   * Approve a customer's photo, or ask for a new one. Only while the order is
+   * PAID or CONFIRMED (once production has started the photo is final).
+   * Repeating the same decision is a no-op, so a double click is safe.
+   * Notifying the customer is a later phase; the decision is audit-logged.
+   */
+  async adminReviewPhoto(
+    tenantContext: TenantContext,
+    admin: AuthenticatedUser,
+    orderId: string,
+    customizationId: string,
+    dto: ReviewPhotoDto,
+  ): Promise<{
+    id: string;
+    reviewStatus: PhotoReviewStatus;
+    reviewNote: string | null;
+    reviewedAt: Date;
+  }> {
+    const order = await this.findOrderOrThrow(orderId);
+    assertObjectInTenant(order, tenantContext.tenantId);
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.CONFIRMED
+    ) {
+      throw new ConflictException(
+        'Photos can only be reviewed while the order is paid and not yet in production.',
+      );
+    }
+
+    const customization = await this.prisma.orderItemCustomization.findFirst({
+      where: {
+        id: customizationId,
+        tenantId: tenantContext.tenantId,
+        orderItem: { orderId },
+        uploadedFileId: { not: null },
+      },
+    });
+    if (!customization) {
+      throw new NotFoundException('Photo not found on this order');
+    }
+
+    const target =
+      dto.decision === 'APPROVE'
+        ? PhotoReviewStatus.APPROVED
+        : PhotoReviewStatus.CHANGES_REQUESTED;
+    const note =
+      target === PhotoReviewStatus.APPROVED ? null : (dto.note ?? null);
+
+    if (
+      customization.reviewStatus === target &&
+      customization.reviewNote === note &&
+      customization.reviewedAt
+    ) {
+      return {
+        id: customization.id,
+        reviewStatus: target,
+        reviewNote: note,
+        reviewedAt: customization.reviewedAt,
+      };
+    }
+
+    const reviewedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.orderItemCustomization.update({
+        where: { id: customization.id },
+        data: {
+          reviewStatus: target,
+          reviewNote: note,
+          reviewedAt,
+          reviewedByUserId: admin.id,
+        },
+      });
+      const attribution = await resolveTenantAuditActor(
+        tx,
+        tenantContext,
+        admin,
+      );
+      await this.auditService.logTenantAction(tx, {
+        tenantId: tenantContext.tenantId,
+        ...attribution,
+        action: 'order.photo_review',
+        targetType: 'Order',
+        targetId: order.id,
+        metadata: {
+          customizationId: customization.id,
+          fromStatus: customization.reviewStatus,
+          toStatus: target,
+        },
+      });
+    });
+
+    return {
+      id: customization.id,
+      reviewStatus: target,
+      reviewNote: note,
+      reviewedAt,
+    };
   }
 
   // ─── Cancellation + manual-refund flagging ─────────────────────────────
@@ -637,6 +777,11 @@ export class OrdersService {
         (pa) => pa.refunds.length > 0,
       ),
       recipientName: order.shippingRecipientName,
+      photoReview: summarisePhotoReview(
+        order.items.flatMap((item) =>
+          item.customizations.map((c) => c.reviewStatus),
+        ),
+      ),
       createdAt: order.createdAt,
     };
   }
@@ -700,6 +845,13 @@ export class OrdersService {
         ),
       ),
       recipientName: order.shippingRecipientName,
+      photoReview: summarisePhotoReview(
+        order.items.flatMap((item) =>
+          item.customizations
+            .filter((c) => c.uploadedFileId !== null)
+            .map((c) => c.reviewStatus),
+        ),
+      ),
       shippingRecipientName: order.shippingRecipientName,
       shippingPhone: order.shippingPhone,
       shippingAddressLine1: order.shippingAddressLine1,
@@ -718,9 +870,12 @@ export class OrdersService {
         quantity: item.quantity,
         lineTotal: paiseToDecimalString(decimalToPaise(item.lineTotal)),
         customizations: item.customizations.map((c) => ({
+          id: c.id,
           fieldLabel: c.fieldLabelSnapshot,
           textValue: c.textValue,
           uploadedFileId: c.uploadedFileId,
+          reviewStatus: c.reviewStatus,
+          reviewNote: c.reviewNote,
         })),
       })),
       statusHistory,

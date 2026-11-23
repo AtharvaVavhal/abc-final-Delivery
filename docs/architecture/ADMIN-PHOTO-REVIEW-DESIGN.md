@@ -1,6 +1,6 @@
 # Admin photo review — design proposal
 
-Status: **proposal, for owner approval. Nothing here is built.**
+Status: **proposal. Phase 1 (backend) is implemented on branch `feat/photo-review-backend`; phases 2–3 are not built.**
 Scope: let an admin approve a customer's uploaded photo before production, or ask for a better one.
 
 ## 1. Problem
@@ -38,11 +38,22 @@ On `order_item_customizations` (file-type rows only):
 
 On `uploaded_files`: nullable `width`, `height` (taken from Cloudinary's upload response, so the panel can show resolution; null for older files).
 
-**Backfill (important):** existing rows on orders already `IN_PRODUCTION` or later → `APPROVED`; rows on `PAID`/`CONFIRMED` orders → `PENDING`; rows on cancelled/refunded/failed orders → left `NULL`. Decide this before any migration runs.
+**Backfill.** The migration is additive-only (repo guard G-10: no data changes in a migration), so existing rows keep `reviewStatus = NULL`, meaning "not under review". Production has no paid orders with photos today, so nothing needs backfilling there. For any environment that does, run this once, by hand, after the migration:
+
+```sql
+UPDATE order_item_customizations c SET "reviewStatus" = CASE
+    WHEN o.status IN ('IN_PRODUCTION','SHIPPED','DELIVERED') THEN 'APPROVED'::"PhotoReviewStatus"
+    WHEN o.status IN ('PAID','CONFIRMED') THEN 'PENDING'::"PhotoReviewStatus"
+  END
+FROM order_items i JOIN orders o ON o.id = i."orderId"
+WHERE i.id = c."orderItemId" AND c."uploadedFileId" IS NOT NULL;
+```
+
+Unpaid, cancelled, refunded and failed orders stay `NULL`.
 
 ## 5. Rules
 
-1. **Production gate.** `CONFIRMED → IN_PRODUCTION` is refused (409, with the reason) while any photo on the order is `PENDING` or `CHANGES_REQUESTED`. Open question 2 asks whether this should be a hard stop or a warning.
+1. **Production gate.** `CONFIRMED → IN_PRODUCTION` is refused (409, with the reason) while any photo on the order is `PENDING` or `CHANGES_REQUESTED`. Open question 2 asks whether this should be a hard stop or a warning. **It ships behind `PHOTO_REVIEW_GATE=enforced` and is OFF by default:** with the gate on and no admin UI to approve photos, new orders with a photo could not enter production. Turn it on only after phase 2.
 2. Approving or requesting changes is only allowed while the order is `PAID` or `CONFIRMED`.
 3. A customer replacing a photo resets that photo to `PENDING` and clears the note.
 4. Orders with no photo field are unaffected (`photoReview = NONE`).
@@ -50,12 +61,12 @@ On `uploaded_files`: nullable `width`, `height` (taken from Cloudinary's upload 
 
 ## 6. API
 
-- **List:** `GET /admin/orders` rows gain `photoReview: NONE | TO_REVIEW | APPROVED | CHANGES_REQUESTED` (the worst case across the order's photos, computed from the rows). New filter `?photoReview=`.
+- **List:** `GET /admin/orders` rows gain `photoReview: NONE | TO_REVIEW | CHANGES_REQUESTED | APPROVED`, ordered by what the admin must do next (any photo to review wins, then any waiting on the customer, then approved). New filter `?photoReview=`.
 - **Dashboard:** `ordersByStatus` is unchanged; add `photosAwaitingReview` for the Overview tile.
 - **Decide:** `PATCH /admin/orders/:orderId/customizations/:customizationId/review` with `{ decision: 'APPROVE' | 'REQUEST_CHANGES', note? }`. `note` is required for `REQUEST_CHANGES`. Idempotent on repeat.
 - **Detail:** admin order detail returns, per photo: short-lived signed URL, format, size, width/height if known, the customer's text instructions for that item, current review state and note.
 - **Customer replace:** `POST /orders/:orderId/customizations/:customizationId/replace` `{ uploadedFileId }`, owner-only, allowed only in `CHANGES_REQUESTED` and while the order is `PAID`/`CONFIRMED`.
-- **Permission:** a dedicated `orders:review_photos` so staff can review without full order-write rights (the permission catalogue is already granular).
+- **Permission:** phase 1 reuses `orders:transition` (staff who move orders along can review their photos; viewers cannot). A dedicated `orders:review_photos` is possible later (open question 5).
 
 ## 7. Notifications
 
@@ -82,12 +93,12 @@ The order page shows each photo's state. In `CHANGES_REQUESTED` it shows the adm
 
 ## 11. Delivery plan
 
-1. **Backend:** migration (+ backfill), review endpoint, production gate, list/detail fields, audit log, tests.
+1. **Backend (built):** migration, review endpoint, flagged production gate, list/detail fields and `?photoReview=` filter, dashboard count, audit log, tests. The customer is not yet notified (phase 3).
 2. **Admin UI:** list pill/column/tab, review panel, Overview tile.
 3. **Customer flow:** replace endpoint, order-page state, email template + outbox event.
 4. **Later (optional):** WhatsApp message, reminders, richer checks.
 
-Each phase is deployable on its own; phase 1 is safe to ship before any UI because nothing changes for customers until phase 3, and the gate only bites when a photo is pending.
+Each phase is deployable on its own **provided the production gate stays off until phase 2**: phase 1 then only records review state and exposes it in the API, and changes nothing about how orders move.
 
 ## 12. Open questions for the owner
 

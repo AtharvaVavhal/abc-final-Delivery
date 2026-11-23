@@ -4,7 +4,12 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { OrderStatus, PaymentAttemptStatus, Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentAttemptStatus,
+  PhotoReviewStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
 import { assertTenantActive } from '../common/tenant/tenant-lifecycle';
 import { resolvePrimaryStoreId } from '../common/tenant/primary-store';
@@ -514,6 +519,8 @@ export class CheckoutService {
               fieldLabelSnapshot: c.customizationField.label,
               textValue: c.textValue,
               uploadedFileId: c.uploadedFileId,
+              // A photo starts "to review"; text-only fields are not reviewed.
+              reviewStatus: c.uploadedFileId ? PhotoReviewStatus.PENDING : null,
               tenantId: orderItem.tenantId,
             })),
           });

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus, Prisma, Role } from '@prisma/client';
+import { OrderStatus, PhotoReviewStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../common/database/prisma.service';
 import { PaginatedResult } from '../common/types/api-response.interface';
 import { TenantContext } from '../common/tenant/tenant-context';
@@ -94,21 +94,39 @@ export class AdminService {
   async getDashboard(
     tenantContext: TenantContext,
   ): Promise<AdminDashboardView> {
-    const [statusCounts, revenueAgg, recentOrders] = await Promise.all([
-      this.prisma.order.groupBy({
-        by: ['status'],
-        where: { tenantId: tenantContext.tenantId },
-        _count: { _all: true },
-      }),
-      this.prisma.order.aggregate({
-        where: {
-          tenantId: tenantContext.tenantId,
-          status: { in: REVENUE_ORDER_STATUSES as OrderStatus[] },
-        },
-        _sum: { total: true },
-      }),
-      this.ordersService.adminRecentOrders(tenantContext, RECENT_ORDERS_LIMIT),
-    ]);
+    const [statusCounts, revenueAgg, recentOrders, photosAwaitingReview] =
+      await Promise.all([
+        this.prisma.order.groupBy({
+          by: ['status'],
+          where: { tenantId: tenantContext.tenantId },
+          _count: { _all: true },
+        }),
+        this.prisma.order.aggregate({
+          where: {
+            tenantId: tenantContext.tenantId,
+            status: { in: REVENUE_ORDER_STATUSES as OrderStatus[] },
+          },
+          _sum: { total: true },
+        }),
+        this.ordersService.adminRecentOrders(
+          tenantContext,
+          RECENT_ORDERS_LIMIT,
+        ),
+        this.prisma.orderItemCustomization.count({
+          where: {
+            tenantId: tenantContext.tenantId,
+            uploadedFileId: { not: null },
+            reviewStatus: PhotoReviewStatus.PENDING,
+            // Only paid orders waiting for production are worth the
+            // admin's attention; unpaid/cancelled ones are not.
+            orderItem: {
+              order: {
+                status: { in: [OrderStatus.PAID, OrderStatus.CONFIRMED] },
+              },
+            },
+          },
+        }),
+      ]);
 
     const countByStatus = new Map(
       statusCounts.map((row) => [row.status, row._count._all]),
@@ -126,6 +144,7 @@ export class AdminService {
 
     return {
       totalOrders,
+      photosAwaitingReview,
       ordersByStatus,
       totalRevenue: paiseToDecimalString(
         decimalToPaise(revenueAgg._sum.total ?? new Prisma.Decimal(0)),
@@ -173,7 +192,9 @@ export class AdminService {
       const ids = [
         ...new Set(
           rows
-            .filter((r) => r.createdAt >= periodStart && r.createdAt < periodEnd)
+            .filter(
+              (r) => r.createdAt >= periodStart && r.createdAt < periodEnd,
+            )
             .map((r) => r.userId),
         ),
       ];
@@ -199,7 +220,12 @@ export class AdminService {
       days,
       currency: 'INR',
       timezone: 'Asia/Kolkata',
-      current: summarisePeriod(rows, windows.currentStart, days, currentReturning),
+      current: summarisePeriod(
+        rows,
+        windows.currentStart,
+        days,
+        currentReturning,
+      ),
       previous: summarisePeriod(
         rows,
         windows.previousStart,

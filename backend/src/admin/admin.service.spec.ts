@@ -78,6 +78,9 @@ function buildService({
         .fn<Promise<{ _sum: { total: Prisma.Decimal | null } }>, [unknown]>()
         .mockResolvedValue({ _sum: { total: aggregateSum } }),
     },
+    orderItemCustomization: {
+      count: jest.fn().mockResolvedValue(0),
+    },
     $extends: jest.fn().mockReturnValue({ subscription: subscriptionDelegate }),
   };
   const ordersService = {
