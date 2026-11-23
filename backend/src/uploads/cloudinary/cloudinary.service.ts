@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { AppConfig } from '../../common/config/configuration';
@@ -60,8 +65,13 @@ export class CloudinaryService implements OnModuleInit {
     options: CloudinaryUploadOptions,
   ): Promise<UploadApiResponse> {
     if (!this.configured) {
-      throw new Error(
-        'Cloudinary client is not configured — set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.',
+      // A clear 503 for the customer; the operator-facing detail (which
+      // variables to set) stays in the log, not in the API response.
+      this.logger.error(
+        'Upload refused: Cloudinary is not configured — set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.',
+      );
+      throw new ServiceUnavailableException(
+        'File uploads are temporarily unavailable. Please try again later.',
       );
     }
 
