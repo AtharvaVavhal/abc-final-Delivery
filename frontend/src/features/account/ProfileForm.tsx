@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { canUseGeolocation, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
+import { canUseGeolocation, useAutoLocate, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
 import { lookupPostalCode } from '@/services/api/postal'
 import { accountSchema, type AccountFormValues } from '@/schemas/account.schema'
 import { TextField } from '@/components/ui/TextField'
@@ -31,6 +31,7 @@ export function ProfileForm({ profile, isSubmitting, submitError, onSubmit, onCa
     register,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
@@ -50,9 +51,11 @@ export function ProfileForm({ profile, isSubmitting, submitError, onSubmit, onCa
   // form does; if that lookup fails the PIN still stays and the rest can be
   // typed. The position itself is never stored.
   const location = useCurrentLocationPin()
-  async function handleUseLocation() {
+  async function handleUseLocation(auto = false) {
     const pin = await location.locate()
     if (!pin) return
+    // Never overwrite a PIN the customer typed while an automatic attempt ran.
+    if (auto && getValues('postalCode').trim() !== '') return
     const touch = { shouldValidate: true, shouldDirty: true, shouldTouch: true }
     setValue('postalCode', pin, touch)
     try {
@@ -64,6 +67,9 @@ export function ProfileForm({ profile, isSubmitting, submitError, onSubmit, onCa
       // Advisory only — the PIN is already filled in.
     }
   }
+
+  // On open with no PIN saved, find it from the device location by itself.
+  useAutoLocate(!profile.postalCode, () => void handleUseLocation(true))
 
   return (
     <form className={styles.form} onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>

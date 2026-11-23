@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { reverseLookupPostalCode } from '@/services/api/postal'
 import { getApiErrorMessage } from '@/utils/apiError'
 
@@ -19,10 +19,45 @@ export function canUseGeolocation(): boolean {
   return typeof navigator !== 'undefined' && 'geolocation' in navigator
 }
 
+/** Master switch for finding the PIN automatically when an address form
+ * opens with the PIN empty. The "Use my current location" button works
+ * either way; set this to false to go back to tap-only. */
+export const AUTO_LOCATE_PIN = true
+
 /**
- * "Use my current location" for the address form. The browser is asked for
- * a position ONLY when `locate()` is called (a button tap) — never on page
- * load — so the permission prompt always follows an explicit user action.
+ * Runs `run` ONCE when a form opens, if `enabled` (decided at that moment —
+ * later changes are ignored, so typing never re-triggers it) and location
+ * has not been blocked. A browser that already allows location needs no
+ * prompt; one that has not decided shows its own permission prompt, which
+ * is the consent. Where the Permissions API is unavailable we still try:
+ * the prompt, or a refusal, then says everything the customer needs.
+ */
+export function useAutoLocate(enabled: boolean, run: () => void) {
+  const wanted = useRef(enabled)
+  const runRef = useRef(run)
+  const started = useRef(false)
+  useEffect(() => {
+    runRef.current = run
+  })
+  useEffect(() => {
+    if (!AUTO_LOCATE_PIN || !wanted.current || started.current || !canUseGeolocation()) return
+    started.current = true
+    void (async () => {
+      try {
+        const permission = await navigator.permissions?.query({ name: 'geolocation' })
+        if (permission?.state === 'denied') return
+      } catch {
+        // Not supported (older Safari): fall through and just ask.
+      }
+      runRef.current()
+    })()
+  }, [])
+}
+
+/**
+ * "Use my current location" for the address form. On the button the browser
+ * is asked for a position only when `locate()` is called by a tap; forms may
+ * also call it once on open via {@link useAutoLocate}.
  *
  * The position is sent once to the backend to find a PIN code and is not
  * kept anywhere in app state: only the resulting PIN is handed back.

@@ -218,3 +218,10 @@
   margin: 0;
   font-size: var(--text-sm);
 }
+
+.deliveryPin {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

@@ -22,13 +22,13 @@ const PROFILE = {
   createdAt: '2026-01-01T00:00:00Z',
 } as UserProfileView
 
-function renderForm() {
+function renderForm(profile: UserProfileView = PROFILE) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
   return render(
-    <ProfileForm profile={PROFILE} isSubmitting={false} submitError={null} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+    <ProfileForm profile={profile} isSubmitting={false} submitError={null} onSubmit={vi.fn()} onCancel={vi.fn()} />,
     { wrapper },
   )
 }
@@ -51,13 +51,68 @@ describe('ProfileForm — Use my current location', () => {
     mock.restore()
     // @ts-expect-error — removing the stub between tests
     delete navigator.geolocation
+    // @ts-expect-error — removing the stub between tests
+    delete navigator.permissions
   })
 
-  it('does not ask for location until tapped, and says it is not stored', () => {
-    const getCurrentPosition = stubGeolocation(() => undefined)
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+  const FIX = { coords: { latitude: 18.4575, longitude: 73.8508 } } as GeolocationPosition
+
+  it('says up front that the location is used once and not stored', () => {
+    stubGeolocation(() => undefined)
     renderForm()
-    expect(getCurrentPosition).not.toHaveBeenCalled()
     expect(screen.getByText(/We don.t store your location/)).toBeInTheDocument()
+  })
+
+  it('finds the PIN, city and state by itself, once, when the account has no PIN yet', async () => {
+    const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+    mock.onGet('/postal-codes/reverse').reply(200, { success: true, data: { postalCode: '411046' } })
+    mock.onGet('/postal-codes/411046').reply(200, {
+      success: true,
+      data: { postalCode: '411046', city: 'Pune', district: 'Pune', state: 'Maharashtra', country: 'India' },
+    })
+    renderForm()
+
+    await waitFor(() => expect(screen.getByLabelText('Postal code')).toHaveValue('411046'))
+    await waitFor(() => expect(screen.getByLabelText('City')).toHaveValue('Pune'))
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves a saved PIN alone — no lookup at all', async () => {
+    const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+    renderForm({ ...PROFILE, postalCode: '400001' })
+
+    await settle()
+    expect(getCurrentPosition).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Postal code')).toHaveValue('400001')
+  })
+
+  it('does not try again if the browser already blocked location', async () => {
+    const getCurrentPosition = stubGeolocation((ok) => ok(FIX))
+    Object.defineProperty(navigator, 'permissions', {
+      configurable: true,
+      value: { query: vi.fn().mockResolvedValue({ state: 'denied' }) },
+    })
+    renderForm()
+
+    await settle()
+    expect(getCurrentPosition).not.toHaveBeenCalled()
+  })
+
+  it('never overwrites a PIN typed while the automatic lookup was working', async () => {
+    let deliverFix: () => void = () => undefined
+    const getCurrentPosition = stubGeolocation((ok) => {
+      deliverFix = () => ok(FIX)
+    })
+    mock.onGet('/postal-codes/reverse').reply(200, { success: true, data: { postalCode: '411046' } })
+    renderForm()
+    await waitFor(() => expect(getCurrentPosition).toHaveBeenCalled())
+
+    await userEvent.type(screen.getByLabelText('Postal code'), '110001')
+    deliverFix()
+    await settle()
+
+    expect(screen.getByLabelText('Postal code')).toHaveValue('110001')
   })
 
   it('fills the PIN, then City, State and Country', async () => {

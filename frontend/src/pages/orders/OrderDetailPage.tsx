@@ -282,6 +282,19 @@ export function OrderDetailPage() {
               <br />
               {order.shippingCountry}
             </p>
+            {order.deliveryPin && (
+              <p className={styles.deliveryPin}>
+                You shared a delivery pin so the courier can find you. It is erased once your order is
+                delivered.{' '}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryPin.latitude},${order.deliveryPin.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View your pin on the map
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </div>
