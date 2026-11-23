@@ -57,6 +57,13 @@ describe('Static pages render without error', () => {
     )
   })
 
+  it('PrivacyPage says what location data is used and when the delivery pin is erased', () => {
+    renderPage(PrivacyPage)
+    expect(screen.getByRole('heading', { level: 2, name: '3. Location and Delivery Pin' })).toBeInTheDocument()
+    expect(screen.getByText(/erase it once your order is delivered, cancelled or refunded/)).toBeInTheDocument()
+    expect(screen.getByText(/do not store it/)).toBeInTheDocument()
+  })
+
   it('TermsPage', () => {
     renderPage(TermsPage)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
