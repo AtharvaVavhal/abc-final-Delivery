@@ -1,4 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseFloatPipe,
+  Query,
+} from '@nestjs/common';
 import { ThrottleCheckout } from '../common/throttling/throttle.decorators';
 import { PostalLookupView } from './dto/postal-lookup-view.interface';
 import { ParsePinCodePipe } from './pipes/pin-code.pipe';
@@ -22,6 +28,19 @@ import { PostalLookupService } from './postal.service';
 @Controller('postal-codes')
 export class PostalController {
   constructor(private readonly postalLookup: PostalLookupService) {}
+
+  /**
+   * `GET /postal-codes/reverse?lat=&lng=` — PIN code for the customer's
+   * current position ("Use my location" on the address form). Declared
+   * before `:postalCode` so "reverse" is never parsed as a PIN.
+   */
+  @Get('reverse')
+  reverse(
+    @Query('lat', ParseFloatPipe) lat: number,
+    @Query('lng', ParseFloatPipe) lng: number,
+  ): Promise<{ postalCode: string }> {
+    return this.postalLookup.reverseLookup(lat, lng);
+  }
 
   @Get(':postalCode')
   lookup(

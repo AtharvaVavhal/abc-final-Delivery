@@ -3,6 +3,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { shippingSchema, type ShippingFormValues } from '@/schemas/checkout.schema'
 import { usePostalLookup } from '@/hooks/usePostalLookup'
+import { canUseGeolocation, useCurrentLocationPin } from '@/hooks/useCurrentLocationPin'
 import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
 import styles from './ShippingForm.module.css'
@@ -100,6 +101,20 @@ export function ShippingForm({
 
   const pinStatus = describePinStatus(lookup)
 
+  // "Use my location": asked for only on tap. Only the resulting PIN is
+  // written into the form; the normal PIN lookup above then fills City /
+  // State / Country, exactly as if the customer had typed it.
+  const location = useCurrentLocationPin()
+  async function handleUseLocation() {
+    const pin = await location.locate()
+    if (!pin) return
+    setValue('shippingPostalCode', pin, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+  }
+
   return (
     <form className={styles.form} onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
       {prefilled && (
@@ -141,6 +156,24 @@ export function ShippingForm({
         {...register('shippingAddressLine2')}
         disabled={isSubmitting}
       />
+      {canUseGeolocation() && (
+        <div className={styles.locationAssist}>
+          <Button
+            type="button"
+            variant="secondary"
+            isLoading={location.status === 'locating'}
+            disabled={isSubmitting}
+            onClick={() => void handleUseLocation()}
+          >
+            Use my current location
+          </Button>
+          <p className={styles.locationNote} role="status" data-variant={location.status === 'error' ? 'error' : undefined}>
+            {location.status === 'error' && location.message
+              ? location.message
+              : 'Used once to find your PIN code. We don’t store your location.'}
+          </p>
+        </div>
+      )}
       <div className={styles.row}>
         <div className={styles.pinField}>
           <TextField

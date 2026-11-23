@@ -21,3 +21,22 @@ export async function lookupPostalCode(
   )
   return res.data.data
 }
+
+/**
+ * GET /postal-codes/reverse — the PIN code at the customer's current
+ * position ("Use my location"). The coordinates are sent once, rounded and
+ * discarded server-side; nothing is stored. The caller feeds the returned
+ * PIN into the normal lookup so City/State come from the same source as a
+ * typed PIN.
+ */
+export async function reverseLookupPostalCode(
+  lat: number,
+  lng: number,
+  signal?: AbortSignal,
+): Promise<{ postalCode: string }> {
+  const res = await apiClient.get<ApiSuccessResponse<{ postalCode: string }>>(
+    '/postal-codes/reverse',
+    { params: { lat, lng }, signal },
+  )
+  return res.data.data
+}
