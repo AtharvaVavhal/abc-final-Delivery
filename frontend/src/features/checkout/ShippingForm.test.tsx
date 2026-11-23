@@ -536,6 +536,76 @@ describe('ShippingForm', () => {
 
       expect(screen.getByLabelText('Address line 1')).toHaveValue('')
       expect(screen.queryByText(/We filled in your address from the pin/)).not.toBeInTheDocument()
+      // ...but it says so, instead of looking like nothing happened.
+      expect(await screen.findByText(/The map has no street name for this exact spot/)).toBeInTheDocument()
+      expect(screen.getByText(/Your pin is still saved for the courier/)).toBeInTheDocument()
+    })
+
+    it('shows what it found even when the answer is the same as before, so the customer can see it ran', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mockReverseByPosition()
+      renderForm()
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 1')).toHaveValue('7 Kondhwa Main Road'), SLOW)
+
+      expect(await screen.findByText(/Nearest street at this pin: 7 Kondhwa Main Road, Kondhwa Budruk\./)).toBeInTheDocument()
+      expect(screen.getByText(/We filled in your address from the pin/)).toBeInTheDocument()
+    })
+
+    it('says the customer\'s own address was kept when they had typed one', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mockReverseByPosition()
+      renderForm()
+      await user.type(screen.getByLabelText('Address line 1'), 'Flat 4, My Building')
+      await user.type(screen.getByLabelText('Address line 2 (optional)'), 'Near the park')
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+
+      expect(await screen.findByText(/Nearest street at this pin: 7 Kondhwa Main Road/, undefined, SLOW)).toBeInTheDocument()
+      expect(screen.getByText(/Your own address was left as you typed it/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Address line 1')).toHaveValue('Flat 4, My Building')
+    })
+
+    it('takes back a line the pin filled when the new spot has none, but not one the customer wrote', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mock.onGet('/postal-codes/reverse').reply((config) => {
+        const lat = (config.params as { lat: number }).lat
+        return [
+          200,
+          {
+            success: true,
+            data:
+              lat > 18.45751
+                ? { postalCode: '411046', addressLine1: '9 Other Road', addressLine2: null }
+                : SPOT_A,
+          },
+        ]
+      })
+      renderForm()
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('Kondhwa Budruk'), SLOW)
+
+      await user.click(screen.getByRole('button', { name: 'Move pin north' }))
+      await waitFor(() => expect(screen.getByLabelText('Address line 1')).toHaveValue('9 Other Road'), SLOW)
+      // The new spot has no area, so the old one is cleared.
+      expect(screen.getByLabelText('Address line 2 (optional)')).toHaveValue('')
+    })
+
+    it('tells the customer when the address lookup fails, and still keeps the pin', async () => {
+      const user = userEvent.setup()
+      stubFix()
+      mock.onGet('/postal-codes/reverse').reply(503, {
+        success: false,
+        error: { code: 'UNAVAILABLE', message: 'nope', details: [] },
+      })
+      renderForm()
+
+      await user.click(screen.getByRole('button', { name: 'Pin my spot on the map' }))
+
+      expect(await screen.findByText(/couldn.t look up the address for this spot right now/, undefined, SLOW)).toBeInTheDocument()
+      expect(screen.getByText('pin map at 18.4575,73.8508')).toBeInTheDocument()
     })
 
     it('sends no coordinates unless the customer placed a pin', async () => {

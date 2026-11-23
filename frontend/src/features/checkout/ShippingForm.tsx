@@ -116,6 +116,11 @@ export function ShippingForm({
   // customer edits it, it is theirs and is never touched again.
   const autoFilled = useRef<Partial<Record<'shippingAddressLine1' | 'shippingAddressLine2' | 'shippingPostalCode', string>>>({})
   const [addressFromPin, setAddressFromPin] = useState(false)
+  // What the lookup for the current pin is doing / found, so the customer can
+  // see it ran even when the answer is the same as before.
+  const [pinLookup, setPinLookup] = useState<
+    { state: 'idle' } | { state: 'looking' } | { state: 'error' } | { state: 'found'; label: string | null }
+  >({ state: 'idle' })
 
   // After the pin settles (short pause, so dragging or nudging doesn't fire a
   // request per step), suggest the street, area and PIN at that spot.
@@ -123,6 +128,7 @@ export function ShippingForm({
     if (pinLat === undefined || pinLng === undefined) return
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
+      setPinLookup({ state: 'looking' })
       reverseLookupPostalCode(pinLat, pinLng, controller.signal)
         .then((suggestion) => {
           let changed = false
@@ -130,8 +136,18 @@ export function ShippingForm({
             field: 'shippingAddressLine1' | 'shippingAddressLine2' | 'shippingPostalCode',
             value: string | null,
           ) => {
-            if (!value) return
             const current = (getValues(field) ?? '').trim()
+            if (!value) {
+              // The new spot has nothing for this line: take back a line the
+              // pin filled earlier (it no longer describes this spot), but
+              // never one the customer wrote.
+              if (field !== 'shippingPostalCode' && current !== '' && current === autoFilled.current[field]) {
+                setValue(field, '', { shouldValidate: true, shouldDirty: true, shouldTouch: true })
+                delete autoFilled.current[field]
+                changed = true
+              }
+              return
+            }
             if (current !== '' && current !== autoFilled.current[field]) return
             if (current !== value) {
               setValue(field, value, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
@@ -143,9 +159,15 @@ export function ShippingForm({
           fill('shippingAddressLine2', suggestion.addressLine2)
           fill('shippingPostalCode', suggestion.postalCode)
           if (changed) setAddressFromPin(true)
+          const label = [suggestion.addressLine1, suggestion.addressLine2].filter(Boolean).join(', ')
+          setPinLookup({ state: 'found', label: label || null })
         })
-        .catch(() => {
-          // Advisory only: the customer can always type the address.
+        .catch((error: unknown) => {
+          // Advisory only: the customer can always type the address. A request
+          // we cancelled ourselves (the pin moved on) is not an error.
+          if (!controller.signal.aborted && !(error instanceof Error && error.name === 'CanceledError')) {
+            setPinLookup({ state: 'error' })
+          }
         })
     }, 700)
     return () => {
@@ -290,12 +312,24 @@ export function ShippingForm({
         onChange={(pin) => {
           setValue('shippingLatitude', pin?.latitude, { shouldDirty: true })
           setValue('shippingLongitude', pin?.longitude, { shouldDirty: true })
-          if (!pin) setAddressFromPin(false)
+          if (!pin) {
+            setAddressFromPin(false)
+            setPinLookup({ state: 'idle' })
+          }
         }}
       />
-      {addressFromPin && deliveryPin && (
-        <p className={styles.pinAddressNote} role="status">
-          We filled in your address from the pin. Please check it and edit anything that’s not right.
+      {deliveryPin && pinLookup.state !== 'idle' && (
+        <p className={styles.pinAddressNote} role="status" data-variant={pinLookup.state === 'error' ? 'error' : undefined}>
+          {pinLookup.state === 'looking' && 'Checking this spot…'}
+          {pinLookup.state === 'error' && 'We couldn’t look up the address for this spot right now. Please type it in.'}
+          {pinLookup.state === 'found' &&
+            (pinLookup.label
+              ? `Nearest street at this pin: ${pinLookup.label}. ${
+                  addressFromPin
+                    ? 'We filled in your address from the pin. Please check it and edit anything that’s not right.'
+                    : 'Your own address was left as you typed it.'
+                }`
+              : 'The map has no street name for this exact spot, so please type your address. Your pin is still saved for the courier.')}
         </p>
       )}
 

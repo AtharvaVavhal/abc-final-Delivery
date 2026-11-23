@@ -72,5 +72,9 @@
 .pinAddressNote {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--color-success);
+  color: var(--color-text-muted);
+}
+
+.pinAddressNote[data-variant='error'] {
+  color: var(--color-danger);
 }
