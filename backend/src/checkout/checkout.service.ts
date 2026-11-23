@@ -17,6 +17,7 @@ import {
   decimalToPaise,
   paiseToDecimalString,
 } from '../cart/pricing/money.util';
+import { normalizeDeliveryPin } from './delivery-pin.util';
 import { validateCustomizationFieldShape } from '../products/customizations/customization-validation.util';
 import { OrdersService } from '../orders/orders.service';
 import { CouponsService } from '../coupons/coupons.service';
@@ -155,6 +156,12 @@ export class CheckoutService {
         'A checkout for this idempotency key is already in progress',
       );
     }
+
+    // Validated up front (400 before any work) and rounded for storage.
+    const deliveryPin = normalizeDeliveryPin(
+      dto.shippingLatitude,
+      dto.shippingLongitude,
+    );
 
     const result = await this.prisma.$transaction(async (tx) => {
       // §13.G: "SELECT cart FOR UPDATE" is the transaction's first step —
@@ -480,6 +487,9 @@ export class CheckoutService {
           shippingState: dto.shippingState,
           shippingPostalCode: dto.shippingPostalCode,
           shippingCountry: dto.shippingCountry,
+          // Only when the customer chose to share a pin (both or neither).
+          shippingLatitude: deliveryPin?.latitude,
+          shippingLongitude: deliveryPin?.longitude,
         },
       });
 
