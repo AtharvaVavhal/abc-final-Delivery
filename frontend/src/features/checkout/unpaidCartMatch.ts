@@ -1,12 +1,16 @@
 import type { CartView } from '@/types/cart'
-import type { OrderDetailView, OrderItemView } from '@/types/orders'
 
-function lineKey(line: {
+/** Just what matching needs from an order line. Deliberately narrower than
+ * OrderItemView so both the full order and the checkout view of an order
+ * (which carries no review state) can be compared against the cart. */
+export interface UnpaidOrderLine {
   productId: string | null
   variantLabel: string | null
   quantity: number
   customizations: Array<{ fieldLabel: string; textValue: string | null; uploadedFileId: string | null }>
-}): string {
+}
+
+function lineKey(line: UnpaidOrderLine): string {
   const custom = [...line.customizations]
     .map((c) => `${c.fieldLabel}=${c.textValue ?? ''}:${c.uploadedFileId ?? ''}`)
     .sort()
@@ -20,7 +24,7 @@ function lineKey(line: {
  * An empty cart still resumes (pay or cancel the pending order). */
 export function shouldResumeUnpaidOrder(
   cart: CartView | undefined,
-  order: Pick<OrderDetailView, 'items'> | null | undefined,
+  order: { items: UnpaidOrderLine[] } | null | undefined,
 ): boolean {
   if (!order || !cart) return false
   if (cart.items.length === 0) return true
@@ -29,7 +33,7 @@ export function shouldResumeUnpaidOrder(
 
 export function cartMatchesUnpaidOrderItems(
   cart: CartView,
-  orderItems: OrderItemView[],
+  orderItems: UnpaidOrderLine[],
 ): boolean {
   if (cart.items.length === 0 || cart.items.length !== orderItems.length) {
     return false
