@@ -7,6 +7,7 @@ import { apiClient } from '@/services/api/client'
 import { renderWithProviders } from '@/test/test-utils'
 import type { CustomizationField } from '@/types/catalog'
 import { FileUploadField } from './FileUploadField'
+import { uploadGuidance } from './uploadGuidance'
 
 function buildField(overrides: Partial<CustomizationField>): CustomizationField {
   return {
@@ -76,6 +77,23 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
   afterEach(() => {
     apiMock.restore()
     vi.restoreAllMocks()
+  })
+
+  it('shows the guidance before a file is chosen and hides it once one is', async () => {
+    const user = userEvent.setup()
+    apiMock.onPost('/uploads').reply(200, UPLOAD_RESPONSE)
+    renderWithProviders(
+      <Harness
+        field={buildField({ id: 'photo', label: 'Your photo', type: 'IMAGE_UPLOAD', constraints: { allowedFormats: ['png', 'jpeg'], maxFileSizeMb: 5 } })}
+      />,
+    )
+
+    expect(screen.getByText(/PNG, JPG · up to 5 MB\. A clear, well-lit photo/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upload photo' })).toHaveAccessibleDescription(/PNG, JPG · up to 5 MB/)
+
+    await user.upload(screen.getByLabelText(/Your photo/), new File(['x'], 'me.png', { type: 'image/png' }))
+
+    expect(screen.queryByText(/A clear, well-lit photo/)).not.toBeInTheDocument()
   })
 
   it('shows a styled upload button and no selected-file card before anything is picked', () => {
@@ -247,5 +265,27 @@ describe('FileUploadField (UX-22 selected-file preview)', () => {
     expect(remove).toHaveFocus()
     await user.keyboard('{Enter}')
     expect(screen.queryByText('logo.png')).not.toBeInTheDocument()
+  })
+})
+
+describe('upload guidance', () => {
+  it('tells the customer the formats and size this product accepts, from the product itself', () => {
+    expect(uploadGuidance('LOGO_UPLOAD', { allowedFormats: ['png', 'jpeg'], maxFileSizeMb: 5 })).toBe(
+      'PNG, JPG · up to 5 MB.',
+    )
+    expect(uploadGuidance('DESIGN_FILE_UPLOAD', { allowedFormats: ['pdf'], maxFileSizeMb: 10 })).toBe(
+      'PDF · up to 10 MB.',
+    )
+  })
+
+  it('adds photo tips for a photo field, and never promises a bigger file than the server accepts', () => {
+    const text = uploadGuidance('IMAGE_UPLOAD', { allowedFormats: ['jpg', 'jpeg', 'png'], maxFileSizeMb: 50 })
+    expect(text).toContain('JPG, PNG · up to 10 MB')
+    expect(text).toContain('clear, well-lit photo at least 1000 px wide')
+    expect(text).toContain('We check every photo before printing')
+  })
+
+  it('still says something sensible when the product sets no limits', () => {
+    expect(uploadGuidance('IMAGE_UPLOAD', {})).toMatch(/^up to 10 MB\./)
   })
 })

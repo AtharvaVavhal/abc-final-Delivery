@@ -6,6 +6,7 @@ import { useUploadFile } from '@/hooks/useUploadFile'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { RequiredMark } from '@/components/ui/RequiredMark'
 import styles from './FileUploadField.module.css'
+import { uploadGuidance } from './uploadGuidance'
 
 function pickerLabel(type: CustomizationField['type']): string {
   switch (type) {
@@ -208,6 +209,11 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
         {field.isRequired && <RequiredMark />}
       </label>
       {field.helpText && <p className={styles.helpText}>{field.helpText}</p>}
+      {!selected && (
+        <p className={styles.helpText} id={`${field.id}-guidance`}>
+          {uploadGuidance(field.type, constraints)}
+        </p>
+      )}
 
       {/* Native picker stays in the tree (visually hidden) so the field
           label and Change action can open it. The visible control is the
@@ -224,6 +230,7 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
         disabled={upload.isPending}
         aria-invalid={Boolean(displayError)}
         aria-required={field.isRequired || undefined}
+        aria-describedby={!selected ? `${field.id}-guidance` : undefined}
         className="srOnly"
       />
 
@@ -234,6 +241,7 @@ export function FileUploadField({ field, value, onChange, error }: FileUploadFie
           onClick={handleChange}
           disabled={upload.isPending}
           aria-invalid={Boolean(displayError) || undefined}
+          aria-describedby={`${field.id}-guidance`}
         >
           <Upload size={18} strokeWidth={2} aria-hidden="true" />
           {pickerLabel(field.type)}
