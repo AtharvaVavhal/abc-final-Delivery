@@ -5,6 +5,7 @@ import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { BCRYPT_COST } from '../src/common/constants/app.constants';
 import { seedFreePlanCatalogue } from './free-plan-catalogue';
+import { seedStorefrontDomains } from './storefront-domains';
 import { withPlatformRlsBypass } from '../src/common/tenant/tenant-rls';
 import type { PrismaService } from '../src/common/database/prisma.service';
 
@@ -239,6 +240,9 @@ async function main(): Promise<void> {
           status: 'ACTIVE',
         },
       });
+
+      await seedStorefrontDomains(tx, { tenantId: tenant.id, storeId: store.id },
+        (process.env.SEED_STOREFRONT_HOSTNAMES ?? 'localhost,127.0.0.1').split(','));
 
       const subscription = await tx.subscription.upsert({
         where: { tenantId: tenant.id },
