@@ -77,7 +77,7 @@ describe('PhotoReviewPanel', () => {
     await user.click(await screen.findByRole('button', { name: 'Approve for production' }))
 
     await waitFor(() => expect(mock.history.patch).toHaveLength(1))
-    expect(JSON.parse(mock.history.patch[0].data)).toEqual({ decision: 'APPROVE' })
+    expect(JSON.parse(String(mock.history.patch[0].data))).toEqual({ decision: 'APPROVE' })
   })
 
   it('needs a note (at least 3 characters) before asking for a new photo, then sends it', async () => {
@@ -99,7 +99,7 @@ describe('PhotoReviewPanel', () => {
     await user.click(send)
 
     await waitFor(() => expect(mock.history.patch).toHaveLength(1))
-    expect(JSON.parse(mock.history.patch[0].data)).toEqual({
+    expect(JSON.parse(String(mock.history.patch[0].data))).toEqual({
       decision: 'REQUEST_CHANGES',
       note: 'abc dark',
     })
